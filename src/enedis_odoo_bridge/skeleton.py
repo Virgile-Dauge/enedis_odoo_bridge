@@ -120,6 +120,7 @@ def main(args):
     odoo = OdooAPI()
     #print(odoo.log_history)
     print(odoo.get_drafts())
+    odoo.write_log(r15.to_x_log_enedis())
     _logger.info("Script ends here")
 
 

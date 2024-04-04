@@ -27,6 +27,7 @@ class OdooAPI:
         
         logs = self.execute('x_log_enedis', 'search_read', [[]], {'fields': ['x_name']})
         self.log_history = [Path(l['x_name']).stem for l in logs]
+        _logger.info(f'{len(self.log_history)} x_log_enedis found in Odoo db.')
 
     def execute(self, model: str, method: str, *args, **kwargs) -> List:
         return self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
@@ -46,6 +47,12 @@ class OdooAPI:
         _logger.info(f'{len(drafts)} drafts invoices found.')
         # On ajoute le PDL à chaque facture d'énergie
         return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
+    
+    def write_log(self, log: Dict[str, str])-> int:
+        print(log)
+        log_id = self.execute('x_log_enedis', 'create', [log])
+        _logger.info(f'log {log_id} writen in Odoo db.')
+        return log_id
 
         
 
