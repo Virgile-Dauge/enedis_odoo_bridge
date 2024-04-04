@@ -26,6 +26,7 @@ import sys
 
 from enedis_odoo_bridge import __version__
 from R15Parser import R15Parser
+from OdooAPI import OdooAPI
 
 __author__ = "Virgile Daugé"
 __copyright__ = "Virgile Daugé"
@@ -112,10 +113,13 @@ def main(args):
     _logger.debug("Starting crazy calculations...")
     
     r15 = R15Parser(args.zp)
-    print(r15.name)
-    print(r15.date)
-    print(r15.data)
+    #print(r15.name)
+    #print(r15.date)
+    #print(r15.data)
     r15.to_csv()
+
+    odoo = OdooAPI()
+
     _logger.info("Script ends here")
 
 
