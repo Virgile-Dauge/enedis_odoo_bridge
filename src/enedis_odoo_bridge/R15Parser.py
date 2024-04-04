@@ -6,6 +6,8 @@ from utils import unzip
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
+import logging
+_logger = logging.getLogger(__name__)
 
 def get_meta(file_path: Path)->Dict: 
     """
@@ -49,7 +51,7 @@ class R15Parser:
         self.working_dir = unzip(path)
         # On identifie tous les xml extraits
         self.data = pd.concat([self.parse_one(l) for l in list(self.working_dir.glob('*.xml'))])
-    
+        _logger.info(f'{len(self.data)} records extracted from {self.archive_path}')
 
         
     def parse_one(self, xml_path: Path) -> pd.DataFrame:
