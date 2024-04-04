@@ -37,7 +37,13 @@ enedis_odoo_bridge
     Automate enedis flux parsing, then inject data into odoo
 
 
-A longer description of your project goes here...
+Need to create .env file :
+
+.. code-block:: bash
+    URL = "https://edn-test-2.odoo.com/"
+    DB = "edn-test-2"
+    USERNAME = "virgile.dauge@pm.me"
+    PASSWORD = "soooSeccuure"
 
 
 .. _pyscaffold-notes:
