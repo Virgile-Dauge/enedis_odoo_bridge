@@ -25,9 +25,10 @@ import logging
 import sys
 
 from enedis_odoo_bridge import __version__
+from R15Parser import R15Parser
 
-__author__ = "Virgile"
-__copyright__ = "Virgile"
+__author__ = "Virgile Daugé"
+__copyright__ = "Virgile Daugé"
 __license__ = "GPL-3.0-only"
 
 _logger = logging.getLogger(__name__)
@@ -39,21 +40,6 @@ _logger = logging.getLogger(__name__)
 # `from enedis_odoo_bridge.skeleton import fib`,
 # when using this Python module as a library.
 
-
-def fib(n):
-    """Fibonacci example function
-
-    Args:
-      n (int): integer
-
-    Returns:
-      int: n-th Fibonacci number
-    """
-    assert n > 0
-    a, b = 1, 1
-    for _i in range(n - 1):
-        a, b = b, a + b
-    return a
 
 
 # ---- CLI ----
@@ -78,7 +64,8 @@ def parse_args(args):
         action="version",
         version=f"enedis_odoo_bridge {__version__}",
     )
-    parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
+    #parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
+    parser.add_argument(dest="zp", help="zipfile path", type=str, metavar="STR")
     parser.add_argument(
         "-v",
         "--verbose",
@@ -123,7 +110,11 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
     _logger.debug("Starting crazy calculations...")
-    print(f"The {args.n}-th Fibonacci number is {fib(args.n)}")
+    
+    r15 = R15Parser(args.zp)
+    print(r15.name)
+    print(r15.date)
+    print(r15.data)
     _logger.info("Script ends here")
 
 
