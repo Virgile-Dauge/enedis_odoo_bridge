@@ -37,11 +37,14 @@ class OdooAPI:
         drafts = self.execute('account.move', 'search_read', 
         [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'],]], 
         {'fields': ['invoice_line_ids', 'date', 'x_order_id', ]})
-        bon_ids = [d['x_order_id'][0] for d in drafts]
+
         # Récupération des PDL
-        bons = self.execute('sale.order', 'read', [bon_ids], {'fields': ['x_pdl']})
-        #print(bons)
+        bons = self.execute('sale.order', 'read', 
+                            [[d['x_order_id'][0] for d in drafts]], 
+                            {'fields': ['x_pdl']})
+
         _logger.info(f'{len(drafts)} drafts invoices found.')
+        # On ajoute le PDL à chaque facture d'énergie
         return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
 
         
