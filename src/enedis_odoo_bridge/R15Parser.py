@@ -5,6 +5,7 @@ from typing import Dict, List
 from utils import unzip
 
 from datetime import datetime
+from enedis_odoo_bridge import __version__
 
 def get_meta(file_path: Path)->Dict: 
     """
@@ -25,7 +26,7 @@ def get_meta(file_path: Path)->Dict:
     type_flux = meta[1]
 
     if file_path.suffix == '.zip':
-        keys = 'emetteur Type destinataire num_contrat Instance_GRD num_seq horodatage'.split()
+        keys = 'emetteur Type destinataire num_contrat Instance_GRD num_seq date'.split()
         y, m, d, h, mm, s = map(int, [meta[6][:4], meta[6][4:6], meta[6][6:8], meta[6][8:10], meta[6][10:12], meta[6][12:]])
         meta[6] = datetime(y, m, d, h, mm, s)
         return {'path': file_path}|dict(zip(keys, meta))
@@ -43,7 +44,8 @@ class R15Parser:
     def __init__(self, path):
         self.archive_path = Path(path)
         self.name = self.archive_path.stem
-        self.date = get_meta(self.archive_path)['horodatage']
+        self.meta = get_meta(self.archive_path)
+        #self.date = get_meta(self.archive_path)['horodatage']
         self.working_dir = unzip(path)
         # On identifie tous les xml extraits
         self.data = pd.concat([self.parse_one(l) for l in list(self.working_dir.glob('*.xml'))])
@@ -102,3 +104,10 @@ class R15Parser:
     
     def to_csv(self) -> None:
         self.data.to_csv(self.working_dir.joinpath(self.archive_path.stem+'.csv'), index=False)
+
+    def to_x_log_enedis(self) -> Dict[str, str, str, str]:
+        # Création d'une entrée de logs pour le modèle x_log_enedis
+        return {'x_name': self.name,
+            'x_type': self.meta['Type'],
+            'x_date': self.meta['date'].isoformat().replace('T',' '),
+            'x_script_version': __version__}
