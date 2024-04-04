@@ -34,7 +34,6 @@ __license__ = "GPL-3.0-only"
 
 _logger = logging.getLogger(__name__)
 
-
 # ---- Python API ----
 # The functions defined in this section can be imported by users in their
 # Python scripts/interactive interpreter, e.g. via
@@ -114,12 +113,13 @@ def main(args):
     
     r15 = R15Parser(args.zp)
     #print(r15.name)
-    #print(r15.date)
+    #print(r15.to_x_log_enedis())
     #print(r15.data)
     r15.to_csv()
 
     odoo = OdooAPI()
-
+    #print(odoo.log_history)
+    print(odoo.get_drafts())
     _logger.info("Script ends here")
 
 
