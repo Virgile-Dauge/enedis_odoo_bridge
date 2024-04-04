@@ -32,7 +32,7 @@ class OdooAPI:
     def execute(self, model: str, method: str, *args, **kwargs) -> List:
         return self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
     
-    def get_drafts(self)-> Dict:
+    def get_drafts(self)-> List[Dict]:
         # TODO ajouter un booléen dans odoo qui dit si c'est une facture d'énergie ou non
         # ['x_isTruc', '=', 'True']
         drafts = self.execute('account.move', 'search_read', 
@@ -48,7 +48,7 @@ class OdooAPI:
         # On ajoute le PDL à chaque facture d'énergie
         return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
     
-    def write_log(self, log: Dict[str, str])-> int:
+    def write(self, model: str, log: Dict[str, str])-> List[int]:
         """
         Writes a log entry in the Odoo database.
 
@@ -59,10 +59,9 @@ class OdooAPI:
             int: The ID of the newly created log entry in the Odoo database.
 
         """
-        log_id = self.execute('x_log_enedis', 'create', [log])
-        _logger.info(f'log {log_id} writen in Odoo db.')
+        log_id = self.execute(model, 'create', [log])
+        _logger.info(f'{model} #{log_id} writen in Odoo db.')
         return log_id
-
 
         
 

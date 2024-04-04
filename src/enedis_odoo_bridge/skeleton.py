@@ -118,9 +118,24 @@ def main(args):
     r15.to_csv()
 
     odoo = OdooAPI()
-    #print(odoo.log_history)
-    print(odoo.get_drafts())
-    odoo.write_log(r15.to_x_log_enedis())
+
+    drafts = odoo.get_drafts()
+    pdls = [d['pdl'] for d in drafts]
+    odoo.write('x_log_enedis', r15.to_x_log_enedis())
+
+    filtre = (r15.data['Statut_Releve'] == 'INITIAL') & (r15.data['Motif_Releve'] == 'CYCL') & (r15.data['Motif_Releve_Precedent'].isin(['CYCL', 'MES', 'CFNE']))
+    consos = r15.data[filtre]
+    print(consos)
+
+    # On ne prends que des consos qui correspondent à nos PDLs
+    nos_consos = consos[consos['PRM'].isin(pdls)].set_index(['PRM'])
+
+    if len(nos_consos)<len(pdls):
+        # QUESTION : On fait quoi si on a moins de mesures que de factures ?
+        _logger.warning('Ca crains car len(nos_consos)<len(pdls)')
+    elif len(nos_consos)>len(pdls):
+        # QUESTION : On fait quoi si on a moins de factures que de mesures ?
+        _logger.warning('Ca crains car len(nos_consos)>len(pdls)')                    
     _logger.info("Script ends here")
 
 
