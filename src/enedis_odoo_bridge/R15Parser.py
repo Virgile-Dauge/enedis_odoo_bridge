@@ -99,3 +99,6 @@ class R15Parser:
                 res += [prm | dr]  # end for r
 
         return pd.DataFrame(res)
+    
+    def to_csv(self) -> None:
+        self.data.to_csv(self.working_dir.joinpath(self.archive_path.stem+'.csv'), index=False)

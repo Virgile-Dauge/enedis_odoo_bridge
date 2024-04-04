@@ -115,6 +115,7 @@ def main(args):
     print(r15.name)
     print(r15.date)
     print(r15.data)
+    r15.to_csv()
     _logger.info("Script ends here")
 
 
