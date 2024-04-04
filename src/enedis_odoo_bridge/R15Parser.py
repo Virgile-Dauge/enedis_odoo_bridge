@@ -105,7 +105,7 @@ class R15Parser:
     def to_csv(self) -> None:
         self.data.to_csv(self.working_dir.joinpath(self.archive_path.stem+'.csv'), index=False)
 
-    def to_x_log_enedis(self) -> Dict[str, str, str, str]:
+    def to_x_log_enedis(self) -> Dict[str, str]:
         # Création d'une entrée de logs pour le modèle x_log_enedis
         return {'x_name': self.name,
             'x_type': self.meta['Type'],
