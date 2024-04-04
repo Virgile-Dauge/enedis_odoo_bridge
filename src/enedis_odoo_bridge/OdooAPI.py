@@ -49,10 +49,20 @@ class OdooAPI:
         return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
     
     def write_log(self, log: Dict[str, str])-> int:
-        print(log)
+        """
+        Writes a log entry in the Odoo database.
+
+        Args:
+            log (Dict[str, str]): A dictionary containing the log entry data.
+
+        Returns:
+            int: The ID of the newly created log entry in the Odoo database.
+
+        """
         log_id = self.execute('x_log_enedis', 'create', [log])
         _logger.info(f'log {log_id} writen in Odoo db.')
         return log_id
+
 
         
 
