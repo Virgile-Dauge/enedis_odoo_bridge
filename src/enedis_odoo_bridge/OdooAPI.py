@@ -30,14 +30,13 @@ class OdooAPI:
         _logger.info(f'{len(self.log_history)} x_log_enedis found in Odoo db.')
 
     def execute(self, model: str, method: str, *args, **kwargs) -> List:
-        return self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
+        res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
+        return res if isinstance(res, list) else [res]
     
     def get_drafts(self)-> List[Dict]:
-        # TODO ajouter un booléen dans odoo qui dit si c'est une facture d'énergie ou non
-        # ['x_isTruc', '=', 'True']
         drafts = self.execute('account.move', 'search_read', 
-        [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'],]], 
-        {'fields': ['invoice_line_ids', 'date', 'x_order_id', ]})
+        [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
+        {'fields': ['invoice_line_ids', 'date', 'x_order_id', 'x_turpe']})
 
         # Récupération des PDL
         bons = self.execute('sale.order', 'read', 
@@ -45,6 +44,8 @@ class OdooAPI:
                             {'fields': ['x_pdl']})
 
         _logger.info(f'{len(drafts)} drafts invoices found.')
+        _logger.info(drafts)
+
         # On ajoute le PDL à chaque facture d'énergie
         return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
     
@@ -59,9 +60,11 @@ class OdooAPI:
             int: The ID of the newly created log entry in the Odoo database.
 
         """
-        log_id = self.execute(model, 'create', [log])
-        _logger.info(f'{model} #{log_id} writen in Odoo db.')
-        return log_id
+        id = self.execute(model, 'create', [log])
+        if not isinstance(id, list):
+            id = [int(id)]
+        _logger.info(f'{model} #{id} writen in Odoo db.')
+        return id
 
         
 
