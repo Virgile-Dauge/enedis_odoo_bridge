@@ -29,6 +29,8 @@ class OdooAPI:
         self.log_history = [Path(l['x_name']).stem for l in logs]
         _logger.info(f'{len(self.log_history)} x_log_enedis found in Odoo db.')
 
+        self.drafts = self.get_drafts()
+
     def execute(self, model: str, method: str, *args, **kwargs) -> List:
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
         return res if isinstance(res, list) else [res]
@@ -49,6 +51,22 @@ class OdooAPI:
         # On ajoute le PDL à chaque facture d'énergie
         return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
     
+    def get_lines(self)-> List[Dict]:
+        # On crée une liste de tuples (l, d_id)
+        lines = [(l, d['id'], d['pdl']) for d in self.drafts for l in d['invoice_line_ids']]
+        lines_ids, drafts_id, pdls = zip(*lines)
+        lines = self.execute('account.move.line', 'read', [lines_ids],
+                        {'fields': ['name', 'product_id', 'ref']})
+        prods_id = [l['product_id'][0] if l['product_id'] else False for l in lines]
+        _logger.info(prods_id)
+        prods = self.execute('product.product', 'read', [prods_id],
+                        {'fields': ['default_code']})
+        codes = [p['default_code'] for p in prods]
+        _logger.info(codes)
+
+        # On veut une dataframe|liste dict avec en ID les PDL, une colone ID_line, une colonne code_line
+        return [{'id': l, 'code': c, 'pdl': p} for l, c, p in zip(lines_ids, codes, pdls)]
+
     def write(self, model: str, log: Dict[str, str])-> List[int]:
         """
         Writes a log entry in the Odoo database.

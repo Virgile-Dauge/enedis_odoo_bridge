@@ -127,6 +127,8 @@ def main(args):
     consos = r15.data[filtre]
     print(consos)
 
+    print(odoo.get_lines())
+
     # On ne prends que des consos qui correspondent à nos PDLs
     nos_consos = consos[consos['PRM'].isin(pdls)].set_index(['PRM'])
 
