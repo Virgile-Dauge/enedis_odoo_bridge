@@ -23,6 +23,7 @@ References:
 import argparse
 import logging
 import sys
+import pandas as pd
 
 from enedis_odoo_bridge import __version__
 from R15Parser import R15Parser
@@ -117,27 +118,41 @@ def main(args):
     #print(r15.data)
     r15.to_csv()
 
-    odoo = OdooAPI()
+    releves = r15.data
 
+    
+    odoo = OdooAPI()
+    # TODO Inject releves in Odoo and get IDS
+    
     drafts = odoo.get_drafts()
     pdls = [d['pdl'] for d in drafts]
     odoo.write('x_log_enedis', r15.to_x_log_enedis())
 
-    filtre = (r15.data['Statut_Releve'] == 'INITIAL') & (r15.data['Motif_Releve'] == 'CYCL') & (r15.data['Motif_Releve_Precedent'].isin(['CYCL', 'MES', 'CFNE']))
-    consos = r15.data[filtre]
+    filtre = (releves['Statut_Releve'] == 'INITIAL') & (releves['Motif_Releve'] == 'CYCL') & (releves['Motif_Releve_Precedent'].isin(['CYCL', 'MES', 'CFNE']))
+    consos = releves[filtre]
     print(consos)
 
-    print(odoo.get_lines())
+    lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
+    #print(lines)
 
     # On ne prends que des consos qui correspondent à nos PDLs
-    nos_consos = consos[consos['PRM'].isin(pdls)].set_index(['PRM'])
+    #nos_consos = consos[consos['PRM'].isin(pdls)].set_index(['PRM'])
+    #nos_consos['PRM'] = nos_consos['PRM'].as_type(int)
 
-    if len(nos_consos)<len(pdls):
-        # QUESTION : On fait quoi si on a moins de mesures que de factures ?
-        _logger.warning('Ca crains car len(nos_consos)<len(pdls)')
-    elif len(nos_consos)>len(pdls):
-        # QUESTION : On fait quoi si on a moins de factures que de mesures ?
-        _logger.warning('Ca crains car len(nos_consos)>len(pdls)')                    
+    for d in drafts:
+        # TODO MAJ R15 parser to add a "reglo" or better named col
+        if d['pdl'] not in consos.index or ([d['pdl'] in consos.index
+                                                and 'reglo' in consos.columns
+                                                and consos.loc[d["pdl"], 'reglo']]):
+            _logger.warning(f'Pas de consommation pour {d["pdl"]}')
+        else:
+            #hph = nos_consos.at['pdl', 'HPH_conso']
+            #hch = nos_consos.at['pdl', 'HPH']
+            #hpb = nos_consos.at['pdl', 'HPH']
+            #hcp = nos_consos.at['pdl', 'HPH']
+            d[''] = consos.at[d["pdl"], 'reglo']
+            _logger.info(f'Consommation pour {d["pdl"]} : {consos.loc[d["pdl"], :]}')       
+         
     _logger.info("Script ends here")
 
 
