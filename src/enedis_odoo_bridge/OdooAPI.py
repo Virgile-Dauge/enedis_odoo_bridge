@@ -5,6 +5,7 @@ from xmlrpc.client import MultiCall
 
 from pathlib import Path
 from typing import Dict, List
+import pandas as pd
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class OdooAPI:
                             {'fields': ['x_pdl']})
 
         _logger.info(f'{len(drafts)} drafts invoices found.')
-        _logger.info(drafts)
+        #_logger.info(drafts)
 
         # On ajoute le PDL à chaque facture d'énergie
         return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
@@ -58,14 +59,15 @@ class OdooAPI:
         lines = self.execute('account.move.line', 'read', [lines_ids],
                         {'fields': ['name', 'product_id', 'ref']})
         prods_id = [l['product_id'][0] if l['product_id'] else False for l in lines]
-        _logger.info(prods_id)
+        #_logger.info(prods_id)
         prods = self.execute('product.product', 'read', [prods_id],
                         {'fields': ['default_code']})
         codes = [p['default_code'] for p in prods]
-        _logger.info(codes)
+        #_logger.info(codes)
 
         # On veut une dataframe|liste dict avec en ID les PDL, une colone ID_line, une colonne code_line
-        return [{'id': l, 'code': c, 'pdl': p} for l, c, p in zip(lines_ids, codes, pdls)]
+        _logger.info(f'{len(codes)} account.move.line found in Odoo db.')
+        return [{'id': l['id'], 'name': l['name'], 'code': c, 'pdl': p} for l, c, p in zip(lines, codes, pdls)]
 
     def write(self, model: str, log: Dict[str, str])-> List[int]:
         """
@@ -84,5 +86,8 @@ class OdooAPI:
         _logger.info(f'{model} #{id} writen in Odoo db.')
         return id
 
+    def write_releves(self, releves: pd.DataFrame)-> List[int]:
+        
+        return [0]
         
 
