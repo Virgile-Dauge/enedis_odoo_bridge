@@ -39,7 +39,7 @@ class OdooAPI:
     def get_drafts(self)-> List[Dict]:
         drafts = self.execute('account.move', 'search_read', 
         [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
-        {'fields': ['invoice_line_ids', 'date', 'x_order_id', 'x_turpe']})
+        {'fields': ['invoice_line_ids', 'date', 'x_order_id']})
 
         # Récupération des PDL
         bons = self.execute('sale.order', 'read', 
