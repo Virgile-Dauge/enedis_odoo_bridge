@@ -69,18 +69,18 @@ class OdooAPI:
         _logger.info(f'{len(codes)} account.move.line found in Odoo db.')
         return [{'id': l['id'], 'name': l['name'], 'code': c, 'pdl': p} for l, c, p in zip(lines, codes, pdls)]
 
-    def write(self, model: str, log: Dict[str, str])-> List[int]:
+    def write(self, model: str, entries: Dict[str, str])-> List[int]:
         """
-        Writes a log entry in the Odoo database.
+        Writes entries in the Odoo database.
 
         Args:
-            log (Dict[str, str]): A dictionary containing the log entry data.
+            log (Dict[str, str]): A dictionary containing the entries data.
 
         Returns:
-            int: The ID of the newly created log entry in the Odoo database.
+            int: The ID of the newly created entries in the Odoo database.
 
         """
-        id = self.execute(model, 'create', [log])
+        id = self.execute(model, 'create', [entries])
         if not isinstance(id, list):
             id = [int(id)]
         _logger.info(f'{model} #{id} writen in Odoo db.')
