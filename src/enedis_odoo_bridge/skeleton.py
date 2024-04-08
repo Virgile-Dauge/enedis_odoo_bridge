@@ -28,6 +28,8 @@ import pandas as pd
 from enedis_odoo_bridge import __version__
 from R15Parser import R15Parser
 from OdooAPI import OdooAPI
+from Turpe import Turpe
+
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
 
@@ -129,13 +131,14 @@ def main(args):
 
     releves = r15.data
     
-    
+    turpe = Turpe()
     odoo = OdooAPI()
     #inspect(odoo, methods=True)
     # TODO Inject releves in Odoo and get IDS
     #odoo.write_releves(releves)
 
     drafts = odoo.drafts
+    pd.DataFrame(drafts).to_csv('drafts.csv')
     pdls = [d['pdl'] for d in drafts]
     odoo.write('x_log_enedis', r15.to_x_log_enedis())
 
