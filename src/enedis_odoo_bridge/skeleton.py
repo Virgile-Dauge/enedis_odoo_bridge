@@ -139,30 +139,20 @@ def main(args):
     pdls = [d['pdl'] for d in drafts]
     odoo.write('x_log_enedis', r15.to_x_log_enedis())
 
-    consos = releves[releves['traitable_automatiquement'] == True]
+    consos = releves[releves['traitable_automatiquement'] == True].set_index(['pdl'])
     print(consos)
 
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
     #print(lines)
-
-    # On ne prends que des consos qui correspondent à nos PDLs
-    #nos_consos = consos[consos['PRM'].isin(pdls)].set_index(['PRM'])
-    #nos_consos['PRM'] = nos_consos['PRM'].as_type(int)
     
-
+    print(consos.index.values)
     for d in drafts:
-        # TODO MAJ R15 parser to add a "traitable_automatiquement" or better named col
-        if d['pdl'] not in consos.index or ([d['pdl'] in consos.index
-                                                and 'reglo' in consos.columns
-                                                and consos.loc[d["pdl"], 'reglo']]):
+        if d['pdl'] not in consos.index or (d['pdl'] in consos.index.values
+                                                and not consos.at[d["pdl"], 'traitable_automatiquement']):
             _logger.warning(f'Pas de consommation pour {d["pdl"]}')
-        else:
-            #hph = nos_consos.at['pdl', 'HPH_conso']
-            #hch = nos_consos.at['pdl', 'HPH']
-            #hpb = nos_consos.at['pdl', 'HPH']
-            #hcp = nos_consos.at['pdl', 'HPH']
-            d[''] = consos.at[d["pdl"], 'reglo']
-            _logger.info(f'Consommation pour {d["pdl"]} : {consos.loc[d["pdl"], :]}')       
+            continue
+
+        _logger.info(f'Consommation pour {d["pdl"]} : {consos.loc[d["pdl"], :]}')       
          
     _logger.info("Script ends here")
 
