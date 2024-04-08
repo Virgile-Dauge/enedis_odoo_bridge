@@ -68,7 +68,8 @@ class R15Parser:
             prms = xmltodict.parse(xml.read())['R15']['PRM']
 
         res = []
-        
+        if not isinstance(prms, list):
+            prms = [prms]
         for p in prms:
             prm = {'PRM': p['Id_PRM']}
             
@@ -88,8 +89,10 @@ class R15Parser:
                 # Data from the report, excluding measurements.
                 dr = {k: v for k, v in r.items() if not isinstance(v, list)}
 
-                # Measurements. ATTENTION: I KNOW THAT I DON'T KNOW IF I HAVE TO USE Classe_Temporelle OR Classe_Temporelle_Distributeur.
-                for m in r['Classe_Temporelle']:
+                # Measurements. ATTENTION: Je crois que :
+                # - 'Classe_Temporelle_Distributeur' donne 4 classes de conso quoi qu'il arrive,
+                # - 'Classe_Temporelle' dépend du contrat client.
+                for m in r['Classe_Temporelle_Distributeur']:
                     # Consumption.
                     if m['Classe_Mesure'] == '2':
                         #print({m['Id_Classe_Temporelle'] + '_conso': m['Valeur']})
