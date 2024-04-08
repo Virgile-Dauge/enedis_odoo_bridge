@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Dict, List
 from utils import unzip
+from rich.pretty import pretty_repr
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
@@ -44,6 +45,7 @@ class R15Parser:
     A class for unziping ZIP and parsing contained XML files from the Enedis R15 Flux.
     """
     def __init__(self, path):
+
         self.archive_path = Path(path)
         self.name = self.archive_path.stem
         self.meta = get_meta(self.archive_path)
@@ -71,7 +73,7 @@ class R15Parser:
         if not isinstance(prms, list):
             prms = [prms]
         for p in prms:
-            prm = {'PRM': p['Id_PRM']}
+            prm = {'pdl': p['Id_PRM']}
             
             # When a single report is available, it is transformed into a list.
             if not isinstance(p['Donnees_Releve'], list):
@@ -113,6 +115,14 @@ class R15Parser:
                     dr['Motif_Releve'] == 'CYCL',
                     'Motif_Releve_Precedent' in dr and dr['Motif_Releve_Precedent'] in ['CYCL', 'MES', 'CFNE'],
                     ])
+                if traitable_automatiquement:
+                    hph = float(dr['HPH_conso'])
+                    hch = float(dr['HCH_conso'])
+                    hpb = float(dr['HPB_conso'])
+                    hcb = float(dr['HCB_conso'])
+                    hp = hph + hpb
+                    hc = hch + hcb
+
                 res += [prm | dr | {'traitable_automatiquement': traitable_automatiquement}]
 
         return pd.DataFrame(res)
