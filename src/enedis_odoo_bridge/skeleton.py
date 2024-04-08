@@ -124,7 +124,7 @@ def main(args):
     odoo = OdooAPI()
     # TODO Inject releves in Odoo and get IDS
     
-    drafts = odoo.get_drafts()
+    drafts = odoo.drafts
     pdls = [d['pdl'] for d in drafts]
     odoo.write('x_log_enedis', r15.to_x_log_enedis())
 
@@ -138,6 +138,7 @@ def main(args):
     # On ne prends que des consos qui correspondent à nos PDLs
     #nos_consos = consos[consos['PRM'].isin(pdls)].set_index(['PRM'])
     #nos_consos['PRM'] = nos_consos['PRM'].as_type(int)
+    #odoo.write_releves(releves)
 
     for d in drafts:
         # TODO MAJ R15 parser to add a "reglo" or better named col
