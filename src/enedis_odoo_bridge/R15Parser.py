@@ -100,7 +100,17 @@ class R15Parser:
                         if 'Valeur_Precedent' in m:
                             dr[m['Id_Classe_Temporelle'] + '_index_p'] = m['Valeur_Precedent']
 
-                res += [prm | dr]  # end for r
+                # Défini si doit être traité automatiquement
+                traitable_automatiquement = all([
+                    'HPH_conso' in dr,
+                    'HCH_conso' in dr,
+                    'HPB_conso' in dr,
+                    'HCB_conso' in dr,
+                    dr['Statut_Releve'] == 'INITIAL',
+                    dr['Motif_Releve'] == 'CYCL',
+                    'Motif_Releve_Precedent' in dr and dr['Motif_Releve_Precedent'] in ['CYCL', 'MES', 'CFNE'],
+                    ])
+                res += [prm | dr | {'traitable_automatiquement': traitable_automatiquement}]
 
         return pd.DataFrame(res)
     

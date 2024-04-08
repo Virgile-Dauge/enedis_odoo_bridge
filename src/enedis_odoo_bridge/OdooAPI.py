@@ -87,7 +87,7 @@ class OdooAPI:
         return id
 
     def write_releves(self, releves: pd.DataFrame)-> List[int]:
-        
+        print(releves.columns)
         return [0]
         
 

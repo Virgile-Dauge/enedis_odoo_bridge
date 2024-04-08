@@ -98,7 +98,8 @@ def setup_logging(loglevel):
     Args:
       loglevel (int): minimum loglevel for emitting messages
     """
-    logformat = "[%(asctime)s] %(levelname)s:%(name)s: %(message)s"
+    #logformat = "[%(asctime)s] %(levelname)s:%(name)s: %(message)s"
+    logformat = "[%(asctime)s] %(message)s"
     logging.basicConfig(
         level=loglevel, #stream=sys.stdout, 
         format=logformat, datefmt="%Y-%m-%d %H:%M:%S",
@@ -132,13 +133,13 @@ def main(args):
     odoo = OdooAPI()
     #inspect(odoo, methods=True)
     # TODO Inject releves in Odoo and get IDS
-    
+    #odoo.write_releves(releves)
+
     drafts = odoo.drafts
     pdls = [d['pdl'] for d in drafts]
     odoo.write('x_log_enedis', r15.to_x_log_enedis())
 
-    filtre = (releves['Statut_Releve'] == 'INITIAL') & (releves['Motif_Releve'] == 'CYCL') & (releves['Motif_Releve_Precedent'].isin(['CYCL', 'MES', 'CFNE']))
-    consos = releves[filtre]
+    consos = releves[releves['traitable_automatiquement'] == True]
     print(consos)
 
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
@@ -147,10 +148,10 @@ def main(args):
     # On ne prends que des consos qui correspondent à nos PDLs
     #nos_consos = consos[consos['PRM'].isin(pdls)].set_index(['PRM'])
     #nos_consos['PRM'] = nos_consos['PRM'].as_type(int)
-    #odoo.write_releves(releves)
+    
 
     for d in drafts:
-        # TODO MAJ R15 parser to add a "reglo" or better named col
+        # TODO MAJ R15 parser to add a "traitable_automatiquement" or better named col
         if d['pdl'] not in consos.index or ([d['pdl'] in consos.index
                                                 and 'reglo' in consos.columns
                                                 and consos.loc[d["pdl"], 'reglo']]):
