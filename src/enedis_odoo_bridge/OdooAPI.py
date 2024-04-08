@@ -44,13 +44,13 @@ class OdooAPI:
         # Récupération des PDL
         bons = self.execute('sale.order', 'read', 
                             [[d['x_order_id'][0] for d in drafts]], 
-                            {'fields': ['x_pdl']})
+                            {'fields': ['x_pdl', 'x_puissance_souscrite']})
 
         _logger.info(f'{len(drafts)} drafts invoices found.')
         #_logger.info(drafts)
 
         # On ajoute le PDL à chaque facture d'énergie
-        return [d|{'pdl': p['x_pdl']} for d, p in zip(drafts, bons)] #if len(b['x_pdl'])==14
+        return [d|{'pdl': b['x_pdl'], 'puissance_souscrite': int(b['x_puissance_souscrite'])} for d, b in zip(drafts, bons)]
     
     def get_lines(self)-> List[Dict]:
         # On crée une liste de tuples (l, d_id)
