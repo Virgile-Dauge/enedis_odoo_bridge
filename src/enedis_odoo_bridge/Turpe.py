@@ -9,16 +9,16 @@ class Turpe:
     """
     A class for computing Turpe values.
     """
-    def __init__(self, path):
+    def __init__(self):
         load_dotenv()
         self.constants = {k: float(v) for k, v in os.environ.items() if k.startswith('TURPE_')}
         _logger.info(f'Turpe constants from .env : {pretty_repr(self.constants)}')
 
     def compute(self, releves: pd.DataFrame) -> pd.DataFrame:
         releves['turpe'] = sum([
-            releves['HPH_conso'].as_type(float)*self.constants['TURPE_TAUX_HPH_CU4'],
-            releves['HCH_conso'].as_type(float)*self.constants['TURPE_TAUX_HCH_CU4'],
-            releves['HPB_conso'].as_type(float)*self.constants['TURPE_TAUX_HPB_CU4'],
-            releves['HCB_conso'].as_type(float)*self.constants['TURPE_TAUX_HCB_CU4'],
+            releves['HPH_conso'].as_type(float)*self.constants['TURPE_TAUX_HPH_CU4']*0.01,
+            releves['HCH_conso'].as_type(float)*self.constants['TURPE_TAUX_HCH_CU4']*0.01,
+            releves['HPB_conso'].as_type(float)*self.constants['TURPE_TAUX_HPB_CU4']*0.01,
+            releves['HCB_conso'].as_type(float)*self.constants['TURPE_TAUX_HCB_CU4']*0.01,
             (releves['P'].as_type(float)+self.constants['TURPE_B_CU4']+self.constants['TURPE_CG']+self.constants['TURPE_CC'])/12])
         return releves
