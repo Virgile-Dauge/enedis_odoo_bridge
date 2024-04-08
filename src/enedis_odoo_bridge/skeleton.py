@@ -28,12 +28,18 @@ import pandas as pd
 from enedis_odoo_bridge import __version__
 from R15Parser import R15Parser
 from OdooAPI import OdooAPI
+from rich import print, pretty, inspect
+from rich.logging import RichHandler
+
+pretty.install()
 
 __author__ = "Virgile Daugé"
 __copyright__ = "Virgile Daugé"
 __license__ = "GPL-3.0-only"
 
 _logger = logging.getLogger(__name__)
+
+
 
 # ---- Python API ----
 # The functions defined in this section can be imported by users in their
@@ -94,7 +100,9 @@ def setup_logging(loglevel):
     """
     logformat = "[%(asctime)s] %(levelname)s:%(name)s: %(message)s"
     logging.basicConfig(
-        level=loglevel, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
+        level=loglevel, #stream=sys.stdout, 
+        format=logformat, datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[RichHandler(rich_tracebacks=True)]
     )
 
 
@@ -119,9 +127,10 @@ def main(args):
     r15.to_csv()
 
     releves = r15.data
-
+    
     
     odoo = OdooAPI()
+    #inspect(odoo, methods=True)
     # TODO Inject releves in Odoo and get IDS
     
     drafts = odoo.drafts
