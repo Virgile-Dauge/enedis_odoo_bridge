@@ -138,24 +138,30 @@ def main(args):
     #odoo.write_releves(releves)
 
     drafts = odoo.drafts
-    pd.DataFrame(drafts).to_csv('drafts.csv')
+    drafts_df = pd.DataFrame(drafts)
+    drafts_df.to_csv(r15.working_dir.joinpath('drafts.csv'))
+
     pdls = [d['pdl'] for d in drafts]
     odoo.write('x_log_enedis', r15.to_x_log_enedis())
 
     consos = releves[releves['traitable_automatiquement'] == True].set_index(['pdl'])
-    print(consos)
 
+    # On ajoute "puissance_souscrite" aux consos.
+    merged = pd.merge(drafts_df, consos, on='pdl')
+    merged.to_csv(r15.working_dir.joinpath('merged.csv'))
+
+    complete = turpe.compute(merged).set_index(['pdl'])
+    print(complete)
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
     #print(lines)
-    
-    print(consos.index.values)
+
     for d in drafts:
-        if d['pdl'] not in consos.index or (d['pdl'] in consos.index.values
-                                                and not consos.at[d["pdl"], 'traitable_automatiquement']):
+        if d['pdl'] not in complete.index or (d['pdl'] in complete.index.values
+                                                and not complete.at[d["pdl"], 'traitable_automatiquement']):
             _logger.warning(f'Pas de consommation pour {d["pdl"]}')
             continue
 
-        _logger.info(f'Consommation pour {d["pdl"]} : {consos.loc[d["pdl"], :]}')       
+        _logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')       
          
     _logger.info("Script ends here")
 

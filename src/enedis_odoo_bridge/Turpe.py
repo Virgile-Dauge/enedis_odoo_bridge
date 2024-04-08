@@ -16,9 +16,11 @@ class Turpe:
 
     def compute(self, releves: pd.DataFrame) -> pd.DataFrame:
         releves['turpe'] = sum([
-            releves['HPH_conso'].as_type(float)*self.constants['TURPE_TAUX_HPH_CU4']*0.01,
-            releves['HCH_conso'].as_type(float)*self.constants['TURPE_TAUX_HCH_CU4']*0.01,
-            releves['HPB_conso'].as_type(float)*self.constants['TURPE_TAUX_HPB_CU4']*0.01,
-            releves['HCB_conso'].as_type(float)*self.constants['TURPE_TAUX_HCB_CU4']*0.01,
-            (releves['P'].as_type(float)+self.constants['TURPE_B_CU4']+self.constants['TURPE_CG']+self.constants['TURPE_CC'])/12])
+            releves['HPH_conso'].astype(float)*self.constants['TURPE_TAUX_HPH_CU4']*0.01,
+            releves['HCH_conso'].astype(float)*self.constants['TURPE_TAUX_HCH_CU4']*0.01,
+            releves['HPB_conso'].astype(float)*self.constants['TURPE_TAUX_HPB_CU4']*0.01,
+            releves['HCB_conso'].astype(float)*self.constants['TURPE_TAUX_HCB_CU4']*0.01,
+            sum([releves['puissance_souscrite'].astype(float) * self.constants['TURPE_B_CU4'],
+                self.constants['TURPE_CG'],
+                self.constants['TURPE_CC']])/12])
         return releves
