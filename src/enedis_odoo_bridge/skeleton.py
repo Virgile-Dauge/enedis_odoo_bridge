@@ -24,6 +24,8 @@ import argparse
 import logging
 import sys
 import pandas as pd
+from datetime import date
+from calendar import monthrange
 
 from enedis_odoo_bridge import __version__
 from R15Parser import R15Parser
@@ -91,6 +93,11 @@ def parse_args(args):
         action="store_const",
         const=logging.DEBUG,
     )
+    parser.add_argument(
+        '-d',
+        '--date',
+        type=date.fromisoformat,
+    )
     return parser.parse_args(args)
 
 
@@ -123,10 +130,17 @@ def main(args):
     setup_logging(args.loglevel)
     _logger.debug("Starting crazy calculations...")
     
+    # Gestion des dates
+    if not args.date:
+        args.date = date.today()
+    starting_date = args.date.replace(day=1)
+    ending_date = args.date.replace(day = monthrange(args.date.year, args.date.month)[1])
+    print(str(starting_date), args.date, ending_date)
+
     r15 = R15Parser(args.zp)
     #print(r15.name)
     #print(r15.to_x_log_enedis())
-    #print(r15.data)
+    
     r15.to_csv()
 
     releves = r15.data
@@ -173,8 +187,8 @@ def main(args):
         print(to_update)
         # On enlève les dates de la ligne
         abo = to_update.loc['ABO', :]
-        lines_to_inject += [{'id': abo['id'], 'name': abo['name'].split('-')[0]}]
-        #print({'id': abo['id'], 'name': abo['name'].split('-')[0]})
+        lines_to_inject += [{'id': abo['id'], 'name': abo['name'].split('-')[0], 'deferred_start_date': str(starting_date), 'deferred_end_date': str(ending_date)}]
+        lines_to_inject += [{'id': to_update.at[False, 'id'], 'name': f"Dont {complete.at[d['pdl'],'turpe']} de taxes d'acheminement"}]
 
         if 'BASE' in to_update.index:
             lines_to_inject += [{'id': to_update.at['BASE', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HCH_conso', 'HPB_conso', 'HCB_conso']])}]
