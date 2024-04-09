@@ -133,6 +133,11 @@ def main(args):
     # Gestion des dates
     if not args.date:
         args.date = date.today()
+        # On cherche le mois précédent
+        if args.date.month == 1:
+            args.date = args.date.replace(month=12, year=args.date.year-1)
+        else:
+            args.date = args.date.replace(month=args.date.month-1)
     starting_date = args.date.replace(day=1)
     ending_date = args.date.replace(day = monthrange(args.date.year, args.date.month)[1])
 
