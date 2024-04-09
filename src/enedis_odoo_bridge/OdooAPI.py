@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os
 import xmlrpc.client
 from xmlrpc.client import MultiCall
-
+import numpy as np
 from pathlib import Path
 from typing import Dict, List
 import pandas as pd
@@ -86,6 +86,14 @@ class OdooAPI:
         _logger.info(f'{model} #{id} writen in Odoo db.')
         return id
 
+    def update(self, model: str, entries: Dict[str, str])-> None:
+        ids, entries = zip(*[[int(e['id']), {k: int(v)} if isinstance(v, np.int64) else {k: v} ] for e in entries for k, v in e.items() if k!= 'id'])
+        print(ids, entries)
+        #self.execute(model, 'write', [ids, entries])
+        for i, e in zip(ids, entries):
+        #    _logger.info(f'{model} #{i} updated in Odoo db.')
+        #    print(type(i), e)
+            self.execute(model, 'write', [[i], e])
     def write_releves(self, releves: pd.DataFrame)-> List[int]:
         print(releves.columns)
         return [0]
