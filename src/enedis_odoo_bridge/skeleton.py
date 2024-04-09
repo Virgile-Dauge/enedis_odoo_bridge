@@ -153,16 +153,38 @@ def main(args):
     complete = turpe.compute(merged).set_index(['pdl'])
     print(complete)
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
-    #print(lines)
 
+    # TODO Verif si pas deux valeurs de PDL identiques
+    pas_de_conso = [d['id'] for d in drafts if d['pdl'] not in complete.index or (d['pdl'] in complete.index.values
+                                                and not complete.at[d["pdl"], 'traitable_automatiquement'])]
+    _logger.warning(f'Pas de consommation pour les factures #{pas_de_conso}')
+
+    lines_to_inject = []
     for d in drafts:
         if d['pdl'] not in complete.index or (d['pdl'] in complete.index.values
                                                 and not complete.at[d["pdl"], 'traitable_automatiquement']):
-            _logger.warning(f'Pas de consommation pour {d["pdl"]}')
+            #_logger.warning(f'Pas de consommation pour {d["pdl"]}')
+            #pas_de_conso += [d['pdl']]
             continue
 
-        _logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')       
-         
+        _logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')
+        # TODO Inject lines in Odoo
+        to_update = lines.loc[d["pdl"]].set_index(['code'])
+        print(to_update)
+        # On enlève les dates de la ligne
+        abo = to_update.loc['ABO', :]
+        lines_to_inject += [{'id': abo['id'], 'name': abo['name'].split('-')[0]}]
+        #print({'id': abo['id'], 'name': abo['name'].split('-')[0]})
+
+        if 'BASE' in to_update.index:
+            lines_to_inject += [{'id': to_update.at['BASE', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HCH_conso', 'HPB_conso', 'HCB_conso']])}]
+
+        elif 'HP' in to_update.index and 'HC' in to_update.index:
+            lines_to_inject += [{'id': to_update.at['HP', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HPB_conso']])}]
+            lines_to_inject += [{'id': to_update.at['HC', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HCH_conso', 'HCB_conso']])}]
+
+    print(lines_to_inject)
+    odoo.update('account.move.line', lines_to_inject)     
     _logger.info("Script ends here")
 
 
