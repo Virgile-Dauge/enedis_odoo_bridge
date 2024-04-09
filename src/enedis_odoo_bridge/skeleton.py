@@ -135,7 +135,6 @@ def main(args):
         args.date = date.today()
     starting_date = args.date.replace(day=1)
     ending_date = args.date.replace(day = monthrange(args.date.year, args.date.month)[1])
-    print(str(starting_date), args.date, ending_date)
 
     r15 = R15Parser(args.zp)
     #print(r15.name)
@@ -156,8 +155,8 @@ def main(args):
     drafts_df.to_csv(r15.working_dir.joinpath('drafts.csv'))
 
     pdls = [d['pdl'] for d in drafts]
-    odoo.write('x_log_enedis', r15.to_x_log_enedis())
-
+    log_id = odoo.write('x_log_enedis', r15.to_x_log_enedis())[0]
+    print(log_id)
     consos = releves[releves['traitable_automatiquement'] == True].set_index(['pdl'])
 
     # On ajoute "puissance_souscrite" aux consos.
@@ -174,13 +173,15 @@ def main(args):
     _logger.warning(f'Pas de consommation pour les factures #{pas_de_conso}')
 
     lines_to_inject = []
+    invoices_to_inject = []
     for d in drafts:
         if d['pdl'] not in complete.index or (d['pdl'] in complete.index.values
                                                 and not complete.at[d["pdl"], 'traitable_automatiquement']):
             #_logger.warning(f'Pas de consommation pour {d["pdl"]}')
             #pas_de_conso += [d['pdl']]
             continue
-
+        
+        invoices_to_inject = [{'id': d['id'], 'x_log_id': log_id, 'x_turpe' : 9999}]
         _logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')
         # TODO Inject lines in Odoo
         to_update = lines.loc[d["pdl"]].set_index(['code'])
@@ -198,6 +199,7 @@ def main(args):
             lines_to_inject += [{'id': to_update.at['HC', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HCH_conso', 'HCB_conso']])}]
 
     print(lines_to_inject)
+    odoo.update('account.move', invoices_to_inject)
     odoo.update('account.move.line', lines_to_inject)     
     _logger.info("Script ends here")
 
