@@ -69,6 +69,7 @@ class R15Parser:
         with open(xml_path, 'r') as xml:
             prms = xmltodict.parse(xml.read())['R15']['PRM']
 
+        conso_k = ['HPH_conso', 'HCH_conso', 'HPB_conso', 'HCB_conso']
         res = []
         if not isinstance(prms, list):
             prms = [prms]
@@ -115,17 +116,16 @@ class R15Parser:
                     dr['Motif_Releve'] == 'CYCL',
                     'Motif_Releve_Precedent' in dr and dr['Motif_Releve_Precedent'] in ['CYCL', 'MES', 'CFNE'],
                     ])
-                if traitable_automatiquement:
-                    hph = float(dr['HPH_conso'])
-                    hch = float(dr['HCH_conso'])
-                    hpb = float(dr['HPB_conso'])
-                    hcb = float(dr['HCB_conso'])
-                    hp = hph + hpb
-                    hc = hch + hcb
 
                 res += [prm | dr | {'traitable_automatiquement': traitable_automatiquement}]
+        res_df = pd.DataFrame(res)
 
-        return pd.DataFrame(res)
+        # Conversion vers numériques.
+        for k in conso_k:
+            if k in res_df.columns:
+                res_df[k] = pd.to_numeric(res_df[k])
+
+        return res_df
     
     def to_csv(self) -> None:
         self.data.to_csv(self.working_dir.joinpath(self.archive_path.stem+'.csv'), index=False)
