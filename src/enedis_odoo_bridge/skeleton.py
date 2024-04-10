@@ -142,8 +142,6 @@ def main(args):
     ending_date = args.date.replace(day = monthrange(args.date.year, args.date.month)[1])
 
     r15 = R15Parser(args.zp)
-    #print(r15.name)
-    #print(r15.to_x_log_enedis())
     
     r15.to_csv()
 
@@ -151,7 +149,7 @@ def main(args):
     
     turpe = Turpe()
     odoo = OdooAPI()
-    #inspect(odoo, methods=True)
+
     # TODO Inject releves in Odoo and get IDS
     #odoo.write_releves(releves)
 
@@ -161,7 +159,7 @@ def main(args):
 
     pdls = [d['pdl'] for d in drafts]
     log_id = odoo.write('x_log_enedis', r15.to_x_log_enedis())[0]
-    print(log_id)
+
     consos = releves[releves['traitable_automatiquement'] == True].set_index(['pdl'])
 
     # On ajoute "puissance_souscrite" aux consos.
@@ -169,7 +167,6 @@ def main(args):
     merged.to_csv(r15.working_dir.joinpath('merged.csv'))
 
     complete = turpe.compute(merged).set_index(['pdl'])
-    print(complete)
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
 
     # TODO Verif si pas deux valeurs de PDL identiques
@@ -188,9 +185,9 @@ def main(args):
         
         invoices_to_inject = [{'id': d['id'], 'x_log_id': log_id, 'x_turpe' : 9999}]
         _logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')
-        # TODO Inject lines in Odoo
+
         to_update = lines.loc[d["pdl"]].set_index(['code'])
-        print(to_update)
+
         # On enlève les dates de la ligne
         abo = to_update.loc['ABO', :]
         lines_to_inject += [{'id': abo['id'], 'name': abo['name'].split('-')[0], 'deferred_start_date': str(starting_date), 'deferred_end_date': str(ending_date)}]
@@ -203,7 +200,6 @@ def main(args):
             lines_to_inject += [{'id': to_update.at['HP', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HPB_conso']])}]
             lines_to_inject += [{'id': to_update.at['HC', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HCH_conso', 'HCB_conso']])}]
 
-    print(lines_to_inject)
     odoo.update('account.move', invoices_to_inject)
     odoo.update('account.move.line', lines_to_inject)     
     _logger.info("Script ends here")

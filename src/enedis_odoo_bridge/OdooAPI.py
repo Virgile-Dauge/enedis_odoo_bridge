@@ -91,7 +91,6 @@ class OdooAPI:
         for e in entries:
             i = int(e['id'])
             del e['id']
-            print([[i], {k: int(v) if isinstance(v, np.int64) else v for k, v in e.items()}])
             self.execute(model, 'write', [[i], {k: int(v) if isinstance(v, np.int64) else v for k, v in e.items()}])
             id += [i]
 
