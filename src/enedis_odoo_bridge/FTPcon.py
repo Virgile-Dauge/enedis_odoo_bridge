@@ -20,6 +20,9 @@ class FTPCon:
 
     def download(self, type: str) -> Path:
         with Connection(self.address, username=self.username, password=self.password, port=22) as ftp:
+            if not type in self.remote_dirs.keys():
+                raise ValueError(f'Type {type} not found in {self.remote_dirs.keys()}')
+            
             local = Path('~/data/flux_enedis/').joinpath(type).expanduser()
             # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
             ftp.get_d('/flux_enedis/'+self.remote_dirs[type], local, resume=True)
