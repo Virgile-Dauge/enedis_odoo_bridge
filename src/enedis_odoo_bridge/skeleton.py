@@ -31,6 +31,7 @@ from enedis_odoo_bridge import __version__
 from R15Parser import R15Parser
 from OdooAPI import OdooAPI
 from Turpe import Turpe
+from FTPcon import FTPCon
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
@@ -76,7 +77,11 @@ def parse_args(args):
         version=f"enedis_odoo_bridge {__version__}",
     )
     #parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
-    parser.add_argument(dest="zp", help="zipfile path", type=str, metavar="STR")
+    parser.add_argument('-z', '--zip-path',
+        dest="zp", 
+        help="zipfile path", 
+        type=str, 
+        metavar="STR")
     parser.add_argument(
         "-v",
         "--verbose",
@@ -141,6 +146,10 @@ def main(args):
     starting_date = args.date.replace(day=1)
     ending_date = args.date.replace(day = monthrange(args.date.year, args.date.month)[1])
 
+    if not args.zp:
+        ftp = FTPCon()
+        ftp.download('R15')
+        exit()
     r15 = R15Parser(args.zp)
     
     r15.to_csv()
@@ -170,21 +179,19 @@ def main(args):
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
 
     # TODO Verif si pas deux valeurs de PDL identiques
-    pas_de_conso = [d['id'] for d in drafts if d['pdl'] not in complete.index or (d['pdl'] in complete.index.values
-                                                and not complete.at[d["pdl"], 'traitable_automatiquement'])]
-    _logger.warning(f'Pas de consommation pour les factures #{pas_de_conso}')
 
+    no_data = []
     lines_to_inject = []
     invoices_to_inject = []
     for d in drafts:
         if d['pdl'] not in complete.index or (d['pdl'] in complete.index.values
                                                 and not complete.at[d["pdl"], 'traitable_automatiquement']):
-            #_logger.warning(f'Pas de consommation pour {d["pdl"]}')
-            #pas_de_conso += [d['pdl']]
+            
+            no_data += [d['pdl']]
             continue
         
         invoices_to_inject = [{'id': d['id'], 'x_log_id': log_id, 'x_turpe' : 9999}]
-        _logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')
+        #_logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')
 
         to_update = lines.loc[d["pdl"]].set_index(['code'])
 
@@ -199,10 +206,13 @@ def main(args):
         elif 'HP' in to_update.index and 'HC' in to_update.index:
             lines_to_inject += [{'id': to_update.at['HP', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HPB_conso']])}]
             lines_to_inject += [{'id': to_update.at['HC', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HCH_conso', 'HCB_conso']])}]
+    if no_data:
+        _logger.warning(f'Pas de consommation pour les pdl suivants #{no_data}')
 
     odoo.update('account.move', invoices_to_inject)
     odoo.update('account.move.line', lines_to_inject)     
     _logger.info("Script ends here")
+    odoo.update('x_log_enedis', [{'id': log_id, 'x_log_term': 'coucou'}])
 
 
 def run():
