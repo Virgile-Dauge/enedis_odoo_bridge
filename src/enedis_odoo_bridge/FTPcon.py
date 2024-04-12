@@ -17,22 +17,13 @@ class FTPCon:
         remote_dirs (dict): A dictionary mapping directory names to their corresponding FTP paths.
 
     Methods:
-        __init__(self): Initializes the FTP connection and loads environment variables.
+        __init__(self): Loads environment variables.
         download(self, type: str) -> Path: Downloads a file from the specified directory and returns the local path.
     """
 
     def __init__(self):
         """
-        Initializes the FTP connection and loads environment variables.
-
-        Parameters:
-        None
-
-        Returns:
-        None
-
-        Raises:
-        ValueError: If the specified directory type is not found in the remote_dirs dictionary.
+        Loads environment variables.
         """
         load_dotenv()
 
@@ -48,10 +39,10 @@ class FTPCon:
         Downloads a file from the specified directory and returns the local path.
 
         Parameters:
-        type (str): The name of the directory to download from.
+        type (str): The code defining the type of flux to download. Either {R15 | C15 | F15}
 
         Returns:
-        Path: The local path of the downloaded file.
+        Path: The local path of directory containing all downloaded files.
 
         Raises:
         ValueError: If the specified directory type is not found in the remote_dirs dictionary.
