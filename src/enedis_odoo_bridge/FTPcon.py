@@ -6,24 +6,61 @@ from sftpretty import Connection
 
 #_logger = logging.getLogger(__name__)
 
-
 class FTPCon:
+    """
+    Class for handling FTP connections and downloading files.
+
+    Attributes:
+        address (str): The FTP server address.
+        username (str): The FTP username.
+        password (str): The FTP password.
+        remote_dirs (dict): A dictionary mapping directory names to their corresponding FTP paths.
+
+    Methods:
+        __init__(self): Initializes the FTP connection and loads environment variables.
+        download(self, type: str) -> Path: Downloads a file from the specified directory and returns the local path.
+    """
+
     def __init__(self):
+        """
+        Initializes the FTP connection and loads environment variables.
+
+        Parameters:
+        None
+
+        Returns:
+        None
+
+        Raises:
+        ValueError: If the specified directory type is not found in the remote_dirs dictionary.
+        """
         load_dotenv()
 
         self.address = os.getenv("FTP_ADDRESS")
         self.username = os.getenv("FTP_USER")
         self.password = os.getenv("FTP_PASSWORD")
         self.remote_dirs = {'R15': os.getenv("FTP_R15"), 
-                     'C15': os.getenv("FTP_C15"),
-                     'F15': os.getenv("FTP_F15")}
+                             'C15': os.getenv("FTP_C15"),
+                             'F15': os.getenv("FTP_F15")}
 
     def download(self, type: str) -> Path:
+        """
+        Downloads a file from the specified directory and returns the local path.
+
+        Parameters:
+        type (str): The name of the directory to download from.
+
+        Returns:
+        Path: The local path of the downloaded file.
+
+        Raises:
+        ValueError: If the specified directory type is not found in the remote_dirs dictionary.
+        """
+        if not type in self.remote_dirs.keys():
+            raise ValueError(f'Type {type} not found in {self.remote_dirs.keys()}')
+
+        local = Path('~/data/flux_enedis/').joinpath(type).expanduser()
+        # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
         with Connection(self.address, username=self.username, password=self.password, port=22) as ftp:
-            if not type in self.remote_dirs.keys():
-                raise ValueError(f'Type {type} not found in {self.remote_dirs.keys()}')
-            
-            local = Path('~/data/flux_enedis/').joinpath(type).expanduser()
-            # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
             ftp.get_d('/flux_enedis/'+self.remote_dirs[type], local, resume=True)
         return local.joinpath(self.remote_dirs[type])
