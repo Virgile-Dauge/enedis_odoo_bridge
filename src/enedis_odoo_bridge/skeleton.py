@@ -31,7 +31,7 @@ from enedis_odoo_bridge import __version__
 from R15Parser import R15Parser
 from OdooAPI import OdooAPI
 from Turpe import Turpe
-from FTPcon import FTPCon
+from utils import download
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
@@ -147,9 +147,10 @@ def main(args):
     ending_date = args.date.replace(day = monthrange(args.date.year, args.date.month)[1])
 
     if not args.zp:
-        ftp = FTPCon()
-        ftp.download('R15')
+        working_dir = download(['R15', 'F15'])
+        _logger.info(f'Working directory: {working_dir}')
         exit()
+    
     r15 = R15Parser(args.zp)
     
     r15.to_csv()
