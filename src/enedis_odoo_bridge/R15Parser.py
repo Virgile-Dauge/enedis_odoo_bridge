@@ -48,6 +48,10 @@ class R15Parser:
     def __init__(self, path):
 
         self.archive_path = Path(path)
+
+        if not self.archive_path.is_file():
+            raise FileNotFoundError(f'File {self.archive_path} not found.')
+        
         self.name = self.archive_path.stem
         self.meta = get_meta(self.archive_path)
         #self.date = get_meta(self.archive_path)['horodatage']

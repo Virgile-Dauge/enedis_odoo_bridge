@@ -29,3 +29,13 @@ def test_get_meta_without_zip_or_xml_suffix():
     file_path = Path('test_data/file_with_wrong_suffix.txt')
     with pytest.raises(ValueError):
         get_meta(file_path)
+
+
+
+@pytest.fixture
+def test_file_path() -> Path:
+    return Path(__file__).parent.joinpath('test_files', 'test_file.zip')
+
+def test_init_with_invalid_file_path(test_file_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        R15Parser('invalid_file_path.zip')
