@@ -20,7 +20,6 @@ def mock_env_turpe(monkeypatch):
 @pytest.fixture
 def mock_env_missing(monkeypatch):
     monkeypatch.setenv("TURPE_TAUX_HPH_CU4", '')
-    #monkeypatch.delitem(Turpe.constants, "TURPE_TAUX_HPH_CU4", raising=False)
 
 def test_init_env_missing(mock_env_missing):
     with pytest.raises(OSError):
