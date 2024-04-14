@@ -2,11 +2,12 @@ import xmltodict
 import pandas as pd
 from pathlib import Path
 from typing import Dict, List
-from utils import unzip
+
 from rich.pretty import pretty_repr
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
+from enedis_odoo_bridge.utils import unzip
 import logging
 _logger = logging.getLogger(__name__)
 

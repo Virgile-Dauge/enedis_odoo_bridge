@@ -25,13 +25,12 @@ import logging
 import sys
 import pandas as pd
 from datetime import date
-from calendar import monthrange
 
 from enedis_odoo_bridge import __version__
-from R15Parser import R15Parser
-from OdooAPI import OdooAPI
-from Turpe import Turpe
-from utils import download
+from enedis_odoo_bridge.R15Parser import R15Parser
+from enedis_odoo_bridge.OdooAPI import OdooAPI
+from enedis_odoo_bridge.Turpe import Turpe
+from enedis_odoo_bridge.utils import download, gen_dates
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
@@ -148,8 +147,7 @@ def main(args):
             args.date = args.date.replace(month=12, year=args.date.year-1)
         else:
             args.date = args.date.replace(month=args.date.month-1)
-    starting_date = args.date.replace(day=1)
-    ending_date = args.date.replace(day = monthrange(args.date.year, args.date.month)[1])
+    starting_date, ending_date = gen_dates(args.date)
 
     if not args.zp:
         working_dir = download(['R15', 'F15'])
