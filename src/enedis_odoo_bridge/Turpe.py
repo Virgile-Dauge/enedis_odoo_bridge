@@ -11,7 +11,7 @@ class Turpe:
     """
     def __init__(self):
         load_dotenv()
-        self.constants = {k: float(v) for k, v in os.environ.items() if k.startswith('TURPE_')}
+        self.constants = {k: float(v) for k, v in os.environ.items() if k.startswith('TURPE_') if v}
 
         required = ['TURPE_TAUX_HPH_CU4', 'TURPE_TAUX_HCH_CU4', 
                     'TURPE_TAUX_HPB_CU4', 'TURPE_TAUX_HCB_CU4', 

@@ -17,14 +17,14 @@ def mock_env_turpe(monkeypatch):
     monkeypatch.setenv("TURPE_CG", '6')
     monkeypatch.setenv("TURPE_CC", '7')
 
-#@pytest.fixture
-#def mock_env_missing(monkeypatch):
-    #monkeypatch.delenv("TURPE_TAUX_HPH_CU4", raising=False)
+@pytest.fixture
+def mock_env_missing(monkeypatch):
+    monkeypatch.setenv("TURPE_TAUX_HPH_CU4", '')
     #monkeypatch.delitem(Turpe.constants, "TURPE_TAUX_HPH_CU4", raising=False)
 
-#def test_init_env_missing(mock_env_missing):
-#    with pytest.raises(OSError):
-#        turpe = Turpe()
+def test_init_env_missing(mock_env_missing):
+    with pytest.raises(OSError):
+        turpe = Turpe()
 
 
 def test_compute_value_error(mock_env_turpe):
@@ -37,7 +37,7 @@ def test_compute_value_error(mock_env_turpe):
     turpe = Turpe()
     with pytest.raises(ValueError):
         turpe.compute(input_releves)
-        
+
 def test_compute(mock_env_turpe):
     # Arrange
     input_releves = pd.DataFrame({
