@@ -11,19 +11,21 @@ import logging
 _logger = logging.getLogger(__name__)
 
 class OdooAPI:
-    def __init__(self):
+    def __init__(self, sim=False):
         load_dotenv()
 
-        self.url = os.getenv("URL")
-        self.db = os.getenv("DB")
-        self.username = os.getenv("USERNAME")
-        self.password = os.getenv("PASSWORD")
+        self.url = str(os.getenv("URL"))
+        db = str(os.getenv("DB"))
+        self.db = db + '-duplicate' if sim else db
+        self.username = str(os.getenv("USERNAME"))
+        self.password = str(os.getenv("PASSWORD"))
 
         with xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/common') as common:
             #common.version()
             self.uid = common.authenticate(self.db, self.username, self.password, {})
 
         self.proxy = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
+        _logger.info(f'logged to {self.db} Odoo db.')
         # Récup des logs des appels de scripts précédents
         
         logs = self.execute('x_log_enedis', 'search_read', [[]], {'fields': ['x_name']})

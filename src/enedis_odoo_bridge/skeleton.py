@@ -82,6 +82,11 @@ def parse_args(args):
         help="zipfile path", 
         type=str, 
         metavar="STR")
+    parser.add_argument('-s', '--simulation',
+        dest="sim",
+        default=False,
+        action="store_true",
+        help="Perform odoo interactions on '-duplicated' database",)
     parser.add_argument(
         "-v",
         "--verbose",
@@ -158,7 +163,7 @@ def main(args):
     releves = r15.data
     
     turpe = Turpe()
-    odoo = OdooAPI()
+    odoo = OdooAPI(args.sim)
 
     # TODO Inject releves in Odoo and get IDS
     #odoo.write_releves(releves)
