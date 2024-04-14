@@ -3,8 +3,35 @@ import zipfile
 from dotenv import load_dotenv
 from pathlib import Path
 from sftpretty import Connection
+from datetime import date
+from calendar import monthrange
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
+
+def gen_dates(current: date) -> Tuple[date, date]:
+        # Gestion des dates
+    if not current:
+        current = date.today()
+        # On cherche le mois précédent
+        if current.month == 1:
+            current = current.replace(month=12, year=current.year-1)
+        else:
+            current = current.replace(month=current.month-1)
+    starting_date = current.replace(day=1)
+    ending_date = current.replace(day = monthrange(current.year, current.month)[1])
+    return starting_date, ending_date
+
+def pro_rata(start: date, end: date) -> float:
+
+    if end < start or (abs(end.month-start.month)> 1 and not (end.year-start.year==1 and start.month==12 and end.month==1)):
+        raise ValueError(f'Dates are not valid, end month must be same or next month of start month : {start} - {end}')
+    
+    if start.month == end.month:
+        return (end.day-start.day+1)/monthrange(start.year, start.month)[1]
+    
+    x = (monthrange(start.year, start.month)[1]+1 - start.day)/monthrange(start.year, start.month)[1]
+    y = (end.day)/monthrange(end.year, end.month)[1]
+    return  x + y
 
 def unzip(zip_path: str) -> Path:
     """
