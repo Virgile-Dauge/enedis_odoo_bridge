@@ -6,17 +6,17 @@ from sftpretty import Connection
 from datetime import date
 from calendar import monthrange
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
-def gen_dates(current: date) -> Tuple[date, date]:
-        # Gestion des dates
+def gen_dates(current: Union[date, None]) -> Tuple[date, date]:
     if not current:
         current = date.today()
-        # On cherche le mois précédent
-        if current.month == 1:
-            current = current.replace(month=12, year=current.year-1)
-        else:
-            current = current.replace(month=current.month-1)
+    
+    if current.month == 1:
+        current = current.replace(month=12, year=current.year-1)
+    else:
+        current = current.replace(month=current.month-1)
+        
     starting_date = current.replace(day=1)
     ending_date = current.replace(day = monthrange(current.year, current.month)[1])
     return starting_date, ending_date
