@@ -16,7 +16,7 @@ def gen_dates(current: Union[date, None]) -> Tuple[date, date]:
         current = current.replace(month=12, year=current.year-1)
     else:
         current = current.replace(month=current.month-1)
-        
+
     starting_date = current.replace(day=1)
     ending_date = current.replace(day = monthrange(current.year, current.month)[1])
     return starting_date, ending_date
@@ -89,7 +89,7 @@ def download(tasks: List[str]) -> Dict[str, Path]:
     completed_tasks = {}
     for type in tasks:
         if not type in remote_dirs.keys():
-            raise ValueError(f'Type {type} not found in {remote_dirs.keys()}')
+            raise ValueError(f'Type {type} not found in {list(remote_dirs.keys())}')
 
         distant = '/flux_enedis/' + str(remote_dirs[type])
         local = Path('~/data/flux_enedis/').joinpath(type).expanduser()

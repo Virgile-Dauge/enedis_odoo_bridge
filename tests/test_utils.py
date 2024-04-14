@@ -1,8 +1,10 @@
 import pytest
-
+import re
+from pathlib import Path
+from zipfile import ZipFile
 from datetime import date
-from calendar import monthrange
-from enedis_odoo_bridge.utils import gen_dates, pro_rata
+from dotenv import load_dotenv
+from enedis_odoo_bridge.utils import gen_dates, pro_rata, unzip, download
 
 __author__ = "Virgile"
 __copyright__ = "Virgile"
@@ -50,3 +52,27 @@ def test_pro_rata_invalid_dates():
         pro_rata(date(2022, 1, 15), date(2021, 1, 15))
 
 
+def test_unzip_no_file():
+    with pytest.raises(FileNotFoundError):
+        extracted_dir = unzip("test_data.zip")
+
+def test_unzip_function():
+    # Create a temporary zip file for testing
+    with ZipFile("test_data.zip", "w") as zip_file:
+        zip_file.writestr("test_file.txt", "This is a test file.")
+
+    # Call the function to be tested
+    extracted_dir = unzip("test_data.zip")
+
+    # Check if the function extracted the contents of the zip file to the specified directory
+    assert extracted_dir.exists()
+    assert extracted_dir.joinpath("test_file.txt").exists()
+
+    # Clean up the temporary zip file
+    Path("test_data.zip").unlink()
+
+def test_download_invalid_type():
+    tasks = ['InvalidType']
+    load_dotenv()
+    with pytest.raises(ValueError, match=re.escape("Type InvalidType not found in ['R15', 'C15', 'F15']")):
+        download(tasks)
