@@ -106,6 +106,14 @@ Pour des informations détaillées sur l'installation, la configuration et l'uti
 
 .. _pyscaffold-notes:
 
+Release on pypi 
+-------------
+
+Simply tag 
+
+.. code-block:: bash
+
+    git tag vx.x.x
 Note
 ====
 
