@@ -93,7 +93,10 @@ class OdooAPI:
         for e in entries:
             i = int(e['id'])
             del e['id']
-            self.execute(model, 'write', [[i], {k: int(v) if isinstance(v, np.int64) else v for k, v in e.items()}])
+            data = e
+            data = {k: int(v) if isinstance(v, np.int64) else v for k, v in data.items()}
+            data = {k: float(v) if isinstance(v, np.float64) else v for k, v in data.items()}
+            self.execute(model, 'write', [[i], data])
             id += [i]
 
         _logger.info(f'{model} #{id} writen in Odoo db.')
