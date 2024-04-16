@@ -39,12 +39,71 @@ enedis_odoo_bridge
 
 Need to create .env file :
 
-::
-    URL = "https://edn-test-2.odoo.com/"
-    DB = "edn-test-2"
-    USERNAME = "virgile.dauge@pm.me"
-    PASSWORD = "soooSeccuure"
+Bienvenue dans la Documentation du Pont Enedis Odoo
+==================================================
 
+Introduction
+------------
+
+Le Pont Enedis Odoo est un module Python puissant conçu pour rationaliser l'intégration des données entre Enedis (anciennement ERDF) et Odoo, un système ERP open-source. Ce pont simplifie le processus d'accès et de gestion des données de consommation d'énergie dans Odoo, permettant aux utilisateurs de prendre des décisions éclairées et d'optimiser efficacement l'utilisation de l'énergie.
+
+Fonctionnalités Principales
+---------------------------
+
+- **Récupére les Flux Enedis depuis un Sftp** :
+- **TODO Déchiffre les zip** :
+- **Extrait les zip en xml** :
+- **Parse les XML des Flux** : R15, plus à venir
+- **Récupére Depuis Odoo les Factures brouillon** :
+- **Édite les lignes de factures avec les consos** :
+
+Pour Commencer
+--------------
+
+Installation
+^^^^^^^^^^^^
+
+Pour commencer, installez simplement le module `enedis_odoo_bridge` en utilisant pip :
+
+.. code-block:: bash
+
+    pip install enedis_odoo_bridge
+
+Configuration
+^^^^^^^^^^^^^
+
+Configurez le script en remplissant un fichier .env à la racine du module
+
+.. code-block:: bash
+
+    URL = "https://truc.odoo.com/"
+    DB = "truc"
+    USERNAME = "truc@truc.com"
+    PASSWORD = "truc"
+    TURPE_TAUX_HPH_CU4 = 6.67
+    TURPE_TAUX_HCH_CU4 = 4.56
+    TURPE_TAUX_HPB_CU4 = 1.43
+    TURPE_TAUX_HCB_CU4 = 0.88   
+    TURPE_B_CU4 = 9.00
+    TURPE_CG = 15.48
+    TURPE_CC = 19.92
+    FTP_ADDRESS = xxx.xxx.xxx.xxx
+    FTP_USER = truc
+    FTP_PASSWORD = truc
+    FTP_R15 = R15 ¿ R16
+    FTP_C15 = C15
+    FTP_F15 = F15
+    ENEDIS_CIPHER = truc
+
+Utilisation
+^^^^^^^^^^^
+
+
+
+Documentation
+-------------
+
+Pour des informations détaillées sur l'installation, la configuration et l'utilisation du module, veuillez consulter notre `Documentation`_
 
 .. _pyscaffold-notes:
 
