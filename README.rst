@@ -112,8 +112,8 @@ Release on pypi
 Simply tag 
 
 .. code-block:: bash
-
-    git tag vx.x.x
+    git tag -a v0.1.0 -m "first release"
+    
 Note
 ====
 
