@@ -142,11 +142,6 @@ def main(args):
     # Gestion des dates
     if not args.date:
         args.date = date.today()
-        # On cherche le mois précédent
-        if args.date.month == 1:
-            args.date = args.date.replace(month=12, year=args.date.year-1)
-        else:
-            args.date = args.date.replace(month=args.date.month-1)
     starting_date, ending_date = gen_dates(args.date)
 
     if not args.zp:
@@ -194,7 +189,10 @@ def main(args):
             no_data += [d['pdl']]
             continue
         
-        invoices_to_inject = [{'id': d['id'], 'x_log_id': log_id, 'x_turpe' : 9999}]
+        invoices_to_inject = [{'id': d['id'], 'x_log_id': log_id, 
+                               'x_turpe' : complete.at[d['pdl'],'turpe'], 
+                               'x_type_compteur': complete.at[d['pdl'],'Type_Compteur'],
+                               'x_scripted': True}]
         #_logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')
 
         to_update = lines.loc[d["pdl"]].set_index(['code'])
@@ -202,7 +200,7 @@ def main(args):
         # On enlève les dates de la ligne
         abo = to_update.loc['ABO', :]
         lines_to_inject += [{'id': abo['id'], 'name': abo['name'].split('-')[0], 'deferred_start_date': str(starting_date), 'deferred_end_date': str(ending_date)}]
-        lines_to_inject += [{'id': to_update.at[False, 'id'], 'name': f"Dont {complete.at[d['pdl'],'turpe']} de taxes d'acheminement"}]
+        lines_to_inject += [{'id': to_update.at[False, 'id'], 'name': f"Dont {round(complete.at[d['pdl'],'turpe'], 2)}€ de taxes d'acheminement"}]
 
         if 'BASE' in to_update.index:
             lines_to_inject += [{'id': to_update.at['BASE', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HCH_conso', 'HPB_conso', 'HCB_conso']])}]
