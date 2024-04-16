@@ -97,7 +97,7 @@ def download(tasks: List[str]) -> Dict[str, Path]:
 
         # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
         with Connection(address, username=username, password=password, port=22) as ftp:
-            ftp.get_d(distant, local, resume=True)
+            ftp.get_d(distant, local, resume=True, workers=10)
 
         completed_tasks[type] = local
 
