@@ -33,7 +33,7 @@ def pro_rata(start: date, end: date) -> float:
     y = (end.day)/monthrange(end.year, end.month)[1]
     return  x + y
 
-def unzip(zip_path: str) -> Path:
+def unzip(zip_path: Path) -> Path:
     """
     Extracts the contents of the given zip file to a specified directory.
 
@@ -54,13 +54,14 @@ def unzip(zip_path: str) -> Path:
     print(extracted_dir)  # Output: '/path/to/myfile/'
     ```
     """
-    if not Path(zip_path).exists():
+    if not zip_path.exists():
         raise FileNotFoundError(f'File {zip_path} not found.')
     
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         out = Path(zip_path).parent.joinpath(Path(zip_path).stem)
         #print(f'creating {out} directory and extracting')
         out.mkdir(exist_ok=True)
+
         zip_ref.extractall(out)
         return out
     

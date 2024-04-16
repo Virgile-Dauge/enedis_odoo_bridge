@@ -55,7 +55,7 @@ class R15Parser:
         self.name = self.archive_path.stem
         self.meta = get_meta(self.archive_path)
         #self.date = get_meta(self.archive_path)['horodatage']
-        self.working_dir = unzip(path)
+        self.working_dir = unzip(Path(path))
         # On identifie tous les xml extraits
         self.data = pd.concat([self.parse_one(l) for l in list(self.working_dir.glob('*.xml'))])
         _logger.info(f'{len(self.data)} records extracted from {self.archive_path}')
