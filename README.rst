@@ -37,7 +37,6 @@ enedis_odoo_bridge
     Automate enedis flux parsing, then inject data into odoo
 
 
-Need to create .env file :
 
 Bienvenue dans la Documentation du Pont Enedis Odoo
 ==================================================
@@ -67,7 +66,7 @@ Pour commencer, installez simplement le module `enedis_odoo_bridge` en utilisant
 
 .. code-block:: bash
 
-    pip install enedis_odoo_bridge
+    pip install enedis-odoo-bridge
 
 Configuration
 ^^^^^^^^^^^^^
