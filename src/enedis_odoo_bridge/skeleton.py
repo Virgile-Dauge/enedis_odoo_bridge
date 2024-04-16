@@ -137,6 +137,7 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
+
     _logger.debug("Starting crazy calculations...")
     
     # Gestion des dates
@@ -158,15 +159,12 @@ def main(args):
     turpe = Turpe()
     odoo = OdooAPI(args.sim)
 
-    # TODO Inject releves in Odoo and get IDS
-    #odoo.write_releves(releves)
-
     drafts = odoo.drafts
     drafts_df = pd.DataFrame(drafts)
     drafts_df.to_csv(r15.working_dir.joinpath('drafts.csv'))
 
-    pdls = [d['pdl'] for d in drafts]
-    log_id = odoo.write('x_log_enedis', r15.to_x_log_enedis())[0]
+    # Deprecated since logs will not be written in odoo anymore
+    #log_id = odoo.write('x_log_enedis', r15.to_x_log_enedis())[0]
 
     consos = releves[releves['traitable_automatiquement'] == True].set_index(['pdl'])
 
@@ -177,7 +175,7 @@ def main(args):
     complete = turpe.compute(merged).set_index(['pdl'])
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
 
-    # TODO Verif si pas deux valeurs de PDL identiques
+    # TODO Faire des Vérifications sur les données
 
     no_data = []
     lines_to_inject = []
@@ -193,7 +191,6 @@ def main(args):
                                'x_turpe' : complete.at[d['pdl'],'turpe'], 
                                'x_type_compteur': complete.at[d['pdl'],'Type_Compteur'],
                                'x_scripted': True}]
-        #_logger.info(f'Consommation pour {d["pdl"]} : {complete.loc[d["pdl"], :]}')
 
         to_update = lines.loc[d["pdl"]].set_index(['code'])
 
@@ -214,7 +211,6 @@ def main(args):
     odoo.update('account.move', invoices_to_inject)
     odoo.update('account.move.line', lines_to_inject)     
     _logger.info("Script ends here")
-    odoo.update('x_log_enedis', [{'id': log_id, 'x_log_term': 'coucou'}])
 
 
 def run():
