@@ -45,7 +45,7 @@ Bienvenue dans la Documentation du Pont Enedis Odoo
 Introduction
 ------------
 
-Le Pont Enedis Odoo est un module Python puissant conçu pour rationaliser l'intégration des données entre Enedis (anciennement ERDF) et Odoo, un système ERP open-source. Ce pont simplifie le processus d'accès et de gestion des données de consommation d'énergie dans Odoo, permettant aux utilisateurs de prendre des décisions éclairées et d'optimiser efficacement l'utilisation de l'énergie.
+Le Pont Enedis Odoo est un module Python permettant l'intégration des données d'Enedis dans Odoo, un système ERP open-source.
 
 Fonctionnalités Principales
 ---------------------------
