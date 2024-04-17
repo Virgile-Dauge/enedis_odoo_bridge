@@ -215,14 +215,10 @@ class EnedisFluxEngine:
         :return: The total consumption for the specified period, on each 
         :rtype: pd.DataFrame
 
-        Idée : On filtre les relevés de la période, avec Statut_Releve = 'INITIAL'. 
-        On les regroupe par pdl, puis pour chaque groupe, 
-            on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.
-
-            Pour l'instant on ne vérifie rien. Voyons quelques cas :
-            - Si pas de relevés ?
-            - Si un seul relevé, conso = 0
-            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
+        On affiche l'estimation commandée,
+        On appelle la fonction estimate_consumption de la stratégie définie.
+        On affiche un rapport de l'estimation.
+        On retourne la liste des consommations pour chaque PDL.
         """
         
         if not self.data:
