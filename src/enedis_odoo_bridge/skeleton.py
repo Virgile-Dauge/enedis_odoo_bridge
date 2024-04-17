@@ -152,7 +152,8 @@ def main(args):
     if args.enedis_engine:
         _logger.debug("Starting Enedis engine...")
         engine = EnedisFluxEngine(flux=['R15'])
-        engine.estimate_consumption(start=starting_date, end=ending_date)
+        conso = engine.estimate_consumption(start=starting_date, end=ending_date)
+        _logger.debug(f"{conso}")
         exit()
     
     _logger.debug("Starting crazy calculations...")
