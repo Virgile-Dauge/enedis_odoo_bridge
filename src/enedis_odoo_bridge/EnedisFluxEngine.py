@@ -87,7 +87,7 @@ class EnedisFluxEngine:
             if not to_add:
                 if r15 is not None:
                     res[flux_type] = r15
-                _logger.info(f'No new files for {flux_type}')
+                _logger.info(f'└── No new files for {flux_type}')
                 continue
             # TODO adaptation dynamique en fonction du type de flux
             parsed = [R15Parser(a) for a in to_add]
@@ -168,20 +168,28 @@ class EnedisFluxEngine:
             - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
         """
         # On veut inclure les journées de début et de fin de la période.
-        start_np = pd.to_datetime(datetime.combine(start, datetime.min.time()))
-        end_np = np.datetime64(datetime.combine(end, datetime.max.time()))
+        start_pd = pd.to_datetime(datetime.combine(start, datetime.min.time()))
+        end_pd = pd.to_datetime(datetime.combine(end, datetime.max.time()))
 
-        _logger.info(f'Estimating consumption: from {start_np} to {end_np}')
+        _logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
         df = self.data['R15']
         # TODO gérer les timezones pour plus grande précision de l'estimation
         df['Date_Releve'] = df['Date_Releve'].dt.tz_convert(None)
 
-        df = df.loc[(df['Date_Releve'] >= start_np) & (df['Date_Releve'] <= end_np)]
-        initial = df[df['Statut_Releve'] == 'INITIAL']
+        initial = df.loc[(df['Date_Releve'] >= start_pd)
+                    & (df['Date_Releve'] <= end_pd)
+                    & (df['Statut_Releve'] == 'INITIAL')]
 
         # TODO Compter le nombre de jours manquants.
         # TODO Ajouter la moyenne des consos/jours*nb jours manquants pour chaque pdl
-        consos = {k+'_conso': initial.groupby('pdl')[k+'_index'].max()-initial.groupby('pdl')[k+'_index'].min() for k in ['HPH', 'HCH', 'HPB', 'HCB']}
-        _logger.info(f"Succesfully Estimated consumption of {len(initial)} PDLs.")
- 
-        return pd.DataFrame(consos)
+        pdls = initial.groupby('pdl')
+
+        # Pour chaque pdl, on fait la différence entre le plus grand et le plus petit des index pour chaque classe de conso.
+        consos = pd.DataFrame({k+'_conso': pdls[k+'_index'].max()-pdls[k+'_index'].min() 
+                               for k in ['HPH', 'HCH', 'HPB', 'HCB']})
+        if len(consos)>0:
+            _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
+        else:
+            _logger.warn(f"└── Failed to Estimate consumption of any PDLs.")
+        consos.to_csv(self.root_path.joinpath('R15').joinpath('estimated_consumption.csv'))
+        return consos
