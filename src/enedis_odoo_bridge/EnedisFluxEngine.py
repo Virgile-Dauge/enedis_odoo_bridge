@@ -36,7 +36,10 @@ class EnedisFluxEngine:
         """
         self.root_path = Path(path).expanduser()
         self.flux = flux
-
+        self.supported_flux = ['R15']
+        for f in flux:
+            if f not in self.supported_flux:
+                raise ValueError(f'Flux type {f} not supported.')
         
         if not self.root_path.is_dir():
             raise FileNotFoundError(f'File {self.root_path} not found.')
