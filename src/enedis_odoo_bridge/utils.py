@@ -5,8 +5,10 @@ from pathlib import Path
 from sftpretty import Connection
 from datetime import date
 from calendar import monthrange
+import hashlib
+import json
 
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Any
 
 def gen_dates(current: Union[date, None]) -> Tuple[date, date]:
     if not current:
@@ -102,3 +104,33 @@ def download(tasks: List[str]) -> Dict[str, Path]:
         completed_tasks[type] = local
 
     return completed_tasks
+
+def calculate_checksum(file_path: Path) -> str:
+    # Initialize SHA-256 hash object
+    sha256 = hashlib.sha256()
+
+    # Open file in binary mode
+    with open(file_path, "rb") as file:
+        # Read file in chunks to handle large files
+        for chunk in iter(lambda: file.read(4096), b""):
+            # Update hash object with current chunk
+            sha256.update(chunk)
+
+    # Return hexadecimal representation of hash
+    return sha256.hexdigest()
+
+def file_changed(file_path: Path, stored_checksum: str) -> bool:
+    # Calculate checksum of current archive
+    current_checksum = calculate_checksum(file_path)
+
+    # Compare current checksum with stored checksum
+    return current_checksum != stored_checksum
+
+def is_valid_json(json_string: str) -> bool:
+    try:
+        # Essayez de charger le JSON
+        json.loads(json_string)
+    except ValueError as e:
+        # Si une erreur se produit, le JSON n'est pas valide
+        return False
+    return True

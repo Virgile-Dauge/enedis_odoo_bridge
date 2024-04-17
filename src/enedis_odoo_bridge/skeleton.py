@@ -28,6 +28,7 @@ from datetime import date
 
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.R15Parser import R15Parser
+from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.Turpe import Turpe
 from enedis_odoo_bridge.utils import download, gen_dates
@@ -86,6 +87,11 @@ def parse_args(args):
         default=False,
         action="store_true",
         help="Perform odoo interactions on '-duplicated' database",)
+    parser.add_argument('-e', '--enedis-engine',
+        dest="enedis_engine",
+        default=False,
+        action="store_true",
+        help="Enedis Flux engine",)
     parser.add_argument(
         "-v",
         "--verbose",
@@ -138,15 +144,20 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
 
-    _logger.debug("Starting crazy calculations...")
+    if args.enedis_engine:
+        _logger.debug("Starting Enedis engine...")
+        engine = EnedisFluxEngine(flux=['R15'])
+        _logger.info(f'WLoaded data: {engine.data}')
+        exit()
     
+    _logger.debug("Starting crazy calculations...")
     # Gestion des dates
     if not args.date:
         args.date = date.today()
     starting_date, ending_date = gen_dates(args.date)
 
     if not args.zp:
-        working_dir = download(['R15', 'F15'])
+        working_dir = download(['R15'])
         _logger.info(f'Working directory: {working_dir}')
         exit()
     
