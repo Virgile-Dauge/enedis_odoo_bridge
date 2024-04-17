@@ -75,6 +75,7 @@ class R15Parser:
             prms = xmltodict.parse(xml.read())['R15']['PRM']
 
         conso_k = ['HPH_conso', 'HCH_conso', 'HPB_conso', 'HCB_conso']
+        index_k = ['HPH_index', 'HCH_index', 'HPB_index', 'HCB_index']
         res = []
         if not isinstance(prms, list):
             prms = [prms]
@@ -126,7 +127,7 @@ class R15Parser:
         res_df = pd.DataFrame(res)
 
         # Conversion vers numériques.
-        for k in conso_k:
+        for k in conso_k+index_k:
             if k in res_df.columns:
                 res_df[k] = pd.to_numeric(res_df[k])
         # Conversion des dates.
