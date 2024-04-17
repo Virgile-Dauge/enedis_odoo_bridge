@@ -152,6 +152,7 @@ def main(args):
     if args.enedis_engine:
         _logger.debug("Starting Enedis engine...")
         engine = EnedisFluxEngine(flux=['R15'])
+        #engine.fetch()
         conso = engine.estimate_consumption(start=starting_date, end=ending_date)
         _logger.debug(f"{conso}")
         exit()
@@ -201,7 +202,7 @@ def main(args):
             no_data += [d['pdl']]
             continue
         
-        invoices_to_inject = [{'id': d['id'], 'x_log_id': log_id, 
+        invoices_to_inject = [{'id': d['id'], #'x_log_id': log_id, 
                                'x_turpe' : complete.at[d['pdl'],'turpe'], 
                                'x_type_compteur': complete.at[d['pdl'],'Type_Compteur'],
                                'x_scripted': True}]
