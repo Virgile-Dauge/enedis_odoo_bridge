@@ -67,7 +67,7 @@ def unzip(zip_path: Path) -> Path:
         zip_ref.extractall(out)
         return out
     
-def download(tasks: List[str]) -> Dict[str, Path]:
+def download(tasks: List[str], local: Path=Path('~/data/flux_enedis/')) -> Dict[str, Path]:
     """
     Downloads a specified directory from the ftp and returns the local path.
 
@@ -95,7 +95,7 @@ def download(tasks: List[str]) -> Dict[str, Path]:
             raise ValueError(f'Type {type} not found in {list(remote_dirs.keys())}')
 
         distant = '/flux_enedis/' + str(remote_dirs[type])
-        local = Path('~/data/flux_enedis/').joinpath(type).expanduser()
+        local = local.joinpath(type).expanduser()
 
         # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
         with Connection(address, username=username, password=password, port=22) as ftp:
