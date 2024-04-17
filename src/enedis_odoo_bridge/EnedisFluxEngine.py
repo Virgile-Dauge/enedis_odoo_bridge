@@ -155,8 +155,17 @@ class EnedisFluxEngine:
         :type start: date
         :param end: The end date of the period.
         :type end: date
-        :return: The total consumption for the specified period.
-        :rtype: float
+        :return: The total consumption for the specified period, on each 
+        :rtype: pd.DataFrame
+
+        Idée : On filtre les relevés de la période, avec Statut_Releve = 'INITIAL'. 
+        On les regroupe par pdl, puis pour chaque groupe, 
+            on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.
+
+            Pour l'instant on ne vérifie rien. Voyons quelques cas :
+            - Si pas de relevés ?
+            - Si un seul relevé, conso = 0
+            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
         """
         # On veut inclure les journées de début et de fin de la période.
         start_np = pd.to_datetime(datetime.combine(start, datetime.min.time()))
@@ -168,6 +177,11 @@ class EnedisFluxEngine:
         df['Date_Releve'] = df['Date_Releve'].dt.tz_convert(None)
 
         df = df.loc[(df['Date_Releve'] >= start_np) & (df['Date_Releve'] <= end_np)]
-        _logger.info(f'Estimated consumption: {df}')
-        #return df['consommation'].sum()
-        return pd.DataFrame({})
+        initial = df[df['Statut_Releve'] == 'INITIAL']
+
+        # TODO Compter le nombre de jours manquants.
+        # TODO Ajouter la moyenne des consos/jours*nb jours manquants pour chaque pdl
+        consos = {k+'_conso': initial.groupby('pdl')[k+'_index'].max()-initial.groupby('pdl')[k+'_index'].min() for k in ['HPH', 'HCH', 'HPB', 'HCB']}
+        _logger.info(f"Succesfully Estimated consumption of {len(initial)} PDLs.")
+ 
+        return pd.DataFrame(consos)
