@@ -129,7 +129,12 @@ class R15Parser:
         for k in conso_k:
             if k in res_df.columns:
                 res_df[k] = pd.to_numeric(res_df[k])
-
+        # Conversion des dates.
+        dates = ['Date_Releve']
+        for k in dates:
+            if k in res_df.columns:
+                print(res_df[k])
+                res_df[k] = pd.to_datetime(res_df[k])
         return res_df
     
     def to_csv(self) -> None:

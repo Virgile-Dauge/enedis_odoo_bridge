@@ -1,7 +1,8 @@
-
+import numpy as np
 import pandas as pd
 from pathlib import Path
 from typing import Dict, List, Any
+from datetime import date, datetime, timezone, timedelta
 import json
 
 from rich.pretty import pretty_repr
@@ -75,8 +76,10 @@ class EnedisFluxEngine:
 
             # Récupération du travail déjà fait :
             already_processed = self.db[flux_type]['already_processed']
-            csv = working_path.joinpath(f'{flux_type}.csv')
-            r15 = pd.read_csv(csv) if csv.is_file() else None
+            #csv = working_path.joinpath(f'{flux_type}.csv')
+            #r15 = pd.read_csv(csv) if csv.is_file() else None
+            pkl = working_path.joinpath(f'{flux_type}.pkl')
+            r15 = pd.read_pickle(pkl) if pkl.is_file() else None
 
             checksums = [calculate_checksum(a) for a in archives]
             to_add = [a for a, c in zip(archives, checksums) if c not in already_processed]
@@ -94,11 +97,12 @@ class EnedisFluxEngine:
             if r15 is not None:
                 concat = pd.concat([r15, concat])
             concat.to_csv(working_path.joinpath(f'{flux_type}.csv'))
+            concat.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
 
             # Maj des cheksum pour ne pas reintégrer les fichiers
             newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
             self.db[flux_type]['already_processed'] = already_processed + newly_processed
-            _logger.info(f'Scanned : {to_add}')
+            _logger.info(f'Added : {to_add}')
 
             self.update_db()
             res[flux_type] = concat
@@ -140,3 +144,30 @@ class EnedisFluxEngine:
         """
         for k, v in self.db.items():
             self.root_path.joinpath(k).joinpath('light_db.json').write_text(json.dumps(v))
+
+
+    def estimate_consumption(self, start: date, end: date) -> pd.DataFrame:
+        """
+        Estimates the total consumption per PDL for the specified period.
+
+        :param self: Instance of the EnedisFluxEngine class.
+        :param start: The start date of the period.
+        :type start: date
+        :param end: The end date of the period.
+        :type end: date
+        :return: The total consumption for the specified period.
+        :rtype: float
+        """
+        # On veut inclure les journées de début et de fin de la période.
+        start_np = pd.to_datetime(datetime.combine(start, datetime.min.time()))
+        end_np = np.datetime64(datetime.combine(end, datetime.max.time()))
+
+        _logger.info(f'Estimating consumption: from {start_np} to {end_np}')
+        df = self.data['R15']
+        # TODO gérer les timezones pour plus grande précision de l'estimation
+        df['Date_Releve'] = df['Date_Releve'].dt.tz_convert(None)
+
+        df = df.loc[(df['Date_Releve'] >= start_np) & (df['Date_Releve'] <= end_np)]
+        _logger.info(f'Estimated consumption: {df}')
+        #return df['consommation'].sum()
+        return pd.DataFrame({})

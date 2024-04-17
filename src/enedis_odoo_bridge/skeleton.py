@@ -24,7 +24,7 @@ import argparse
 import logging
 import sys
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
 
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.R15Parser import R15Parser
@@ -144,17 +144,19 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
 
-    if args.enedis_engine:
-        _logger.debug("Starting Enedis engine...")
-        engine = EnedisFluxEngine(flux=['R15'])
-        _logger.info(f'WLoaded data: {engine.data}')
-        exit()
-    
-    _logger.debug("Starting crazy calculations...")
     # Gestion des dates
     if not args.date:
         args.date = date.today()
     starting_date, ending_date = gen_dates(args.date)
+
+    if args.enedis_engine:
+        _logger.debug("Starting Enedis engine...")
+        engine = EnedisFluxEngine(flux=['R15'])
+        engine.estimate_consumption(start=starting_date, end=ending_date)
+        exit()
+    
+    _logger.debug("Starting crazy calculations...")
+
 
     if not args.zp:
         working_dir = download(['R15'])
