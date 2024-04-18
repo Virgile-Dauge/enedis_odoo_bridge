@@ -93,6 +93,11 @@ def parse_args(args):
         default=False,
         action="store_true",
         help="Enedis Flux engine",)
+    parser.add_argument('-u', '--update-flux',
+        dest="update_flux",
+        default=False,
+        action="store_true",
+        help="If present, the flux will be updated from ftp",)
     parser.add_argument(
         "-v",
         "--verbose",
@@ -154,18 +159,12 @@ def main(args):
     load_dotenv()
     if args.enedis_engine:
         _logger.debug("Starting Enedis engine...")
-        engine = EnedisFluxEngine(config=env, path='~/data/flux_enedis', flux=['R15'])
+        engine = EnedisFluxEngine(config=env, path='~/data/flux_enedis', flux=['R15'], update=args.update_flux)
         conso = engine.estimate_consumption(start=starting_date, end=ending_date)
         _logger.debug(f"{conso}")
         exit()
     
     _logger.debug("Starting crazy calculations...")
-
-
-    #if not args.zp:
-    #    working_dir = download(config=env, ['R15'])
-    #    _logger.info(f'Working directory: {working_dir}')
-    #    exit()
     
     r15 = R15Parser(args.zp)
     

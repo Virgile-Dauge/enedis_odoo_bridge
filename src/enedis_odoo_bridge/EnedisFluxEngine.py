@@ -20,7 +20,7 @@ class EnedisFluxEngine:
     """
     A class for handling Enedis Flux files and allow simple access to the data.
     """
-    def __init__(self, config: Dict[str,str], path:str = '~/data/enedis/', flux: List[str]=[]):
+    def __init__(self, config: Dict[str,str], path:str = '~/data/enedis/', flux: List[str]=[], update:bool=False):
         """
         Initializes the EnedisFluxEngine instance with the specified path and flux types.
 
@@ -55,14 +55,28 @@ class EnedisFluxEngine:
         self.create_dirs()
 
         self.db = self.read_db()
-        self.fetch()
+        if update:
+            self.fetch()
         self.data = self.scan()
         
     def fetch(self):
+        """
+        Fetches the Enedis Flux files from the FTP server and decrypts them.
+        """
         download(self.config, self.flux, self.root_path)
         self.decrypt()
     
     def decrypt(self):
+        """
+        Decrypts the specified ZIP files containing Enedis Flux data.
+
+        :param self: Instance of the EnedisFluxEngine class.
+        :return: None
+
+        This function first identifies the ZIP files that need to be decrypted by checking if the file name already contains the prefix "decrypted_".
+        It then iterates through each ZIP file, decrypting it using the provided AES key and initialization vector.
+        The decrypted files are saved in the same directory as the original ZIP files, with the prefix "decrypted_" added to their names.
+        """
         to_process = [file for k in self.flux for file in self.root_path.joinpath(k).glob("*.zip") if "decrypted_" not in file.stem]
         for f in to_process:
             decrypt_file(f, self.key, self.iv)
