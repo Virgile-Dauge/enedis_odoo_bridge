@@ -19,12 +19,13 @@ References:
     - https://setuptools.pypa.io/en/latest/userguide/entry_point.html
     - https://pip.pypa.io/en/stable/reference/pip_install
 """
-
+import os
+import sys
 import argparse
 import logging
-import sys
 import pandas as pd
 from datetime import date, datetime
+from dotenv import load_dotenv
 
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.R15Parser import R15Parser
@@ -149,10 +150,13 @@ def main(args):
         args.date = date.today()
     starting_date, ending_date = gen_dates(args.date)
 
+    load_dotenv()
     if args.enedis_engine:
         _logger.debug("Starting Enedis engine...")
-        engine = EnedisFluxEngine(flux=['R15'])
-        #engine.fetch()
+        key = bytes.fromhex(os.getenv("AES_KEY"))  # Convert hex string to bytes
+        iv = bytes.fromhex(os.getenv("AES_IV"))    # Convert hex string to bytes
+        engine = EnedisFluxEngine(key=key, iv=iv, path='~/data/flux_enedis', flux=['R15'])
+        engine.fetch()
         conso = engine.estimate_consumption(start=starting_date, end=ending_date)
         _logger.debug(f"{conso}")
         exit()

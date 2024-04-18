@@ -9,7 +9,7 @@ import json
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
-from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download
+from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip
 from enedis_odoo_bridge.R15Parser import R15Parser
 
 import logging
@@ -61,20 +61,75 @@ class StrategyMaxMin(Strategy):
                     & (df['Date_Releve'] <= end)
                     & (df['Statut_Releve'] == 'INITIAL')]
 
-        # TODO Compter le nombre de jours manquants.
-        # TODO Ajouter la moyenne des consos/jours*nb jours manquants pour chaque pdl
         pdls = initial.groupby('pdl')
 
         # Pour chaque pdl, on fait la différence entre le plus grand et le plus petit des index pour chaque classe de conso.
         consos = pd.DataFrame({k+'_conso': pdls[k+'_index'].max()-pdls[k+'_index'].min() 
                                for k in ['HPH', 'HCH', 'HPB', 'HCB']})
         return consos
-    
+
+class StrategyAugmentedMaxMin(Strategy):
+    def get_strategy_name(self):
+        return 'Max - Min of available indexes, missing days are remplaced by mean daily consumption'
+    def estimate_consumption(self, data: Dict[str, DataFrame], start: Timestamp, end: Timestamp) -> DataFrame:
+        """
+        Estimates the total consumption per PDL for the specified period.
+
+        :param self: Instance of the StrategyMinMax class.
+        :param data: The dataframe containing mesures.
+        :type data: pandas DataFrame
+        :param start: The start date of the period.
+        :type start: pandas Timestamp
+        :param end: The end date of the period.
+        :type end: pandas Timestamp
+        :return: The total consumption for the specified period, on each 
+        :rtype: pandas DataFrame
+
+        Idée : On filtre les relevés de la période, avec Statut_Releve = 'INITIAL'. 
+        On les regroupe par pdl, puis pour chaque groupe, 
+            on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.
+
+            Pour l'instant on ne vérifie rien. Voyons quelques cas :
+            - Si pas de relevés ?
+            - Si un seul relevé, conso = 0
+            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
+        """
+        print(data)
+        df = data['R15']
+        # TODO gérer les timezones pour plus grande précision de l'estimation
+        df['Date_Releve'] = df['Date_Releve'].dt.tz_convert(None)
+
+        initial = df.loc[(df['Date_Releve'] >= start)
+                    & (df['Date_Releve'] <= end)
+                    & (df['Statut_Releve'] == 'INITIAL')]
+
+        # TODO Compter le nombre de jours manquants.
+        # TODO Ajouter la moyenne des consos/jours*nb jours manquants pour chaque pdl
+        res = {}
+        pdls = initial.groupby('pdl')
+
+        indices_min_par_groupe = pdls.apply(lambda x: x['Date_Releve'].min())
+        indices_max_par_groupe = pdls.apply(lambda x: x['Date_Releve'].max())
+        for pdl, group in initial.groupby('pdl'):
+            # Find min record
+
+            # Find max record
+            ...
+
+        # Pour chaque pdl, on fait la différence entre le plus grand et le plus petit des index pour chaque classe de conso.
+        consos = pd.DataFrame({k+'_conso': pdls[k+'_index'].max()-pdls[k+'_index'].min() 
+                               for k in ['HPH', 'HCH', 'HPB', 'HCB']})
+        return consos
+
+
+
+
+
 class EnedisFluxEngine:
     """
     A class for handling Enedis Flux files and allow simple access to the data.
     """
-    def __init__(self, path:str = '~/data/enedis/', flux: List[str]=[]):
+    def __init__(self, key: bytes, iv: bytes, path:str = '~/data/enedis/', flux: List[str]=[]):
         """
         Initializes the EnedisFluxEngine instance with the specified path and flux types.
 
@@ -94,6 +149,8 @@ class EnedisFluxEngine:
         self.flux = flux
         self.supported_flux = ['R15']
         self.heuristic = StrategyMaxMin()
+        self.key = key
+        self.iv = iv
         for f in flux:
             if f not in self.supported_flux:
                 raise ValueError(f'Flux type {f} not supported.')
@@ -104,11 +161,18 @@ class EnedisFluxEngine:
         self.create_dirs()
 
         self.db = self.read_db()
+        self.decrypt()
         self.data = self.scan()
         
     def fetch(self):
         download(self.flux, self.root_path)
+        self.decrypt()
     
+    def decrypt(self):
+        to_process = [file for k in self.flux for file in self.root_path.joinpath(k).glob("*.zip") if "decrypted_" not in file.stem]
+        for f in to_process:
+            decrypt_file(f, self.key, self.iv)
+
     def scan(self) -> Dict[str, pd.DataFrame]:
         """
         Scans the specified directories for the given flux types and processes the ZIP files.

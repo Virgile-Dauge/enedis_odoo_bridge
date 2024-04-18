@@ -7,6 +7,7 @@ from datetime import date
 from calendar import monthrange
 import hashlib
 import json
+from Crypto.Cipher import AES
 
 from typing import List, Dict, Tuple, Union, Any
 
@@ -134,3 +135,14 @@ def is_valid_json(json_string: str) -> bool:
         # Si une erreur se produit, le JSON n'est pas valide
         return False
     return True
+
+def decrypt_file(file_path: Path, key: bytes, iv: bytes) -> Path:
+
+    # Initialize the AES cipher with CBC mode
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    output_file = file_path.with_name("decrypted_" + file_path.stem + ".zip")
+    # Decrypt the input file and write the decrypted content to the output file
+    with file_path.open("rb") as f_in, output_file.open("wb") as f_out:
+        decrypted_data = cipher.decrypt(f_in.read())
+        f_out.write(decrypted_data)
+    return output_file
