@@ -100,6 +100,8 @@ def download(tasks: List[str], local: Path=Path('~/data/flux_enedis/')) -> Dict[
 
         # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
         with Connection(address, username=username, password=password, port=22) as ftp:
+
+            # TODO activation du Retry: [DISABLED] 
             ftp.get_d(distant, local, resume=True, workers=10)
 
         completed_tasks[type] = local
