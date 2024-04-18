@@ -2,7 +2,7 @@ import xmlrpc.client
 from xmlrpc.client import MultiCall
 import numpy as np
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 import pandas as pd
 
 from enedis_odoo_bridge.utils import check_required
@@ -28,30 +28,32 @@ class OdooAPI:
         _logger.info(f'logged to {self.db} Odoo db.')
         # Récup des logs des appels de scripts précédents
         
-        logs = self.execute('x_log_enedis', 'search_read', [[]], {'fields': ['x_name']})
-        self.log_history = [Path(l['x_name']).stem for l in logs]
-        _logger.info(f'{len(self.log_history)} x_log_enedis found in Odoo db.')
+        # DEPRECATED, pas de logs dans la base Odoo car trop chiant
+        #logs = self.execute('x_log_enedis', 'search_read', [[]], {'fields': ['x_name']})
+        #self.log_history = [Path(l['x_name']).stem for l in logs]
+        #_logger.info(f'{len(self.log_history)} x_log_enedis found in Odoo db.')
 
-        self.drafts = self.get_drafts()
+        #self.drafts = self.get_drafts()
 
     def execute(self, model: str, method: str, *args, **kwargs) -> List:
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
         return res if isinstance(res, list) else [res]
     
-    def get_drafts(self)-> List[Dict]:
+    def get_drafts(self)-> List[Dict[str, Any]]:
+        _logger.info(f'Searching drafts invoices in {self.url} db.')
         drafts = self.execute('account.move', 'search_read', 
         [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
         {'fields': ['invoice_line_ids', 'date', 'x_order_id']})
 
-        # Récupération des PDL
+        # Récupération des PDL et la puissance souscrite dans les bons de commandes.
         bons = self.execute('sale.order', 'read', 
                             [[d['x_order_id'][0] for d in drafts]], 
                             {'fields': ['x_pdl', 'x_puissance_souscrite']})
 
-        _logger.info(f'{len(drafts)} drafts invoices found.')
+        _logger.info(f'└── {len(drafts)} drafts invoices found.')
         #_logger.info(drafts)
 
-        # On ajoute le PDL à chaque facture d'énergie
+        # On ajoute le PDL et la puissance souscrite à chaque facture d'énergie.
         return [d|{'pdl': b['x_pdl'], 'puissance_souscrite': int(b['x_puissance_souscrite'])} for d, b in zip(drafts, bons)]
     
     def get_lines(self)-> List[Dict]:
