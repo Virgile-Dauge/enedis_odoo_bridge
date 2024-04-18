@@ -4,126 +4,17 @@ from pandas import Timestamp, DataFrame, Series
 from pathlib import Path
 from typing import Dict, List, Any
 from datetime import date, datetime
-from abc import ABC, abstractmethod
+
 import json
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip
 from enedis_odoo_bridge.R15Parser import R15Parser
+from enedis_odoo_bridge.estimators import StrategyMaxMin
 
 import logging
 _logger = logging.getLogger(__name__)
-
-# Interface commune pour les stratégies
-class Strategy(ABC):
-    @abstractmethod
-    def get_strategy_name(self):
-        pass
-    @abstractmethod
-    def estimate_consumption(self, data: Dict[str, DataFrame], start: Timestamp, end: Timestamp) -> DataFrame:
-        pass
-
-
-# Implémentation de différentes stratégies
-class StrategyMaxMin(Strategy):
-    def get_strategy_name(self):
-        return 'Max - Min of available indexes'
-    def estimate_consumption(self, data: Dict[str, DataFrame], start: Timestamp, end: Timestamp) -> DataFrame:
-        """
-        Estimates the total consumption per PDL for the specified period.
-
-        :param self: Instance of the StrategyMinMax class.
-        :param data: The dataframe containing mesures.
-        :type data: pandas DataFrame
-        :param start: The start date of the period.
-        :type start: pandas Timestamp
-        :param end: The end date of the period.
-        :type end: pandas Timestamp
-        :return: The total consumption for the specified period, on each 
-        :rtype: pandas DataFrame
-
-        Idée : On filtre les relevés de la période, avec Statut_Releve = 'INITIAL'. 
-        On les regroupe par pdl, puis pour chaque groupe, 
-            on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.
-
-            Pour l'instant on ne vérifie rien. Voyons quelques cas :
-            - Si pas de relevés ?
-            - Si un seul relevé, conso = 0
-            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
-        """
-        print(data)
-        df = data['R15']
-        # TODO gérer les timezones pour plus grande précision de l'estimation
-        df['Date_Releve'] = df['Date_Releve'].dt.tz_convert(None)
-
-        initial = df.loc[(df['Date_Releve'] >= start)
-                    & (df['Date_Releve'] <= end)
-                    & (df['Statut_Releve'] == 'INITIAL')]
-
-        pdls = initial.groupby('pdl')
-
-        # Pour chaque pdl, on fait la différence entre le plus grand et le plus petit des index pour chaque classe de conso.
-        consos = pd.DataFrame({k+'_conso': pdls[k+'_index'].max()-pdls[k+'_index'].min() 
-                               for k in ['HPH', 'HCH', 'HPB', 'HCB']})
-        return consos
-
-class StrategyAugmentedMaxMin(Strategy):
-    def get_strategy_name(self):
-        return 'Max - Min of available indexes, missing days are remplaced by mean daily consumption'
-    def estimate_consumption(self, data: Dict[str, DataFrame], start: Timestamp, end: Timestamp) -> DataFrame:
-        """
-        Estimates the total consumption per PDL for the specified period.
-
-        :param self: Instance of the StrategyMinMax class.
-        :param data: The dataframe containing mesures.
-        :type data: pandas DataFrame
-        :param start: The start date of the period.
-        :type start: pandas Timestamp
-        :param end: The end date of the period.
-        :type end: pandas Timestamp
-        :return: The total consumption for the specified period, on each 
-        :rtype: pandas DataFrame
-
-        Idée : On filtre les relevés de la période, avec Statut_Releve = 'INITIAL'. 
-        On les regroupe par pdl, puis pour chaque groupe, 
-            on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.
-
-            Pour l'instant on ne vérifie rien. Voyons quelques cas :
-            - Si pas de relevés ?
-            - Si un seul relevé, conso = 0
-            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
-        """
-        print(data)
-        df = data['R15']
-        # TODO gérer les timezones pour plus grande précision de l'estimation
-        df['Date_Releve'] = df['Date_Releve'].dt.tz_convert(None)
-
-        initial = df.loc[(df['Date_Releve'] >= start)
-                    & (df['Date_Releve'] <= end)
-                    & (df['Statut_Releve'] == 'INITIAL')]
-
-        # TODO Compter le nombre de jours manquants.
-        # TODO Ajouter la moyenne des consos/jours*nb jours manquants pour chaque pdl
-        res = {}
-        pdls = initial.groupby('pdl')
-
-        indices_min_par_groupe = pdls.apply(lambda x: x['Date_Releve'].min())
-        indices_max_par_groupe = pdls.apply(lambda x: x['Date_Releve'].max())
-        for pdl, group in initial.groupby('pdl'):
-            # Find min record
-
-            # Find max record
-            ...
-
-        # Pour chaque pdl, on fait la différence entre le plus grand et le plus petit des index pour chaque classe de conso.
-        consos = pd.DataFrame({k+'_conso': pdls[k+'_index'].max()-pdls[k+'_index'].min() 
-                               for k in ['HPH', 'HCH', 'HPB', 'HCB']})
-        return consos
-
-
-
-
 
 class EnedisFluxEngine:
     """
@@ -161,7 +52,7 @@ class EnedisFluxEngine:
         self.create_dirs()
 
         self.db = self.read_db()
-        self.decrypt()
+        self.fetch()
         self.data = self.scan()
         
     def fetch(self):
@@ -217,6 +108,20 @@ class EnedisFluxEngine:
 
             if r15 is not None:
                 concat = pd.concat([r15, concat])
+            
+            # Tri par date, par pdl, puis du plus vieux au plus récent :
+            concat = concat.sort_values(by=['pdl', 'Date_Releve'])
+            concat = concat.reset_index(drop=True)
+            concat.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
+            concat.to_csv(working_path.joinpath(f'{flux_type}.csv'))
+
+            # Maj des cheksum pour ne pas reintégrer les fichiers
+            newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
+            self.db[flux_type]['already_processed'] = already_processed + newly_processed
+            _logger.info(f'Added : {to_add}')
+
+            self.update_db()
+            res[flux_type] = concat
             concat.to_csv(working_path.joinpath(f'{flux_type}.csv'))
             concat.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
 
@@ -300,5 +205,5 @@ class EnedisFluxEngine:
             _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
         else:
             _logger.warn(f"└── Failed to Estimate consumption of any PDLs.")
-        consos.to_csv(self.root_path.joinpath('R15').joinpath('estimated_consumption.csv'))
+        consos.to_csv(self.root_path.joinpath('R15').joinpath(f'estimated_consumption_from_{start}_to{end}.csv'))
         return consos
