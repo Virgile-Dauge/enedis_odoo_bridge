@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, List, Any
 import pandas as pd
+from pandas import DataFrame
 
 from enedis_odoo_bridge.utils import check_required
 
@@ -39,7 +40,7 @@ class OdooAPI:
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
         return res if isinstance(res, list) else [res]
     
-    def get_drafts(self)-> List[Dict[str, Any]]:
+    def get_drafts(self)-> DataFrame:
         _logger.info(f'Searching drafts invoices in {self.url} db.')
         drafts = self.execute('account.move', 'search_read', 
         [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
@@ -54,7 +55,7 @@ class OdooAPI:
         #_logger.info(drafts)
 
         # On ajoute le PDL et la puissance souscrite à chaque facture d'énergie.
-        return [d|{'pdl': b['x_pdl'], 'puissance_souscrite': int(b['x_puissance_souscrite'])} for d, b in zip(drafts, bons)]
+        return DataFrame([d|{'pdl': b['x_pdl'], 'puissance_souscrite': int(b['x_puissance_souscrite'])} for d, b in zip(drafts, bons)])
     
     def get_lines(self)-> List[Dict]:
         # On crée une liste de tuples (l, d_id)
