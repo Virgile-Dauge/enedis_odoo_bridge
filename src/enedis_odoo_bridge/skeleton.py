@@ -156,7 +156,6 @@ def main(args):
         key = bytes.fromhex(os.getenv("AES_KEY"))  # Convert hex string to bytes
         iv = bytes.fromhex(os.getenv("AES_IV"))    # Convert hex string to bytes
         engine = EnedisFluxEngine(key=key, iv=iv, path='~/data/flux_enedis', flux=['R15'])
-        engine.fetch()
         conso = engine.estimate_consumption(start=starting_date, end=ending_date)
         _logger.debug(f"{conso}")
         exit()
