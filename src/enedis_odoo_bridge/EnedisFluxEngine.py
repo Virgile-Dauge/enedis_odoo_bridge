@@ -9,7 +9,7 @@ import json
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
-from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip
+from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip, check_required
 from enedis_odoo_bridge.R15Parser import R15Parser
 from enedis_odoo_bridge.estimators import StrategyMaxMin
 
@@ -20,7 +20,7 @@ class EnedisFluxEngine:
     """
     A class for handling Enedis Flux files and allow simple access to the data.
     """
-    def __init__(self, key: bytes, iv: bytes, path:str = '~/data/enedis/', flux: List[str]=[]):
+    def __init__(self, config: Dict[str,str], path:str = '~/data/enedis/', flux: List[str]=[]):
         """
         Initializes the EnedisFluxEngine instance with the specified path and flux types.
 
@@ -36,12 +36,15 @@ class EnedisFluxEngine:
         :return: None
         :rtype: None
         """
+        self.config = check_required(config, ['AES_KEY', 'AES_IV', 
+                                              'FTP_USER', 'FTP_PASSWORD', 'FTP_ADDRESS',
+                                              'FTP_R15_DIR', 'FTP_C15_DIR', 'FTP_F15_DIR'])
         self.root_path = Path(path).expanduser()
         self.flux = flux
         self.supported_flux = ['R15']
         self.heuristic = StrategyMaxMin()
-        self.key = key
-        self.iv = iv
+        self.key = bytes.fromhex(self.config['AES_KEY'])
+        self.iv = bytes.fromhex(self.config['AES_IV'])
         for f in flux:
             if f not in self.supported_flux:
                 raise ValueError(f'Flux type {f} not supported.')
@@ -56,7 +59,7 @@ class EnedisFluxEngine:
         self.data = self.scan()
         
     def fetch(self):
-        download(self.flux, self.root_path)
+        download(self.config, self.flux, self.root_path)
         self.decrypt()
     
     def decrypt(self):

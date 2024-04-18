@@ -1,5 +1,3 @@
-from dotenv import load_dotenv
-import os
 import xmlrpc.client
 from xmlrpc.client import MultiCall
 import numpy as np
@@ -7,18 +5,20 @@ from pathlib import Path
 from typing import Dict, List
 import pandas as pd
 
+from enedis_odoo_bridge.utils import check_required
+
 import logging
 _logger = logging.getLogger(__name__)
 
 class OdooAPI:
-    def __init__(self, sim=False):
-        load_dotenv()
+    def __init__(self, config: Dict[str, str], sim=False):
 
-        self.url = str(os.getenv("URL"))
-        db = str(os.getenv("DB"))
+        config = check_required(config, ['URL', 'DB', 'USERNAME', 'PASSWORD'])
+        self.url = config['URL']
+        db = config['DB']
         self.db = db + '-duplicate' if sim else db
-        self.username = str(os.getenv("USERNAME"))
-        self.password = str(os.getenv("PASSWORD"))
+        self.username = config['USERNAME']
+        self.password = config['PASSWORD']
 
         with xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/common') as common:
             #common.version()

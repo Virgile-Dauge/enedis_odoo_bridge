@@ -11,6 +11,21 @@ from Crypto.Cipher import AES
 
 from typing import List, Dict, Tuple, Union, Any
 
+def check_required(config: Dict[str, str], required: List[str]):
+    for r in required:
+        if r not in config.keys():
+            raise ValueError(f'Required parameter {r} not found in {config.keys()} from .env file.')
+    return config
+
+def load_prefixed_dotenv(prefix: str='EOB_', required: List[str]=[]) -> Dict[str, str]:
+    # Load the .env file
+    load_dotenv()
+
+    # Retrieve all environment variables
+    env_variables = dict(os.environ)
+    
+    return check_required({k.replace(prefix, ''): v for k, v in env_variables.items() if k.startswith(prefix)}, required)
+
 def gen_dates(current: Union[date, None]) -> Tuple[date, date]:
     if not current:
         current = date.today()
@@ -68,7 +83,7 @@ def unzip(zip_path: Path) -> Path:
         zip_ref.extractall(out)
         return out
     
-def download(tasks: List[str], local: Path=Path('~/data/flux_enedis/')) -> Dict[str, Path]:
+def download(config: Dict[str, str], tasks: List[str], local: Path=Path('~/data/flux_enedis/')) -> Dict[str, Path]:
     """
     Downloads a specified directory from the ftp and returns the local path.
 
@@ -81,25 +96,19 @@ def download(tasks: List[str], local: Path=Path('~/data/flux_enedis/')) -> Dict[
     Raises:
     ValueError: If the specified directory type is not found in the remote_dirs dictionary.
     """
-    load_dotenv()
-
-    address = os.getenv("FTP_ADDRESS")
-    username = os.getenv("FTP_USER")
-    password = os.getenv("FTP_PASSWORD")
-    remote_dirs = {'R15': os.getenv("FTP_R15"), 
-                    'C15': os.getenv("FTP_C15"),
-                    'F15': os.getenv("FTP_F15")}
-    
+    config = check_required(config, ['FTP_ADDRESS', 'FTP_USER', 'FTP_PASSWORD',
+                                     'FTP_R15_DIR', 'FTP_C15_DIR', 'FTP_F15_DIR',])
     completed_tasks = {}
     for type in tasks:
-        if not type in remote_dirs.keys():
-            raise ValueError(f'Type {type} not found in {list(remote_dirs.keys())}')
+        # Todo add a 'supported type list' as global or as something else
+        #if not type in remote_dirs.keys():
+        #    raise ValueError(f'Type {type} not found in {list(remote_dirs.keys())}')
 
-        distant = '/flux_enedis/' + str(remote_dirs[type])
+        distant = '/flux_enedis/' + str(config[f'FTP_{type}_DIR'])
         local = local.joinpath(type).expanduser()
 
         # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
-        with Connection(address, username=username, password=password, port=22) as ftp:
+        with Connection(config['FTP_ADDRESS'], username=config['FTP_USER'], password=config['FTP_PASSWORD'], port=22) as ftp:
 
             # TODO activation du Retry: [DISABLED] 
             ftp.get_d(distant, local, resume=True, workers=10)

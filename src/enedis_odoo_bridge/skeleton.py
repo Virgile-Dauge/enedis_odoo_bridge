@@ -32,7 +32,7 @@ from enedis_odoo_bridge.R15Parser import R15Parser
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.Turpe import Turpe
-from enedis_odoo_bridge.utils import download, gen_dates
+from enedis_odoo_bridge.utils import download, gen_dates, load_prefixed_dotenv
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
@@ -144,7 +144,8 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
-
+    env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
+    print(env)
     # Gestion des dates
     if not args.date:
         args.date = date.today()
@@ -153,9 +154,7 @@ def main(args):
     load_dotenv()
     if args.enedis_engine:
         _logger.debug("Starting Enedis engine...")
-        key = bytes.fromhex(os.getenv("AES_KEY"))  # Convert hex string to bytes
-        iv = bytes.fromhex(os.getenv("AES_IV"))    # Convert hex string to bytes
-        engine = EnedisFluxEngine(key=key, iv=iv, path='~/data/flux_enedis', flux=['R15'])
+        engine = EnedisFluxEngine(config=env, path='~/data/flux_enedis', flux=['R15'])
         conso = engine.estimate_consumption(start=starting_date, end=ending_date)
         _logger.debug(f"{conso}")
         exit()
@@ -163,10 +162,10 @@ def main(args):
     _logger.debug("Starting crazy calculations...")
 
 
-    if not args.zp:
-        working_dir = download(['R15'])
-        _logger.info(f'Working directory: {working_dir}')
-        exit()
+    #if not args.zp:
+    #    working_dir = download(config=env, ['R15'])
+    #    _logger.info(f'Working directory: {working_dir}')
+    #    exit()
     
     r15 = R15Parser(args.zp)
     
@@ -174,8 +173,9 @@ def main(args):
 
     releves = r15.data
     
-    turpe = Turpe()
-    odoo = OdooAPI(args.sim)
+    # TODO pass only constants and not all ENV variables
+    turpe = Turpe(constants=env)
+    odoo = OdooAPI(config=env, sim=args.sim)
 
     drafts = odoo.drafts
     drafts_df = pd.DataFrame(drafts)
