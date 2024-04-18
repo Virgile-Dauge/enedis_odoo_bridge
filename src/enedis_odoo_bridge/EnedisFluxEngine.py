@@ -45,6 +45,7 @@ class EnedisFluxEngine:
         self.heuristic = StrategyMaxMin()
         self.key = bytes.fromhex(self.config['AES_KEY'])
         self.iv = bytes.fromhex(self.config['AES_IV'])
+
         for f in flux:
             if f not in self.supported_flux:
                 raise ValueError(f'Flux type {f} not supported.')
@@ -52,14 +53,14 @@ class EnedisFluxEngine:
         if not self.root_path.is_dir():
             raise FileNotFoundError(f'File {self.root_path} not found.')
         
-        self.create_dirs()
+        self.dirs = self.mkdirs()
 
         self.db = self.read_db()
         if update:
-            self.fetch()
+            self.fetch_distant()
         self.data = self.scan()
         
-    def fetch(self):
+    def fetch_distant(self):
         """
         Fetches the Enedis Flux files from the FTP server and decrypts them.
         """
@@ -116,7 +117,7 @@ class EnedisFluxEngine:
             if not to_add:
                 if r15 is not None:
                     res[flux_type] = r15
-                _logger.info(f'└── No new files for {flux_type}')
+                _logger.info(f'└── No new zip for {flux_type}, using past {len(already_processed)} zips.')
                 continue
             # TODO adaptation dynamique en fonction du type de flux
             parsed = [R15Parser(a) for a in to_add]
@@ -151,17 +152,18 @@ class EnedisFluxEngine:
             res[flux_type] = concat
         return res
     
-    def create_dirs(self) -> None:
+    def mkdirs(self) -> Dict[str, Path]:
         """
         Creates directories for each flux type if they do not already exist.
 
         :param self: Instance of the EnedisFluxEngine class.
         :return: None
         """
-        for k in self.flux:
-            if not self.root_path.joinpath(k).is_dir():
-                self.root_path.joinpath(k).mkdir()
-
+        dirs = {k: self.root_path.joinpath(k) for k in self.flux}
+        for k, v in dirs.items():
+            v.mkdir(exist_ok=True)
+        return dirs
+    
     def read_db(self) -> Dict[str, Dict[str, Any]]:
         """
         Reads the 'light_db.json' files for each flux type and returns a dictionary containing the data of all parsed JSON.
