@@ -28,11 +28,11 @@ from datetime import date, datetime
 from dotenv import load_dotenv
 
 from enedis_odoo_bridge import __version__
-from enedis_odoo_bridge.R15Parser import R15Parser
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
+from enedis_odoo_bridge.DataMerger import DataMerger
 from enedis_odoo_bridge.Turpe import Turpe
-from enedis_odoo_bridge.utils import download, gen_dates, load_prefixed_dotenv
+from enedis_odoo_bridge.utils import gen_dates, load_prefixed_dotenv
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
@@ -114,9 +114,11 @@ def parse_args(args):
         action="store_const",
         const=logging.DEBUG,
     )
+    today = date.today()
     parser.add_argument(
         '-d',
         '--date',
+        default=today.isoformat(),
         type=date.fromisoformat,
     )
     return parser.parse_args(args)
@@ -150,36 +152,28 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
     env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
-    print(env)
-    # Gestion des dates
-    if not args.date:
-        args.date = date.today()
-    starting_date, ending_date = gen_dates(args.date)
 
-    load_dotenv()
     if args.enedis_engine:
         _logger.debug("Starting Enedis engine...")
-        engine = EnedisFluxEngine(config=env, path='~/data/flux_enedis', flux=['R15'], update=args.update_flux)
-        conso = engine.estimate_consumption(start=starting_date, end=ending_date)
-        _logger.debug(f"{conso}")
+        enedis = EnedisFluxEngine(config=env, path='~/data/flux_enedis', flux=['R15'], update=args.update_flux)
+        #estimates = enedis.estimate_consumption(start=starting_date, end=ending_date)
+        #_logger.debug(f"{estimates}")
         exit()
-    
-    _logger.debug("Starting crazy calculations...")
-    
-    r15 = R15Parser(args.zp)
-    
-    r15.to_csv()
 
-    releves = r15.data
-    
-    # TODO pass only constants and not all ENV variables
-    turpe = Turpe(constants=env)
-    odoo = OdooAPI(config=env, sim=args.sim)
-
+    dm = DataMerger(config=env,
+                    date=args.date,
+                    enedis=EnedisFluxEngine(config=env, 
+                                            path='~/data/flux_enedis', 
+                                            flux=['R15'], 
+                                            update=args.update_flux),
+                    odoo=OdooAPI(config=env, sim=args.sim))
+    #turpe = Turpe(constants=env)
+    dm.process()
+    exit()
     drafts = odoo.drafts
     drafts_df = pd.DataFrame(drafts)
-    drafts_df.to_csv(r15.working_dir.joinpath('drafts.csv'))
-
+    drafts_df.to_csv(enedis.dirs['R15'].joinpath('drafts.csv'))
+    
     # Deprecated since logs will not be written in odoo anymore
     #log_id = odoo.write('x_log_enedis', r15.to_x_log_enedis())[0]
 
@@ -187,7 +181,7 @@ def main(args):
 
     # On ajoute "puissance_souscrite" aux consos.
     merged = pd.merge(drafts_df, consos, on='pdl')
-    merged.to_csv(r15.working_dir.joinpath('merged.csv'))
+    merged.to_csv(enedis.dirs['R15'].joinpath('merged.csv'))
 
     complete = turpe.compute(merged).set_index(['pdl'])
     lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
