@@ -58,12 +58,15 @@ class EnedisFluxEngine:
         self.db = self.read_db()
         if update:
             self.fetch_distant()
+        else:
+            _logger.info(f'No fetching, using local zips only')
         self.data = self.scan()
         
     def fetch_distant(self):
         """
         Fetches the Enedis Flux files from the FTP server and decrypts them.
         """
+        _logger.info(f"Fetching from ftp: {self.config['FTP_ADDRESS']}")
         download(self.config, self.flux, self.root_path)
         self.decrypt()
     
@@ -81,6 +84,7 @@ class EnedisFluxEngine:
         to_process = [file for k in self.flux for file in self.root_path.joinpath(k).glob("*.zip") if "decrypted_" not in file.stem]
         for f in to_process:
             decrypt_file(f, self.key, self.iv)
+        _logger.info(f"└── {len(to_process)} new ZIP files decrypted.")
 
     def scan(self) -> Dict[str, pd.DataFrame]:
         """
