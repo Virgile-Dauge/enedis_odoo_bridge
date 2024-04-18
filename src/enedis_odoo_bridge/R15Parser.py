@@ -101,7 +101,8 @@ class R15Parser:
                 # Measurements. ATTENTION: Je crois que :
                 # - 'Classe_Temporelle_Distributeur' donne 4 classes de conso quoi qu'il arrive,
                 # - 'Classe_Temporelle' dépend du contrat client.
-                for m in r['Classe_Temporelle_Distributeur']:
+                k = 'Classe_Temporelle_Distributeur' if 'Classe_Temporelle_Distributeur' in r else 'Classe_Temporelle'
+                for m in r[k]:
                     # Consumption.
                     if m['Classe_Mesure'] == '2':
                         #print({m['Id_Classe_Temporelle'] + '_conso': m['Valeur']})
