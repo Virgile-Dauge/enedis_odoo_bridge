@@ -24,7 +24,7 @@ class DataMerger:
 
     def fetch_odoo_data(self)-> DataFrame:
         # Récupérer les données depuis OdooAPI
-        return self.odoo.get_drafts()
+        return self.odoo.fetch()
 
     def merge_data(self, enedis_data: DataFrame, odoo_data: DataFrame)-> DataFrame:
         # Fusionner les données ici
