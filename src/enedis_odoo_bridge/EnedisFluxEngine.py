@@ -189,7 +189,7 @@ class EnedisFluxEngine:
         The function also updates the 'light_db.json' file with the latest checksums of processed ZIP files.
         """
         directories = [self.root_path.joinpath(k) for k in self.flux]
-        to_process = {k: list(self.root_path.joinpath(k).glob('*.zip')) for k in self.flux}
+        to_process = {k: [a for a in self.root_path.joinpath(k).glob('*.zip') if 'decrypted_' in a.stem] for k in self.flux}
 
         _logger.info(f'Scanning {self.root_path} for flux {self.flux}')
         res = {}

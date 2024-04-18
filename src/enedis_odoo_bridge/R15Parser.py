@@ -26,7 +26,7 @@ def get_meta(file_path: Path)->Dict:
 
     The function first extracts the metadata from the file path by splitting the file name by underscores. It then checks if the file has a '.zip' or '.xml' suffix. If it does, it constructs a dictionary with the extracted metadata and returns it. If the file does not have a '.zip' or '.xml' suffix, a ValueError is raised.
     """
-    meta = file_path.stem.split('_')
+    meta = file_path.stem.replace('decrypted_', '').split('_')
     type_flux = meta[1]
 
     if file_path.suffix == '.zip':
