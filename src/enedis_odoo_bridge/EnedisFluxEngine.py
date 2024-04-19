@@ -238,5 +238,22 @@ class EnedisFluxEngine:
         return pd.merge(estimates, to_add, how='left', on='pdl')
     
     def fetch(self, start: date, end: date, columns: List[str], heuristic: Strategy=StrategyMaxMin()):
+        """
+        Fetches and enriches the estimated consumption data for a specified period and set of columns.
+
+        This method first estimates the total consumption per PDL (Point de Livraison) for the given period using the specified heuristic strategy. 
+        It then enriches these estimates with additional data columns from the R15 dataset.
+
+        :param start: The start date of the period for which consumption is to be estimated.
+        :type start: date
+        :param end: The end date of the period for which consumption is to be estimated.
+        :type end: date
+        :param columns: A list of column names from the R15 dataset to be added to the estimated consumption data.
+        :type columns: List[str]
+        :param heuristic: The strategy to be used for estimating consumption. Defaults to StrategyMaxMin if not specified.
+        :type heuristic: Strategy
+        :return: A pandas DataFrame containing the estimated consumption for each PDL, enriched with the specified columns from the R15 data.
+        :rtype: pd.DataFrame
+        """
         estimates = self.estimate_consumption(start, end)
         return self.enrich_estimates(estimates, columns)
