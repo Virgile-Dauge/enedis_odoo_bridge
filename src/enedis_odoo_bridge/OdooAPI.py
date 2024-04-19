@@ -207,6 +207,8 @@ class OdooAPI:
     def prepare_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
         if 'Base' not in data.columns:
             raise ValueError(f'Required "Base" column found in {data.columns}')
+        if 'line_id_Abonnements' not in data.columns:
+            raise ValueError(f'Required "line_id_Abonnements" column found in {data.columns}')
 
         # Get cols names containing line id for consumptions only
         line_id_cols = sorted([c for c in data.columns
@@ -214,13 +216,19 @@ class OdooAPI:
                         and c.replace('line_id_', '') in ['HP', 'HC', 'Base']])
         value_cols = sorted([c for c in data.columns
                       if c in ['HP', 'HC', 'Base']])
-        lines = pd.DataFrame({
+        consumption_lines = pd.DataFrame({
             'id': pd.concat([data[c] for c in line_id_cols], ignore_index=True),
             'quantity': pd.concat([data[c] for c in value_cols], ignore_index=True)
         })
-        return lines.dropna(subset=['id']).to_dict(orient='records')
+        consumption_lines = consumption_lines.dropna(subset=['id']).to_dict(orient='records')
 
-    def prepare_subsc_line_updates(self, data:DataFrame, start: date, end: date)-> Tuple[List[int], Dict[Hashable, Any]]:
+        # Abonnements
+        data['days'] = (data['end_date']-data['start_date']).dt.days
+        subscription_lines = data[['line_id_Abonnements','days']].rename(columns={'line_id_Abonnements': 'id', 'days': 'quantity'}).to_dict(orient='records')
+        #print(subscription_lines)
+        return consumption_lines + subscription_lines
+
+    def prepare_subsc_line_updates(self, data:DataFrame, start: date, end: date)-> List[Dict[Hashable, Any]]:
         if 'line_id_Abonnements' not in data.columns:
             raise ValueError(f'Required "line_id_Abonnements" column found in {data.columns}')
 
