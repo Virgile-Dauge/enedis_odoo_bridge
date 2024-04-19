@@ -2,7 +2,7 @@ import xmlrpc.client
 from xmlrpc.client import MultiCall
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Hashable
 import pandas as pd
 from pandas import DataFrame
 
@@ -46,7 +46,7 @@ class OdooAPI:
         common_proxy = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
         return common_proxy.authenticate(self.db, self.username, self.password, {})
     
-    def execute(self, model: str, method: str, args, kwargs) -> List:
+    def execute(self, model: str, method: str, args=None, kwargs=None) -> List:
         """
         Executes a method on the Odoo server.
 
@@ -66,6 +66,8 @@ class OdooAPI:
         and calls the 'execute_kw' method to execute the specified method on the specified model.
         The result of the executed method is then returned, wrapped in a list if it is a single value.
         """
+        args = args if args is not None else []
+        kwargs = kwargs if kwargs is not None else {}
         _logger.debug(f'Executing {method} on {model} with args {args} and kwargs {kwargs}')
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, args, kwargs)
         return res if isinstance(res, list) else [res]
@@ -201,7 +203,45 @@ class OdooAPI:
         df_final = pd.merge(data, df_pivoted, on='id', how='left')
         return df_final
 
-    def write(self, model: str, entries: Dict[str, str])-> List[int]:
+    def prepare_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
+        if 'Base' not in data.columns:
+            raise ValueError(f'Required "Base" column found in {data.columns}')
+
+        _logger.debug(data[['line_id_HP','line_id_HC','line_id_Base', 'HP', 'HC', 'Base']])
+
+        # Get cols names containing line id for consumptions only
+        line_id_cols = [c for c in data.columns
+                        if c.startswith('line_id_') 
+                        and c.replace('line_id_', '') in ['HP', 'HC', 'Base']]
+        value_cols = [c for c in data.columns
+                      if c in ['HP', 'HC', 'Base']]
+        lines = pd.DataFrame({
+            'id': pd.concat([data[c] for c in line_id_cols], ignore_index=True),
+            'quantity': pd.concat([data[c] for c in value_cols], ignore_index=True)
+        })
+        return lines.dropna(subset=['id']).to_dict(orient='records')
+    
+    def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
+        ...
+
+    def update_draft_invoices(self, data: DataFrame)-> None:
+        """
+        Updates the draft invoices in the Odoo database.
+
+        Args:
+            data (DataFrame): The input data frame.
+
+        Returns:
+            None: None.
+
+        This function updates the draft invoices in the Odoo database.
+        """
+        lines = self.prepare_line_updates(data)
+        self.update('account.move.line', self.prepare_line_updates(data))
+        #self.execute('account.move', 'write', self.prepare_line_updates(data))
+        _logger.info(f'Draft invoices updated in {self.url} db.')
+
+    def write(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
         """
         Writes entries in the Odoo database.
 
@@ -218,7 +258,7 @@ class OdooAPI:
         _logger.info(f'{model} #{id} created in Odoo db.')
         return id
 
-    def update(self, model: str, entries: List[Dict[str, str]])-> None:
+    def update(self, model: str, entries: List[Dict[Hashable, Any]])-> None:
         id = []
         for e in entries:
             i = int(e['id'])
