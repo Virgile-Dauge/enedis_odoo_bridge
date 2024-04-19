@@ -231,7 +231,7 @@ class OdooAPI:
         names = self.execute('account.move.line', 'read', [data['line_id_Abonnements'].to_list()],
                              {'fields': ['name']})
         #print([n['name'].split('-')[0][:-1] for n in names])
-        subscription_lines['name'] = [n['name'].split('-')[0][:-1] for n in names]
+        subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
         subscription_lines = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
                                                                 'days': 'quantity',
                                                                 'start_date': 'deferred_start_date',
@@ -240,7 +240,13 @@ class OdooAPI:
         return consumption_lines + subscription_lines
   
     def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
-        moves = data[['']]
+        # On veut ajouter x_type_compteur, x_scripted, x_turpe
+
+        moves = DataFrame(data['id'])
+        moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
+        moves['x_scripted'] = True
+        if 'Type_Compteur' in data.columns:
+            moves['x_type_compteur'] = data['Type_Compteur']
         return moves.to_dict(orient='records')
 
     def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
@@ -256,10 +262,10 @@ class OdooAPI:
         This function updates the draft invoices in the Odoo database.
         """
         lines = self.prepare_line_updates(data)
-        _logger.info(lines)
         self.update('account.move.line', lines)
-        #self.update('account.move.line', self.prepare_subsc_line_updates(data, start, end))
-        #self.execute('account.move', 'write', self.prepare_line_updates(data))
+        moves = self.prepare_account_moves_updates(data)
+        _logger.info(moves)
+        self.update('account.move', moves)
         _logger.info(f'Draft invoices updated in {self.url} db.')
 
     def write(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
