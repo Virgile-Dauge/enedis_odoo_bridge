@@ -1,5 +1,6 @@
 from typing import Dict, List
 from datetime import date
+import pandas as pd
 from pandas import DataFrame
 
 from enedis_odoo_bridge.OdooAPI import OdooAPI
@@ -11,7 +12,13 @@ _logger = logging.getLogger(__name__)
 
 class DataMerger:
     def __init__(self, config: Dict[str, str], date:date, enedis: EnedisFluxEngine, odoo: OdooAPI) -> None:
-        self.config = check_required(config, [])
+        self.config = check_required(config, ['TURPE_B_CU4', 
+                                              'TURPE_CG', 
+                                              'TURPE_CC',
+                                              'TURPE_TAUX_HPH_CU4', 
+                                              'TURPE_TAUX_HCH_CU4', 
+                                              'TURPE_TAUX_HPB_CU4', 
+                                              'TURPE_TAUX_HCB_CU4',])
         self.enedis = enedis
         self.odoo = odoo
 
@@ -33,16 +40,43 @@ class DataMerger:
         _logger.debug(enedis_data)
         _logger.info(f"- {len(odoo_data)} odoo entries.")
         _logger.debug(odoo_data)
-        return DataFrame({})
+        merged = pd.merge(odoo_data, enedis_data, left_on='x_pdl', right_on='pdl', how='left')
+        _logger.debug(merged)
+        return merged
+    
+    def add_turpe(self, data:DataFrame):
+        data['turpe_fix'] = (data['x_puissance_souscrite'].astype(float) * float(self.config['TURPE_B_CU4'])
+            + float(self.config['TURPE_CG']) + float(self.config['TURPE_CC']))/12
+        data['turpe_var'] = (
+            data['HPH_conso'].astype(float)*float(self.config['TURPE_TAUX_HPH_CU4'])*0.01
+            + data['HCH_conso'].astype(float)*float(self.config['TURPE_TAUX_HCH_CU4'])*0.01
+            + data['HPB_conso'].astype(float)*float(self.config['TURPE_TAUX_HPB_CU4'])*0.01
+            + data['HCB_conso'].astype(float)*float(self.config['TURPE_TAUX_HCB_CU4'])*0.01)
+        return data
 
-    def update_odoo(self, merged_data):
+    def enrich(self, data: DataFrame)-> DataFrame:
+        data['HP'] = data[['HPH_conso', 'HPB_conso']].sum(axis=1)
+        data['HC'] = data[['HCH_conso', 'HCB_conso']].sum(axis=1)
+        data['Base'] = data[['HP', 'HC']].sum(axis=1)
+        _logger.debug(data)
+        return data
+
+    def update_odoo(self, data: DataFrame):
         # Mettre à jour Odoo avec les données fusionnées
-        self.odoo.update_data(merged_data)
+        self.odoo.update_draft_invoices(data)
 
     def process(self):
         enedis_data = self.fetch_enedis_data()
         odoo_data = self.fetch_odoo_data()
-        merged_data = self.merge_data(enedis_data, odoo_data)
+        data = self.merge_data(enedis_data, odoo_data)
+        data = self.add_turpe(data)
+        data = self.enrich(data)
+        return data
         #self.update_odoo(merged_data)
+
+    def process_and_update(self):
+        data = self.process()
+        self.update_odoo(data)
+        return data
 
 
