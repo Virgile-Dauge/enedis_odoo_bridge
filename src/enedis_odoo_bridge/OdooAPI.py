@@ -224,7 +224,7 @@ class OdooAPI:
 
         # Abonnements
         data['days'] = (data['end_date']-data['start_date']).dt.days+1
-        subscription_lines = data[['line_id_Abonnements','days']]
+        subscription_lines = data[['line_id_Abonnements','days']].copy()
         subscription_lines['start_date'] = data['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         subscription_lines['end_date'] = data['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
 
