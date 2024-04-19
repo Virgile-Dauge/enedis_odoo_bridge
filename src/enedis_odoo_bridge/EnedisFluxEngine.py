@@ -234,7 +234,8 @@ class EnedisFluxEngine:
         for k in columns:
             if k not in self.data['R15'].columns:
                 raise ValueError(f'Asked column {k} not found in R15 data.')
-        return pd.merge(estimates, self.data['R15'][['pdl']+columns], how='left', on='pdl')
+        to_add = self.data['R15'][['pdl']+columns].drop_duplicates(subset='pdl', keep='first')
+        return pd.merge(estimates, to_add, how='left', on='pdl')
     
     def fetch(self, start: date, end: date, columns: List[str], heuristic: Strategy=StrategyMaxMin()):
         estimates = self.estimate_consumption(start, end)
