@@ -224,30 +224,24 @@ class OdooAPI:
 
         # Abonnements
         data['days'] = (data['end_date']-data['start_date']).dt.days+1
-        subscription_lines = data[['line_id_Abonnements','days', 
-                                   'start_date', 'end_date']]
-        subscription_lines['start_date'] = subscription_lines['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
-        subscription_lines['end_date'] = subscription_lines['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines = data[['line_id_Abonnements','days']]
+        subscription_lines['start_date'] = data['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['end_date'] = data['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
 
+        names = self.execute('account.move.line', 'read', [data['line_id_Abonnements'].to_list()],
+                             {'fields': ['name']})
+        #print([n['name'].split('-')[0][:-1] for n in names])
+        subscription_lines['name'] = [n['name'].split('-')[0][:-1] for n in names]
         subscription_lines = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
                                                                 'days': 'quantity',
                                                                 'start_date': 'deferred_start_date',
                                                                 'end_date': 'deferred_end_date',}).to_dict(orient='records')
         #print(subscription_lines)
         return consumption_lines + subscription_lines
-
-    def prepare_subsc_line_updates(self, data:DataFrame, start: date, end: date)-> List[Dict[Hashable, Any]]:
-        if 'line_id_Abonnements' not in data.columns:
-            raise ValueError(f'Required "line_id_Abonnements" column found in {data.columns}')
-
-        ids = data['line_id_Abonnements'].astype(int).to_list()
-        consts: Dict[Hashable, Any] = {'deferred_start_date':start,
-                                       'deferred_end_date': end, 
-                                       'quantity': (end - start).days + 1}
-        return (ids, consts)
-    
+  
     def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
-        ...
+        moves = data[['']]
+        return moves.to_dict(orient='records')
 
     def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
         """
@@ -262,8 +256,7 @@ class OdooAPI:
         This function updates the draft invoices in the Odoo database.
         """
         lines = self.prepare_line_updates(data)
-        lines_abo = self.prepare_subsc_line_updates(data, start, end)
-        _logger.info(lines_abo)
+        _logger.info(lines)
         self.update('account.move.line', lines)
         #self.update('account.move.line', self.prepare_subsc_line_updates(data, start, end))
         #self.execute('account.move', 'write', self.prepare_line_updates(data))
