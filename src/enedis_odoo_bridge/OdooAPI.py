@@ -244,7 +244,8 @@ class OdooAPI:
 
         moves = DataFrame(data['id'])
         moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
-        moves['x_scripted'] = True
+        # Deprecated : Maintenant on a les activités
+        #moves['x_scripted'] = True
         if 'Type_Compteur' in data.columns:
             moves['x_type_compteur'] = data['Type_Compteur']
         return moves.to_dict(orient='records')
@@ -291,8 +292,8 @@ class OdooAPI:
             i = int(e['id'])
             del e['id']
             data = e
-            data = {k: int(v) if isinstance(v, np.int64) else v for k, v in data.items()}
-            data = {k: float(v) if isinstance(v, np.float64) else v for k, v in data.items()}
+            data = {k: int(v) if type(v) is np.int64 else v for k, v in data.items()}
+            data = {k: float(v) if type(v) is np.int64 else v for k, v in data.items()}
             self.execute(model, 'write', [[i], data])
             id += [i]
 
