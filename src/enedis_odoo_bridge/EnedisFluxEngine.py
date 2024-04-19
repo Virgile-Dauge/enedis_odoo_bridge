@@ -234,8 +234,6 @@ class EnedisFluxEngine:
         for k in columns:
             if k not in self.data['R15'].columns:
                 raise ValueError(f'Asked column {k} not found in R15 data.')
-        print(estimates)
-        print(self.data['R15'][['pdl']+columns])
         return pd.merge(estimates, self.data['R15'][['pdl']+columns], how='left', on='pdl')
     
     def fetch(self, start: date, end: date, columns: List[str], heuristic: Strategy=StrategyMaxMin()):

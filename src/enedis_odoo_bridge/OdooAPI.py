@@ -230,13 +230,12 @@ class OdooAPI:
 
         names = self.execute('account.move.line', 'read', [data['line_id_Abonnements'].to_list()],
                              {'fields': ['name']})
-        #print([n['name'].split('-')[0][:-1] for n in names])
+        
         subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
         subscription_lines = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
                                                                 'days': 'quantity',
                                                                 'start_date': 'deferred_start_date',
                                                                 'end_date': 'deferred_end_date',}).to_dict(orient='records')
-        #print(subscription_lines)
         return consumption_lines + subscription_lines
   
     def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
@@ -264,7 +263,6 @@ class OdooAPI:
         lines = self.prepare_line_updates(data)
         self.update('account.move.line', lines)
         moves = self.prepare_account_moves_updates(data)
-        _logger.info(moves)
         self.update('account.move', moves)
         _logger.info(f'Draft invoices updated in {self.url} db.')
 
