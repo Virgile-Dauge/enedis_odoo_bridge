@@ -63,7 +63,7 @@ class DataMerger:
 
     def update_odoo(self, data: DataFrame):
         # Mettre à jour Odoo avec les données fusionnées
-        self.odoo.update_draft_invoices(data)
+        self.odoo.update_draft_invoices(data, self.starting_date, self.ending_date)
 
     def process(self):
         enedis_data = self.fetch_enedis_data()

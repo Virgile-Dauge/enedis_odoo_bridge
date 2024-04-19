@@ -168,7 +168,7 @@ def main(args):
                                             update=args.update_flux),
                     odoo=OdooAPI(config=env, sim=args.sim))
     #turpe = Turpe(constants=env)
-    dm.process()
+    dm.process_and_update()
     exit()
     drafts = odoo.drafts
     drafts_df = pd.DataFrame(drafts)
