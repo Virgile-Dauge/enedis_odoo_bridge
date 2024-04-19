@@ -27,7 +27,7 @@ class DataMerger:
 
     def fetch_enedis_data(self)-> DataFrame:
         # Récupérer les données depuis EnedisFluxEngine
-        return self.enedis.estimate_consumption(self.starting_date, self.ending_date)
+        return self.enedis.fetch(self.starting_date, self.ending_date, ['Type_Compteur'])
 
     def fetch_odoo_data(self)-> DataFrame:
         # Récupérer les données depuis OdooAPI

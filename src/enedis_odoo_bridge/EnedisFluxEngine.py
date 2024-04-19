@@ -11,7 +11,7 @@ from datetime import datetime
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip, check_required
 from enedis_odoo_bridge.R15Parser import R15Parser
-from enedis_odoo_bridge.estimators import StrategyMaxMin
+from enedis_odoo_bridge.estimators import Strategy, StrategyMaxMin
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -194,7 +194,6 @@ class EnedisFluxEngine:
         for k, v in self.db.items():
             self.root_path.joinpath(k).joinpath('light_db.json').write_text(json.dumps(v))
 
-
     def estimate_consumption(self, start: date, end: date) -> pd.DataFrame:
         """
         Estimates the total consumption per PDL for the specified period, according to the EnedisFluxEngine set Strategy.
@@ -230,3 +229,15 @@ class EnedisFluxEngine:
             _logger.warn(f"└── Failed to Estimate consumption of any PDLs.")
         consos.to_csv(self.root_path.joinpath('R15').joinpath(f'estimated_consumption_from_{start}_to{end}.csv'))
         return consos
+    
+    def enrich_estimates(self, estimates: pd.DataFrame, columns: List[str])-> pd.DataFrame:
+        for k in columns:
+            if k not in self.data['R15'].columns:
+                raise ValueError(f'Asked column {k} not found in R15 data.')
+        print(estimates)
+        print(self.data['R15'][['pdl']+columns])
+        return pd.merge(estimates, self.data['R15'][['pdl']+columns], how='left', on='pdl')
+    
+    def fetch(self, start: date, end: date, columns: List[str], heuristic: Strategy=StrategyMaxMin()):
+        estimates = self.estimate_consumption(start, end)
+        return self.enrich_estimates(estimates, columns)
