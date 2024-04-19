@@ -223,8 +223,16 @@ class OdooAPI:
         consumption_lines = consumption_lines.dropna(subset=['id']).to_dict(orient='records')
 
         # Abonnements
-        data['days'] = (data['end_date']-data['start_date']).dt.days
-        subscription_lines = data[['line_id_Abonnements','days']].rename(columns={'line_id_Abonnements': 'id', 'days': 'quantity'}).to_dict(orient='records')
+        data['days'] = (data['end_date']-data['start_date']).dt.days+1
+        subscription_lines = data[['line_id_Abonnements','days', 
+                                   'start_date', 'end_date']]
+        subscription_lines['start_date'] = subscription_lines['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['end_date'] = subscription_lines['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+
+        subscription_lines = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
+                                                                'days': 'quantity',
+                                                                'start_date': 'deferred_start_date',
+                                                                'end_date': 'deferred_end_date',}).to_dict(orient='records')
         #print(subscription_lines)
         return consumption_lines + subscription_lines
 
