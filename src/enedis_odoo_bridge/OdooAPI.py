@@ -34,27 +34,98 @@ class OdooAPI:
 
         #self.drafts = self.get_drafts()
     def get_uid(self):
+        """
+        Authenticates the user with the provided credentials and returns the user ID.
+
+        Args:
+            self (OdooAPI): An instance of the OdooAPI class.
+
+        Returns:
+            int: The user ID obtained from the Odoo server.
+
+        Raises:
+            xmlrpc.client.Fault: If the authentication fails.
+
+        This function creates a ServerProxy object to the Odoo server's XML-RPC interface,
+        and calls the 'authenticate' method to authenticate the user with the provided credentials. 
+        The user ID obtained from the Odoo server is then returned.
+        """
         common_proxy = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
         return common_proxy.authenticate(self.db, self.username, self.password, {})
     
     def execute(self, model: str, method: str, *args, **kwargs) -> List:
+        """
+        Executes a method on the Odoo server.
+
+        Args:
+            model (str): The model to execute the method on.
+            method (str): The method to execute.
+            *args: Additional positional arguments to pass to the method.
+            **kwargs: Additional keyword arguments to pass to the method.
+
+        Returns:
+            List: The result of the executed method, if it returns a list. Otherwise, a single value is wrapped in a list.
+
+        Raises:
+            xmlrpc.client.Fault: If the execution fails.
+
+        This function creates a ServerProxy object to the Odoo server's XML-RPC interface,
+        and calls the 'execute_kw' method to execute the specified method on the specified model.
+        The result of the executed method is then returned, wrapped in a list if it is a single value.
+        """
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
         return res if isinstance(res, list) else [res]
     
-    def fetch(self)-> DataFrame:
+    def fetch(self) -> DataFrame:
+        """
+        Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.
+
+        Args:
+            self (OdooAPI): An instance of the OdooAPI class.
+
+        Returns:
+            DataFrame: A DataFrame containing the draft invoices with the specified fields.
+
+        This function first fetches ['invoice_line_ids', 'date', 'x_order_id'] fields of draft invoices.
+        It then adds ['x_pdl', 'x_puissance_souscrite'] fields from the 'sale.order'.
+        Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
+        The function returns the cleared DataFrame, leaving only scalar values.
+        """
         data = self.get_drafts(['invoice_line_ids', 'date', 'x_order_id'])
-        print(data)
         data = self.add_order_fields(data, ['x_pdl', 'x_puissance_souscrite'])
-        print(data)
         data = self.add_cat_fields(data, [])
         return self.clear(data)
-        #return self.add_lines(self.add_orders(self.get_drafts()))
     
     def clear(self, data: DataFrame)-> DataFrame:
-        return data
-        #TODO : Remove all non scalar coluns from the data
+        """
+        Removes non-scalar columns from the input DataFrame.
+
+        Args:
+            data (DataFrame): The input DataFrame to be cleaned.
+
+        Returns:
+            DataFrame: The input DataFrame with non-scalar columns removed.
+
+        This function identifies non-scalar columns in the input DataFrame and removes them.
+        Non-scalar columns are those that contain lists or dictionaries.
+        """
+        non_scalar_columns = [col for col in data.columns if any(data[col].apply(lambda x: isinstance(x, (list, dict))))]
+        return data.drop(non_scalar_columns, axis=1)
 
     def get_drafts(self, fields: List[str])-> DataFrame:
+        """
+        Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+
+        Args:
+            fields (List[str]): A list of fields to be included in the returned DataFrame.
+
+        Returns:
+            DataFrame: A DataFrame containing the draft invoices with the specified fields.
+
+        This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+        Draft invoices satisfies : ['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]
+        It uses the 'search_read' method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.
+        """
         _logger.info(f'Searching drafts invoices in {self.url} db.')
         drafts = self.execute('account.move', 'search_read', 
             [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
@@ -62,6 +133,24 @@ class OdooAPI:
         return DataFrame(drafts)
 
     def add_order_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
+        """
+        Adds the specified fields from the 'sale.order' model to the input DataFrame based on the 'x_order_id' column.
+
+        Args:
+            data (DataFrame): The input DataFrame to be updated.
+            fields (List[str]): A list of fields to be added from the 'sale.order' model.
+
+        Returns:
+            DataFrame: The input DataFrame with the specified fields added.
+
+        Raises:
+            ValueError: If the input DataFrame does not have the 'x_order_id' column.
+
+        This function first checks if the input DataFrame has the 'x_order_id' column. 
+        If it does, it fetches the corresponding orders from the 'sale.order' model using the 'read' method of the Odoo API. 
+        It then creates a new DataFrame from the fetched orders and adds the specified fields to the input DataFrame. 
+        Finally, it returns the updated DataFrame.
+        """
         if 'x_order_id' not in data.columns:
             raise ValueError(f'No x_order_id found in {data.columns}')
         
@@ -73,79 +162,49 @@ class OdooAPI:
         return data
            
     def add_cat_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
+        """
+        Add one category column to the data frame for each invoice line, set with the corresponding line id.
+
+        Args:
+            data (DataFrame): The input data frame.
+            fields (List[str]): The list of category fields to add.
+
+        Returns:
+            DataFrame: The input data frame with the added category fields.
+
+        Raises:
+            ValueError: If the input data frame does not have the required columns.
+
+        After checking that the input data frame has the required columns,
+        Then fetchs the lines of each invoice with invoice_line_ids key.
+        Then fetchs the product of each line with product_id key found for each line.
+        Then explodes each invoice line into a separate row.
+        Then adds the cat columns from the fetcheds products.
+        We now have all the data, but we need to return to one row for each invoice.
+        We can do this by pivoting the data, and then merging the pivoted data with the original data frame.
+        """
         if 'invoice_line_ids' not in data.columns:
             raise ValueError(f'No invoice_line_ids found in {data.columns}')
-        #print(data.explode('invoice_line_ids'))
+
         lines = self.execute('account.move.line', 'read', data['invoice_line_ids'].to_list(),
                         {'fields': ['name', 'product_id', 'ref']})
-        print(lines)
+        
         prods_id = [l['product_id'][0] if l['product_id'] else False for l in lines]
-        #_logger.info(prods_id)
+
         prods = self.execute('product.product', 'read', [prods_id],
                         {'fields': ['categ_id']})
         cat = [p['categ_id'][1].split(' ')[-1] for p in prods]
         df_exploded = data.explode('invoice_line_ids')
         df_exploded['cat'] = cat
 
-        # Adding a sequence number within each 'id' group for new data
-        df_exploded['seq_num'] = df_exploded.groupby('id').cumcount() + 1
-        print(df_exploded)
-
         # Pivoting to transform 'cat' values into separate columns
         df_pivoted = df_exploded.pivot(index='id', columns='cat', values='invoice_line_ids').reset_index()
         # Renaming columns to reflect the source of the data
         df_pivoted.columns = ['id'] + [f'line_id_{x}' for x in df_pivoted.columns if x != 'id']
-        print(df_pivoted)
+
         # Merge the pivoted DataFrame with the original DataFrame
         df_final = pd.merge(data, df_pivoted, on='id', how='left')
         return df_final
-
-    def get_drafts_old(self)-> DataFrame:
-        _logger.info(f'Searching drafts invoices in {self.url} db.')
-        drafts = self.execute('account.move', 'search_read', 
-        [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
-        {'fields': ['invoice_line_ids', 'date', 'x_order_id']})
-
-        # Récupération des PDL et la puissance souscrite dans les bons de commandes.
-        bons = self.execute('sale.order', 'read', 
-                            [[d['x_order_id'][0] for d in drafts]], 
-                            {'fields': ['x_pdl', 'x_puissance_souscrite']})
-
-        for d in drafts:
-            d['x_order_id'] = d['x_order_id'][0]
-        _logger.info(f'└── {len(drafts)} drafts invoices found.')
-        #_logger.info(drafts)
-
-        # TODO ajouter des colones pour les id de lignes HP, HC, BASE, et éventuellement turpe ?
-        # On ajoute le PDL et la puissance souscrite à chaque facture d'énergie.
-        return DataFrame([d|{'pdl': b['x_pdl'], 'puissance_souscrite': int(b['x_puissance_souscrite'])} for d, b in zip(drafts, bons)])
-    
-    def get_lines(self)-> DataFrame:
-        drafts = self.execute('account.move', 'search_read', 
-        [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
-        {'fields': ['invoice_line_ids', 'date', 'x_order_id']})
-
-                # Récupération des PDL et la puissance souscrite dans les bons de commandes.
-        bons = self.execute('sale.order', 'read', 
-                            [[d['x_order_id'][0] for d in drafts]], 
-                            {'fields': ['x_pdl', 'x_puissance_souscrite']})
-        drafts = [d|{'pdl': b['x_pdl'], 'puissance_souscrite': int(b['x_puissance_souscrite'])} for d, b in zip(drafts, bons)]
-        # On crée une liste de tuples (l, d_id)
-        lines = [(l, d['id'], d['pdl']) for d in drafts for l in d['invoice_line_ids']]
-        lines_ids, drafts_id, pdls = zip(*lines)
-        lines = self.execute('account.move.line', 'read', [lines_ids],
-                        {'fields': ['name', 'product_id', 'ref']})
-        prods_id = [l['product_id'][0] if l['product_id'] else False for l in lines]
-        #_logger.info(prods_id)
-        prods = self.execute('product.product', 'read', [prods_id],
-                        {'fields': ['default_code', 'categ_id']})
-        print(prods)
-        codes = [p['default_code'] for p in prods]
-        #_logger.info(codes)
-
-        # On veut une dataframe|liste dict avec en ID les PDL, une colone ID_line, une colonne code_line
-        _logger.info(f'{len(codes)} account.move.line found in Odoo db.')
-        return DataFrame([{'id': l['id'], 'name': l['name'], 'code': c, 'pdl': p} for l, c, p in zip(lines, codes, pdls)])
 
     def write(self, model: str, entries: Dict[str, str])-> List[int]:
         """
