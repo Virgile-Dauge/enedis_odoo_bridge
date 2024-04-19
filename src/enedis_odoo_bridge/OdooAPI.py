@@ -2,9 +2,10 @@ import xmlrpc.client
 from xmlrpc.client import MultiCall
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Any, Hashable
+from typing import Dict, List, Any, Hashable, Tuple
 import pandas as pd
 from pandas import DataFrame
+from datetime import date
 
 from enedis_odoo_bridge.utils import check_required
 
@@ -207,24 +208,32 @@ class OdooAPI:
         if 'Base' not in data.columns:
             raise ValueError(f'Required "Base" column found in {data.columns}')
 
-        _logger.debug(data[['line_id_HP','line_id_HC','line_id_Base', 'HP', 'HC', 'Base']])
-
         # Get cols names containing line id for consumptions only
-        line_id_cols = [c for c in data.columns
+        line_id_cols = sorted([c for c in data.columns
                         if c.startswith('line_id_') 
-                        and c.replace('line_id_', '') in ['HP', 'HC', 'Base']]
-        value_cols = [c for c in data.columns
-                      if c in ['HP', 'HC', 'Base']]
+                        and c.replace('line_id_', '') in ['HP', 'HC', 'Base']])
+        value_cols = sorted([c for c in data.columns
+                      if c in ['HP', 'HC', 'Base']])
         lines = pd.DataFrame({
             'id': pd.concat([data[c] for c in line_id_cols], ignore_index=True),
             'quantity': pd.concat([data[c] for c in value_cols], ignore_index=True)
         })
         return lines.dropna(subset=['id']).to_dict(orient='records')
+
+    def prepare_subsc_line_updates(self, data:DataFrame, start: date, end: date)-> Tuple[List[int], Dict[Hashable, Any]]:
+        if 'line_id_Abonnements' not in data.columns:
+            raise ValueError(f'Required "line_id_Abonnements" column found in {data.columns}')
+
+        ids = data['line_id_Abonnements'].astype(int).to_list()
+        consts: Dict[Hashable, Any] = {'deferred_start_date':start,
+                                       'deferred_end_date': end, 
+                                       'quantity': (end - start).days + 1}
+        return (ids, consts)
     
     def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
         ...
 
-    def update_draft_invoices(self, data: DataFrame)-> None:
+    def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
         """
         Updates the draft invoices in the Odoo database.
 
@@ -237,7 +246,10 @@ class OdooAPI:
         This function updates the draft invoices in the Odoo database.
         """
         lines = self.prepare_line_updates(data)
-        self.update('account.move.line', self.prepare_line_updates(data))
+        lines_abo = self.prepare_subsc_line_updates(data, start, end)
+        _logger.info(lines_abo)
+        self.update('account.move.line', lines)
+        #self.update('account.move.line', self.prepare_subsc_line_updates(data, start, end))
         #self.execute('account.move', 'write', self.prepare_line_updates(data))
         _logger.info(f'Draft invoices updated in {self.url} db.')
 
