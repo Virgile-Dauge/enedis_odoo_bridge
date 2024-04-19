@@ -46,7 +46,7 @@ class OdooAPI:
         common_proxy = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
         return common_proxy.authenticate(self.db, self.username, self.password, {})
     
-    def execute(self, model: str, method: str, *args, **kwargs) -> List:
+    def execute(self, model: str, method: str, args, kwargs) -> List:
         """
         Executes a method on the Odoo server.
 
@@ -66,7 +66,8 @@ class OdooAPI:
         and calls the 'execute_kw' method to execute the specified method on the specified model.
         The result of the executed method is then returned, wrapped in a list if it is a single value.
         """
-        res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, *args, **kwargs)
+        _logger.debug(f'Executing {method} on {model} with args {args} and kwargs {kwargs}')
+        res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, args, kwargs)
         return res if isinstance(res, list) else [res]
     
     def fetch(self) -> DataFrame:
@@ -179,15 +180,16 @@ class OdooAPI:
         if 'invoice_line_ids' not in data.columns:
             raise ValueError(f'No invoice_line_ids found in {data.columns}')
 
-        lines = self.execute('account.move.line', 'read', data['invoice_line_ids'].to_list(),
-                        {'fields': ['name', 'product_id', 'ref']})
+        df_exploded = data.explode('invoice_line_ids')
+        lines = self.execute('account.move.line', 'read', [df_exploded['invoice_line_ids'].to_list()],
+                             {'fields': ['product_id']})
         
         prods_id = [l['product_id'][0] if l['product_id'] else False for l in lines]
 
         prods = self.execute('product.product', 'read', [prods_id],
                         {'fields': ['categ_id']})
         cat = [p['categ_id'][1].split(' ')[-1] for p in prods]
-        df_exploded = data.explode('invoice_line_ids')
+        
         df_exploded['cat'] = cat
 
         # Pivoting to transform 'cat' values into separate columns
