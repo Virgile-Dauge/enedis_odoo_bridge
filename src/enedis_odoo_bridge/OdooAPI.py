@@ -15,7 +15,7 @@ _logger = logging.getLogger(__name__)
 class OdooAPI:
     def __init__(self, config: Dict[str, str], sim=False):
 
-        config = check_required(config, ['URL', 'DB', 'USERNAME', 'PASSWORD'])
+        self.config = check_required(config, ['URL', 'DB', 'USERNAME', 'PASSWORD'])
         self.url = config['URL']
         db = config['DB']
         self.db = db + '-duplicate' if sim else db
@@ -225,12 +225,13 @@ class OdooAPI:
         # Abonnements
         data['days'] = (data['end_date']-data['start_date']).dt.days+1
         subscription_lines = data[['line_id_Abonnements','days']].copy()
+
         subscription_lines['start_date'] = data['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         subscription_lines['end_date'] = data['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
 
         names = self.execute('account.move.line', 'read', [data['line_id_Abonnements'].to_list()],
                              {'fields': ['name']})
-        
+
         subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
         subscription_lines = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
                                                                 'days': 'quantity',
@@ -265,6 +266,7 @@ class OdooAPI:
         moves = self.prepare_account_moves_updates(data)
         self.update('account.move', moves)
         _logger.info(f'Draft invoices updated in {self.url} db.')
+        self.ask_for_approval('account.move', data['id'].to_list())
 
     def write(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
         """
@@ -296,4 +298,15 @@ class OdooAPI:
 
         _logger.info(f'{model} #{id} writen in Odoo db.')
       
+    def ask_for_approval(self, model: str, ids: List[int]):
+        model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
+        activities = DataFrame({'res_id': ids})
+        activities['res_model_id'] = model_id[0]
+        activities['activity_type_id'] = 4
+        activities['user_id'] = self.config['ODOO_FACTURISTE_ID']
+        activities['summary'] = 'À Approuver'
+        activities['automated'] = True
+        activities['note'] = 'Merci de valider cette facture remplie automatiquement.'
+        activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
+        self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
 
