@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import pandas as pd
 from pandas import Timestamp, DataFrame, Series
 from typing import Dict, List, Any
 # Interface commune pour les stratégies
@@ -45,13 +46,20 @@ class StrategyMaxMin(Strategy):
         initial = df.loc[(df['Date_Releve'] >= start)
                     & (df['Date_Releve'] <= end)
                     & (df['Statut_Releve'] == 'INITIAL')]
+        
+        initial['start_date'] = start
+        initial['end_date'] = end
 
-        pdls = initial.groupby('pdl')
+        pdls = initial.groupby('pdl', group_keys=True)
 
-        # Pour chaque pdl, on fait la différence entre le plus grand et le plus petit des index pour chaque classe de conso.
         consos = DataFrame({k+'_conso': pdls[k+'_index'].max()-pdls[k+'_index'].min() 
                             for k in ['HPH', 'HCH', 'HPB', 'HCB']})
-        return consos
+
+        dates = DataFrame({
+            'start_date': initial[(initial['Motif_Releve'] == 'CFNE') | (initial['Motif_Releve'] == 'MES')].groupby('pdl')['Date_Releve'].first(),
+            'end_date': end})
+
+        return pd.merge(consos, dates, on='pdl', how='left')
 
 class StrategyAugmentedMaxMin(Strategy):
     def get_strategy_name(self):
