@@ -7,6 +7,7 @@ from zipfile import ZipFile
 from datetime import date
 from dotenv import load_dotenv
 from unittest.mock import patch, MagicMock
+from calendar import monthrange
 
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
@@ -65,6 +66,23 @@ def test_gen_dates_january():
     assert expected_end_date.month == 12
     assert expected_end_date.year == 2021
 
+def test_gen_dates_no_current_date():
+    # Test for when no date is provided; it should default to the previous month from today
+    # This test might be a bit tricky since it depends on when the test is run
+    # One approach is to manually calculate what the expected result should be based on today's date
+    today = date.today()
+    if today.month == 1:
+        expected_year = today.year - 1
+        expected_month = 12
+    else:
+        expected_year = today.year
+        expected_month = today.month - 1
+
+    expected_start_date = date(expected_year, expected_month, 1)
+    expected_end_date = date(expected_year, expected_month, monthrange(expected_year, expected_month)[1])
+
+    assert gen_dates(None) == (expected_start_date, expected_end_date), "Failed to calculate dates when no current date is provided"
+
 def test_pro_rata_same_month():
     start_date = date(2022, 1, 15)
     end_date = date(2022, 1, 30)
@@ -104,6 +122,53 @@ def test_unzip_function():
     # Clean up the temporary zip file
     Path("test_data.zip").unlink()
 
+@pytest.fixture
+def mock_sftp_connection():
+    with patch('sftpretty.Connection') as mock:
+        yield mock
+
+@pytest.fixture
+def config():
+    return {
+        'FTP_ADDRESS': 'ftp.example.com',
+        'FTP_USER': 'user',
+        'FTP_PASSWORD': 'password',
+        'FTP_R15_DIR': 'R15',
+        'FTP_C15_DIR': 'C15',
+        'FTP_F15_DIR': 'F15',
+    }
+
+def test_download_single_task(mock_sftp_connection, config):
+    tasks = ['R15']
+    local_path = Path('/tmp/data/flux_enedis/')  # Adjust the path as needed
+
+    # Mock the behavior of the sftp connection and its methods
+    mock_sftp_connection.return_value.__enter__.return_value.get_d = MagicMock()
+
+    # Execute the function with the mocked connection
+    result = download(config, tasks, local_path)
+
+    # Verify that the function returns the correct paths
+    assert tasks[0] in result
+    assert result[tasks[0]] == local_path.joinpath(tasks[0]).expanduser()
+
+    # Verify that the sftp get_d method was called with the correct parameters
+    mock_sftp_connection.return_value.__enter__.return_value.get_d.assert_called_once_with(
+        '/flux_enedis/' + config[f'FTP_{tasks[0]}_DIR'],
+        local_path.joinpath(tasks[0]).expanduser(),
+        resume=True,
+        workers=10
+    )
+
+def test_download_invalid_task_raises_value_error(mock_sftp_connection, config):
+    tasks = ['INVALID']
+    local_path = Path('/tmp/data/flux_enedis/')  # Adjust the path as needed
+
+    # Since the function is expected to raise a ValueError for an invalid task,
+    # we don't need to mock the behavior of the sftp connection for this test.
+
+    with pytest.raises(KeyError):
+        download(config, tasks, local_path)
 def test_download_invalid_type():
     tasks = ['InvalidType']
     load_dotenv()
