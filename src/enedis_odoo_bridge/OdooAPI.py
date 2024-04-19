@@ -24,15 +24,8 @@ class OdooAPI:
         self.uid = self.get_uid()
 
         self.proxy = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
-        _logger.info(f'logged to {self.db} Odoo db.')
-        # Récup des logs des appels de scripts précédents
-        
-        # DEPRECATED, pas de logs dans la base Odoo car trop chiant
-        #logs = self.execute('x_log_enedis', 'search_read', [[]], {'fields': ['x_name']})
-        #self.log_history = [Path(l['x_name']).stem for l in logs]
-        #_logger.info(f'{len(self.log_history)} x_log_enedis found in Odoo db.')
+        _logger.info(f'Logged to {self.db} Odoo db.')
 
-        #self.drafts = self.get_drafts()
     def get_uid(self):
         """
         Authenticates the user with the provided credentials and returns the user ID.
@@ -235,8 +228,5 @@ class OdooAPI:
             id += [i]
 
         _logger.info(f'{model} #{id} writen in Odoo db.')
-    def write_releves(self, releves: pd.DataFrame)-> List[int]:
-        print(releves.columns)
-        return [0]
-        
+      
 
