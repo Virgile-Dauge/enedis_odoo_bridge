@@ -25,13 +25,11 @@ import argparse
 import logging
 import pandas as pd
 from datetime import date, datetime
-from dotenv import load_dotenv
 
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.DataMerger import DataMerger
-from enedis_odoo_bridge.Turpe import Turpe
 from enedis_odoo_bridge.utils import gen_dates, load_prefixed_dotenv
 
 from rich import print, pretty, inspect
