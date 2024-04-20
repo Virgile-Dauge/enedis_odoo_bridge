@@ -12,6 +12,13 @@ from enedis_odoo_bridge.utils import check_required
 import logging
 _logger = logging.getLogger(__name__)
 
+def ensure_connection(func):
+    def wrapper(self, *args, **kwargs):
+        if self.proxy is None or self.uid is None:
+            self.connect()
+        return func(self, *args, **kwargs)
+    return wrapper
+
 class OdooAPI:
     def __init__(self, config: Dict[str, str], sim=False):
 
@@ -22,11 +29,15 @@ class OdooAPI:
         self.username = config['USERNAME']
         self.password = config['PASSWORD']
 
+        self.uid = None
+        self.proxy = None
+
+    def connect(self):
         self.uid = self.get_uid()
 
         self.proxy = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
         _logger.info(f'Logged to {self.db} Odoo db.')
-
+    
     def get_uid(self):
         """
         Authenticates the user with the provided credentials and returns the user ID.
@@ -46,7 +57,7 @@ class OdooAPI:
         """
         common_proxy = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
         return common_proxy.authenticate(self.db, self.username, self.password, {})
-    
+    @ensure_connection
     def execute(self, model: str, method: str, args=None, kwargs=None) -> List:
         """
         Executes a method on the Odoo server.
@@ -72,7 +83,7 @@ class OdooAPI:
         _logger.debug(f'Executing {method} on {model} with args {args} and kwargs {kwargs}')
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, args, kwargs)
         return res if isinstance(res, list) else [res]
-    
+
     def fetch(self) -> DataFrame:
         """
         Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.
