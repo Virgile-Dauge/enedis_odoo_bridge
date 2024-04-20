@@ -95,6 +95,24 @@ class OdooAPI:
         return self.clear(data)
 
     def filter_non_energy(self, data: DataFrame) -> DataFrame:
+        """
+        Filters out rows from the DataFrame that do not have any energy consumption data.
+
+        This method checks for the presence of non-null values in the columns that represent energy consumption
+        ('line_id_Base', 'line_id_HP', 'line_id_HC'). If a row does not have any non-null values in these columns,
+        it is considered to not have energy consumption data and is filtered out.
+
+        Args:
+            data (DataFrame): The input DataFrame containing invoice line items.
+
+        Returns:
+            DataFrame: A DataFrame with rows that lack energy consumption data removed.
+
+        Note:
+            The method specifically looks for the presence of 'line_id_Base', 'line_id_HP', and 'line_id_HC' columns
+            to determine if the invoice is related to energy consumption. 
+            Rows are kept if they have at least one non-null value in any of these columns.
+        """
         to_check = [k for k in ['line_id_Base', 'line_id_HP', 'line_id_HC'] if k in data.columns]
         return data.dropna(subset=to_check, how='all')
       
