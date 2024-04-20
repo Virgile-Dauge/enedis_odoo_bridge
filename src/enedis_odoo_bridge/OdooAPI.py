@@ -91,8 +91,13 @@ class OdooAPI:
         data = self.get_drafts(['invoice_line_ids', 'date', 'x_order_id'])
         data = self.add_order_fields(data, ['x_pdl', 'x_puissance_souscrite'])
         data = self.add_cat_fields(data, [])
+        data = self.filter_non_energy(data)
         return self.clear(data)
-    
+
+    def filter_non_energy(self, data: DataFrame) -> DataFrame:
+        to_check = [k for k in ['line_id_Base', 'line_id_HP', 'line_id_HC'] if k in data.columns]
+        return data.dropna(subset=to_check, how='all')
+      
     def clear(self, data: DataFrame)-> DataFrame:
         """
         Removes non-scalar columns from the input DataFrame.
