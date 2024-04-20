@@ -1,11 +1,13 @@
 import pytest
+import numpy as np
 import pandas as pd
+from pandas import DataFrame
 from unittest.mock import patch, MagicMock
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 
 def test_ensure_connection_calls_connect():
     # Mock the connect method
-    with patch.object(OdooAPI, 'get_uid', return_value=1) as mock_connect, patch('xmlrpc.client.ServerProxy') as mock_proxy:
+    with patch.object(OdooAPI, 'get_uid', return_value=42) as mock_connect, patch('xmlrpc.client.ServerProxy') as mock_proxy:
         # Create an instance of OdooAPI with proxy and uid set to None to simulate a disconnected state
         odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
         odoo_api.proxy = None
@@ -15,6 +17,7 @@ def test_ensure_connection_calls_connect():
         odoo_api.execute('some_model', 'some_method')
 
         # Assert that connect was called
+        assert odoo_api.uid == 42
         mock_connect.assert_called_once()
 
 def test_ensure_connection_does_not_call_connect_when_already_connected():
@@ -30,8 +33,34 @@ def test_ensure_connection_does_not_call_connect_when_already_connected():
 
         # Assert that connect was not called since the connection is already established
         mock_connect.assert_not_called()
+@pytest.fixture
+def setup_odoo_api():
+    config = {'URL': 'http://example.com', 'DB': 'test_db', 'USERNAME': 'user', 'PASSWORD': 'pass'}
+    odoo_api = OdooAPI(config)
+    return odoo_api
 
-def test_filter_non_energy_things_to_filter():
+@pytest.fixture
+def setup_odoo_api_for_fetch():
+    odoo_api = OdooAPI(config={'URL': 'http://example.com', 'DB': 'test_db', 'USERNAME': 'user', 'PASSWORD': 'pass'}, sim=False)
+    odoo_api.get_drafts = MagicMock(return_value=pd.DataFrame({'invoice_line_ids': [[1, 2]], 'date': ['2022-01-01'], 'x_order_id': [123]}))
+    odoo_api.add_order_fields = MagicMock(return_value=pd.DataFrame({'invoice_line_ids': [[1, 2]], 'date': ['2022-01-01'], 'x_order_id': [123], 'x_pdl': ['pdl1'], 'x_puissance_souscrite': [10]}))
+    odoo_api.add_cat_fields = MagicMock(return_value=pd.DataFrame({'invoice_line_ids': [1, 2], 'date': ['2022-01-01', '2022-01-01'], 'x_order_id': [123, 123], 'x_pdl': ['pdl1', 'pdl1'], 'x_puissance_souscrite': [10, 10], 'cat': ['cat1', 'cat2']}))
+    odoo_api.filter_non_energy = MagicMock(return_value=pd.DataFrame({'invoice_line_ids': [1], 'date': ['2022-01-01'], 'x_order_id': [123], 'x_pdl': ['pdl1'], 'x_puissance_souscrite': [10], 'cat': ['cat1']}))
+    odoo_api.clear = MagicMock(return_value=pd.DataFrame({'date': ['2022-01-01'], 'x_order_id': [123], 'x_pdl': ['pdl1'], 'x_puissance_souscrite': [10], 'cat': ['cat1']}))
+    return odoo_api
+
+def test_fetch(setup_odoo_api_for_fetch):
+    expected_df = pd.DataFrame({'date': ['2022-01-01'], 'x_order_id': [123], 'x_pdl': ['pdl1'], 'x_puissance_souscrite': [10], 'cat': ['cat1']})
+    result_df = setup_odoo_api_for_fetch.fetch()
+    pd.testing.assert_frame_equal(result_df, expected_df)
+
+    setup_odoo_api_for_fetch.get_drafts.assert_called_once()
+    setup_odoo_api_for_fetch.add_order_fields.assert_called_once()
+    setup_odoo_api_for_fetch.add_cat_fields.assert_called_once()
+    setup_odoo_api_for_fetch.filter_non_energy.assert_called_once()
+    setup_odoo_api_for_fetch.clear.assert_called_once()
+
+def test_filter_non_energy_things_to_filter(setup_odoo_api):
     # Create a sample DataFrame that includes both energy and non-energy consumption data
     data = pd.DataFrame({
         'id': [1, 2, 3, 4],
@@ -51,7 +80,7 @@ def test_filter_non_energy_things_to_filter():
     })
 
     # Instantiate the OdooAPI class
-    odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
+    odoo_api = setup_odoo_api
 
     # Filter the data
     filtered_data = odoo_api.filter_non_energy(data)
@@ -59,7 +88,7 @@ def test_filter_non_energy_things_to_filter():
     # Verify that the filtered data matches the expected data
     pd.testing.assert_frame_equal(filtered_data.reset_index(drop=True), expected_data.reset_index(drop=True))
 
-def test_filter_non_energy_nothing_to_filter():
+def test_filter_non_energy_nothing_to_filter(setup_odoo_api):
     # Create a sample DataFrame that includes both energy and non-energy consumption data
     data = pd.DataFrame({
         'id': [1, 2, 3, 4],
@@ -79,7 +108,7 @@ def test_filter_non_energy_nothing_to_filter():
     })
 
     # Instantiate the OdooAPI class
-    odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
+    odoo_api = setup_odoo_api
 
     # Filter the data
     filtered_data = odoo_api.filter_non_energy(data)
@@ -87,7 +116,7 @@ def test_filter_non_energy_nothing_to_filter():
     # Verify that the filtered data matches the expected data
     pd.testing.assert_frame_equal(filtered_data.reset_index(drop=True), expected_data.reset_index(drop=True))
 
-def test_clear_removes_non_scalar_columns():
+def test_clear_removes_non_scalar_columns(setup_odoo_api):
     # Setup: Create a DataFrame with scalar and non-scalar columns
     data = pd.DataFrame({
         'scalar1': [1, 2, 3],
@@ -103,7 +132,7 @@ def test_clear_removes_non_scalar_columns():
     })
 
     # Instantiate OdooAPI with dummy config
-    odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
+    odoo_api = setup_odoo_api
 
     # Exercise: Use the clear method to remove non-scalar columns
     cleared_data = odoo_api.clear(data)
@@ -111,7 +140,24 @@ def test_clear_removes_non_scalar_columns():
     # Verify: The returned DataFrame should match the expected DataFrame
     pd.testing.assert_frame_equal(cleared_data, expected_data)
 
-def test_add_order_fields():
+def test_add_order_fields_raises_value_error_when_x_order_id_missing(setup_odoo_api):
+    # Instantiate OdooAPI with dummy config
+    odoo_api = setup_odoo_api
+    
+    # Prepare test data without 'x_order_id' column
+    test_data = DataFrame({
+        'NOT_x_order_id': [[1, 'S00001'], [2, 'S00002']]
+    })
+    
+    # Expect ValueError to be raised due to missing 'x_order_id' column
+    with pytest.raises(ValueError) as excinfo:
+        odoo_api.add_order_fields(test_data, ['field1', 'field2'])
+    
+    # Optionally, you can check the exception message
+    assert "No x_order_id found in" in str(excinfo.value)
+    
+
+def test_add_order_fields(setup_odoo_api):
     # Prepare test data
     test_data = pd.DataFrame({
         'x_order_id': [[1, 'S00001'], [2, 'S00002']]
@@ -130,7 +176,7 @@ def test_add_order_fields():
     })
 
     # Instantiate OdooAPI with dummy config
-    odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
+    odoo_api = setup_odoo_api
 
     # Mock self.execute to return the mock_orders when called with 'sale.order', 'read'
     with patch.object(OdooAPI, 'execute', return_value=mock_orders) as mock_execute:
@@ -143,7 +189,24 @@ def test_add_order_fields():
     # Assert that the result_data matches the expected_data
     pd.testing.assert_frame_equal(result_data, expected_data)
 
-def test_add_cat_fields():
+def test_add_cat_fields_raises_value_error(setup_odoo_api):
+    # Instantiate the OdooAPI class with dummy configuration
+    odoo_api = setup_odoo_api
+    
+    # Create a DataFrame without the 'invoice_line_ids' column
+    data = pd.DataFrame({
+        'id': [1, 2],
+        'some_other_column': ['value1', 'value2']
+    })
+    
+    # Expect ValueError to be raised due to missing 'invoice_line_ids' column
+    with pytest.raises(ValueError) as exc_info:
+        odoo_api.add_cat_fields(data, [])
+    
+    # Optionally, check the exception message to ensure it's the expected one
+    assert "No invoice_line_ids found in" in str(exc_info.value)
+
+def test_add_cat_fields(setup_odoo_api):
     # Sample input DataFrame
     data = pd.DataFrame({
         'id': [1, 2],
@@ -164,7 +227,7 @@ def test_add_cat_fields():
     mock_products_response = [{'categ_id': [1, 'CAT1']}, {'categ_id': [2, 'CAT2']}, {'categ_id': [3, 'CAT3']}]
 
     # Instantiate OdooAPI with dummy config
-    odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
+    odoo_api = setup_odoo_api
 
     with patch.object(OdooAPI, 'execute', side_effect=[mock_lines_response, mock_products_response]) as mock_execute:
         # Call add_cat_fields
@@ -176,3 +239,79 @@ def test_add_cat_fields():
 
     # Assert that the result_data matches the expected_data structure
     pd.testing.assert_frame_equal(result_data.reset_index(drop=True), expected_data.reset_index(drop=True), check_dtype=False)
+
+def test_prepare_account_moves_updates_whitout_compteur(setup_odoo_api):
+    # Setup test data
+    test_data = pd.DataFrame({
+        'id': [1, 2],
+        'turpe_fix': [10.0, 20.0],
+        'turpe_var': [5.0, 10.0],
+    })
+
+    # Expected output
+    expected_moves = [
+        {'id': 1, 'x_turpe': 15.0,},
+        {'id': 2, 'x_turpe': 30.0,}
+    ]
+
+    # Instantiate OdooAPI with dummy config
+    odoo_api = setup_odoo_api
+
+    # Call the method
+    actual_moves = odoo_api.prepare_account_moves_updates(test_data)
+
+    # Convert numpy types to native Python types for comparison
+    for move in actual_moves:
+        for key, value in move.items():
+            if isinstance(value, np.number):
+                move[key] = value.item()
+
+    # Assert the result
+    assert actual_moves == expected_moves, "The method prepare_account_moves_updates did not return the expected result."
+def test_prepare_account_moves_updates(setup_odoo_api):
+    # Setup test data
+    test_data = pd.DataFrame({
+        'id': [1, 2],
+        'turpe_fix': [10.0, 20.0],
+        'turpe_var': [5.0, 10.0],
+        'Type_Compteur': ['TC1', 'TC2']
+    })
+
+    # Expected output
+    expected_moves = [
+        {'id': 1, 'x_turpe': 15.0, 'x_type_compteur': 'TC1'},
+        {'id': 2, 'x_turpe': 30.0, 'x_type_compteur': 'TC2'}
+    ]
+
+    # Instantiate OdooAPI with dummy config
+    odoo_api = setup_odoo_api
+
+    # Call the method
+    actual_moves = odoo_api.prepare_account_moves_updates(test_data)
+
+    # Convert numpy types to native Python types for comparison
+    for move in actual_moves:
+        for key, value in move.items():
+            if isinstance(value, np.number):
+                move[key] = value.item()
+
+    # Assert the result
+    assert actual_moves == expected_moves, "The method prepare_account_moves_updates did not return the expected result."
+
+def test_create_single_entry_returns_single_id(setup_odoo_api):
+    single_entry = {'name': 'Test Entry'}
+    expected_id = 1  # Assuming the Odoo server returns this ID for the created entry
+
+    with patch.object(OdooAPI, 'execute', return_value=expected_id) as mock_execute:
+        result_ids = setup_odoo_api.create('test.model', [single_entry])
+        mock_execute.assert_called_once_with('test.model', 'create', [[single_entry]])
+        assert result_ids == [expected_id], "The create method should return a list containing the single ID"
+
+def test_create_multiple_entries_returns_multiple_ids(setup_odoo_api):
+    entries = [{'name': 'Test Entry 1'}, {'name': 'Test Entry 2'}]
+    expected_ids = [1, 2]  # Assuming the Odoo server returns these IDs for the created entries
+
+    with patch.object(OdooAPI, 'execute', return_value=expected_ids) as mock_execute:
+        result_ids = setup_odoo_api.create('test.model', entries)
+        mock_execute.assert_called_once_with('test.model', 'create', [entries])
+        assert result_ids == expected_ids, "The create method should return a list of IDs"
