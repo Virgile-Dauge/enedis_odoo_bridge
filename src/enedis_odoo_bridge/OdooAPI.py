@@ -238,10 +238,10 @@ class OdooAPI:
         return df_final
 
     def prepare_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
-        if 'Base' not in data.columns:
-            raise ValueError(f'Required "Base" column found in {data.columns}')
-        if 'line_id_Abonnements' not in data.columns:
-            raise ValueError(f'Required "line_id_Abonnements" column found in {data.columns}')
+        required_cols = ['HP', 'HC', 'Base', 'line_id_Abonnements']
+        for c in required_cols:
+            if c not in data.columns:
+                raise ValueError(f'Required "{c}" column found in {data.columns}')
 
         # Get cols names containing line id for consumptions only
         line_id_cols = sorted([c for c in data.columns
@@ -302,9 +302,9 @@ class OdooAPI:
         _logger.info(f'Draft invoices updated in {self.url} db.')
         self.ask_for_approval('account.move', data['id'].to_list())
 
-    def write(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
+    def create(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
         """
-        Writes entries in the Odoo database.
+        Creates entries in the Odoo database.
 
         Args:
             log (Dict[str, str]): A dictionary containing the entries data.
