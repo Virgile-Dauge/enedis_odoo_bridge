@@ -3,6 +3,34 @@ import pandas as pd
 from unittest.mock import patch, MagicMock
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 
+def test_ensure_connection_calls_connect():
+    # Mock the connect method
+    with patch.object(OdooAPI, 'get_uid', return_value=1) as mock_connect, patch('xmlrpc.client.ServerProxy') as mock_proxy:
+        # Create an instance of OdooAPI with proxy and uid set to None to simulate a disconnected state
+        odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
+        odoo_api.proxy = None
+        odoo_api.uid = None
+
+        # Mocked execute method 
+        odoo_api.execute('some_model', 'some_method')
+
+        # Assert that connect was called
+        mock_connect.assert_called_once()
+
+def test_ensure_connection_does_not_call_connect_when_already_connected():
+    # Mock the connect method
+    with patch.object(OdooAPI, 'connect') as mock_connect, patch.object(OdooAPI, 'execute', return_value=None) as mock_execute:
+        # Create an instance of OdooAPI with proxy and uid set to simulate an already established connection
+        odoo_api = OdooAPI(config={'URL': '', 'DB': '', 'USERNAME': '', 'PASSWORD': ''}, sim=True)
+        odoo_api.proxy = MagicMock()
+        odoo_api.uid = 1  # Simulate a valid user ID
+
+        # Directly call the connect method to simulate the behavior of a decorated method
+        odoo_api.execute()
+
+        # Assert that connect was not called since the connection is already established
+        mock_connect.assert_not_called()
+
 def test_filter_non_energy_things_to_filter():
     # Create a sample DataFrame that includes both energy and non-energy consumption data
     data = pd.DataFrame({

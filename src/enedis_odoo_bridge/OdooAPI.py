@@ -34,7 +34,6 @@ class OdooAPI:
 
     def connect(self):
         self.uid = self.get_uid()
-
         self.proxy = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
         _logger.info(f'Logged to {self.db} Odoo db.')
     
