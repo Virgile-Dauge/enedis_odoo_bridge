@@ -4,13 +4,14 @@ from pandas import Timestamp, DataFrame, Series
 from pathlib import Path
 from typing import Dict, List, Any
 from datetime import date, datetime
-
+from rich import inspect
 import json
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip, check_required
 from enedis_odoo_bridge.R15Parser import R15Parser
+from enedis_odoo_bridge.flux_transformers import FluxTransformerFactory
 from enedis_odoo_bridge.estimators import Strategy, StrategyMaxMin
 
 import logging
@@ -109,50 +110,44 @@ class EnedisFluxEngine:
         for (flux_type, archives), working_path in zip(to_process.items(), directories):
 
             # Récupération du travail déjà fait :
-            already_processed = self.db[flux_type]['already_processed']
-            #csv = working_path.joinpath(f'{flux_type}.csv')
-            #r15 = pd.read_csv(csv) if csv.is_file() else None
-            pkl = working_path.joinpath(f'{flux_type}.pkl')
-            r15 = pd.read_pickle(pkl) if pkl.is_file() else None
+            #already_processed = self.db[flux_type]['already_processed']
+            #pkl = working_path.joinpath(f'{flux_type}.pkl')
+            #flux = pd.read_pickle(pkl) if pkl.is_file() else None
 
             checksums = [calculate_checksum(a) for a in archives]
-            to_add = [a for a, c in zip(archives, checksums) if c not in already_processed]
+            to_add = [a for a, c in zip(archives, checksums)]# if c not in already_processed]
             
-            if not to_add:
-                if r15 is not None:
-                    res[flux_type] = r15
-                _logger.info(f'└── No new zip for {flux_type}, using past {len(already_processed)} zips.')
-                continue
+            #if not to_add:
+            #    if flux is not None:
+            #        res[flux_type] = flux
+            #    _logger.info(f'└── No new zip for {flux_type}, using past {len(already_processed)} zips.')
+            #    continue
             # TODO adaptation dynamique en fonction du type de flux
-            parsed = [R15Parser(a) for a in to_add]
-            
-            concat = pd.concat([p.data for p in parsed])
+            # Pistes : Modify the EnedisFluxEngine to dynamically select the appropriate parser based on the flux type. 
+            # This can be done by maintaining a mapping of flux types to their corresponding parser classes or by using a factory pattern to instantiate the correct parser.
+            xsd_path = list(working_path.glob('*.xsd'))[0]
+            factory = FluxTransformerFactory()
+            flux_transformer = factory.get_transformer(flux_type, xsd_path)
+            parsed = [flux_transformer.process_zip(a) for a in to_add]
 
-            if r15 is not None:
-                concat = pd.concat([r15, concat])
+            concat = pd.concat(parsed)
+            
+            #if flux is not None:
+            #    concat = pd.concat([flux, concat])
             
             # Tri par date, par pdl, puis du plus vieux au plus récent :
             concat = concat.sort_values(by=['pdl', 'Date_Releve'])
             concat = concat.reset_index(drop=True)
-            concat.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
+            print(concat)
+            #concat.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
             concat.to_csv(working_path.joinpath(f'{flux_type}.csv'))
 
             # Maj des cheksum pour ne pas reintégrer les fichiers
-            newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
-            self.db[flux_type]['already_processed'] = already_processed + newly_processed
+            #newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
+            #self.db[flux_type]['already_processed'] = already_processed + newly_processed
             _logger.info(f'Added : {to_add}')
 
-            self.update_db()
-            res[flux_type] = concat
-            concat.to_csv(working_path.joinpath(f'{flux_type}.csv'))
-            concat.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
-
-            # Maj des cheksum pour ne pas reintégrer les fichiers
-            newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
-            self.db[flux_type]['already_processed'] = already_processed + newly_processed
-            _logger.info(f'Added : {to_add}')
-
-            self.update_db()
+            #self.update_db()
             res[flux_type] = concat
         return res
     
