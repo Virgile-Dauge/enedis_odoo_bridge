@@ -43,14 +43,10 @@ class BaseFluxTransformer(ABC):
                     # Convertir le XML en DataFrame
                     xml_dict = self.xml_to_dict(full_path)
                     df = self.dict_to_dataframe(xml_dict)
-                    #for column in df.columns:
-                    #    if 'date' in column.lower() or 'datetime' in column.lower():
-                    #        df[column] = pd.to_datetime(df[column], errors='coerce')
-                    #non_scalar_columns = [col for col in df.columns if any(df[col].apply(lambda x: isinstance(x, (list, dict))))]
-                    #df = df.drop(non_scalar_columns, axis=1)
+
                     dfs.append(df)
                     # Optionnel : Supprimer le fichier temporaire si désiré
-                    #os.remove(full_path)
+                    os.remove(full_path)
             # Concaténer toutes les DataFrames
             if dfs:
                 concat = pd.concat(dfs, ignore_index=True).reset_index(drop=True)

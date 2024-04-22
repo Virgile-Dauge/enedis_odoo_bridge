@@ -140,7 +140,6 @@ class EnedisFluxEngine:
             #newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
             #self.db[flux_type]['already_processed'] = already_processed + newly_processed
             _logger.info(f'Added : {to_add}')
-            print(flux)
             #self.update_db()
             res[flux_type] = flux
         return res
@@ -204,8 +203,8 @@ class EnedisFluxEngine:
         if not self.data:
             raise ValueError(f'No data found, try fetch then scan first.')
         # On veut inclure les journées de début et de fin de la période.
-        start_pd = pd.to_datetime(datetime.combine(start, datetime.min.time()))
-        end_pd = pd.to_datetime(datetime.combine(end, datetime.max.time()))
+        start_pd = pd.to_datetime(datetime.combine(start, datetime.min.time())).tz_localize('Etc/GMT-2')
+        end_pd = pd.to_datetime(datetime.combine(end, datetime.max.time())).tz_localize('Etc/GMT-2')
 
         _logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
         _logger.info(f'With {self.heuristic.get_estimator_name()} Strategy.')

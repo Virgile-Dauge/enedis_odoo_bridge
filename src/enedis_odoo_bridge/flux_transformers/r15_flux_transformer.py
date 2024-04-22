@@ -87,7 +87,6 @@ class R15FluxTransformer(BaseFluxTransformer):
                                                 'Libelle_Classe_Temporelle', ])
         self.data = self.endswith_drop(self.data, ['Classe_Temporelle'])
         
-        # TODO To DATE 
         # Convert columns where the last level of the index starts with "Date_" to datetime
         for col in self.data.columns:
             if col[2].startswith("Date_"):

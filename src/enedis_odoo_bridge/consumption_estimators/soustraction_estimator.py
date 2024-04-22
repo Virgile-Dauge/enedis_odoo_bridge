@@ -29,13 +29,6 @@ class SoustractionEstimator(BaseEstimator):
             - Si un seul relevé, conso = 0
             - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
         """
-
-        if start.tz is None:
-            start = start.tz_localize('Etc/GMT-2')
-
-        if end.tz is None:
-            end = end.tz_localize('Etc/GMT-2')
-
         initial = df.loc[(df[('', 'meta', 'Date_Releve')] >= start)
                     & (df[('', 'meta', 'Date_Releve')] <= end)
                     & (df[('', 'meta', 'Statut_Releve')] == 'INITIAL')
