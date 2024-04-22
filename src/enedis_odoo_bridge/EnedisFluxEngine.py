@@ -12,7 +12,8 @@ from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip, check_required
 from enedis_odoo_bridge.R15Parser import R15Parser
 from enedis_odoo_bridge.flux_transformers import FluxTransformerFactory
-from enedis_odoo_bridge.estimators import Strategy, StrategyMaxMin
+#from enedis_odoo_bridge.estimators import Strategy, StrategyMaxMin
+from enedis_odoo_bridge.consumption_estimators import BaseEstimator, SoustractionEstimator
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ class EnedisFluxEngine:
         self.root_path = Path(path).expanduser()
         self.flux = flux
         self.supported_flux = ['R15']
-        self.heuristic = StrategyMaxMin()
+        self.heuristic = SoustractionEstimator()
         self.key = bytes.fromhex(self.config['AES_KEY'])
         self.iv = bytes.fromhex(self.config['AES_IV'])
 
@@ -207,9 +208,9 @@ class EnedisFluxEngine:
         end_pd = pd.to_datetime(datetime.combine(end, datetime.max.time()))
 
         _logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
-        _logger.info(f'With {self.heuristic.get_strategy_name()} Strategy.')
+        _logger.info(f'With {self.heuristic.get_estimator_name()} Strategy.')
 
-        consos = self.heuristic.estimate_consumption(self.data, start_pd, end_pd)
+        consos = self.heuristic.estimate_consumption(self.data['R15'], start_pd, end_pd)
 
         if len(consos)>0:
             _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
@@ -225,7 +226,7 @@ class EnedisFluxEngine:
         to_add = self.data['R15'][['pdl']+columns].drop_duplicates(subset='pdl', keep='first')
         return pd.merge(estimates, to_add, how='left', on='pdl')
     
-    def fetch(self, start: date, end: date, columns: List[str], heuristic: Strategy=StrategyMaxMin()):
+    def fetch(self, start: date, end: date, columns: List[str], heuristic: BaseEstimator=None):
         """
         Fetches and enriches the estimated consumption data for a specified period and set of columns.
 
@@ -243,5 +244,7 @@ class EnedisFluxEngine:
         :return: A pandas DataFrame containing the estimated consumption for each PDL, enriched with the specified columns from the R15 data.
         :rtype: pd.DataFrame
         """
+        if heuristic:
+            self.heuristic = heuristic
         estimates = self.estimate_consumption(start, end)
         return self.enrich_estimates(estimates, columns)
