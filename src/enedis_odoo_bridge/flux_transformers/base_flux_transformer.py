@@ -43,14 +43,12 @@ class BaseFluxTransformer(ABC):
                         if 'date' in column.lower() or 'datetime' in column.lower():
                             df[column] = pd.to_datetime(df[column], errors='coerce')
                     non_scalar_columns = [col for col in df.columns if any(df[col].apply(lambda x: isinstance(x, (list, dict))))]
-                    print(df)
                     dfs.append(df.drop(non_scalar_columns, axis=1))
                     # Optionnel : Supprimer le fichier temporaire si désiré
                     os.remove(full_path)
             # Concaténer toutes les DataFrames
             if dfs:
                 concat = pd.concat(dfs, ignore_index=True).reset_index(drop=True)
-                print(concat)
                 return concat
             else:
                 return DataFrame()
