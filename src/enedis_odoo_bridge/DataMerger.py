@@ -60,6 +60,9 @@ class DataMerger:
         data['HP'] = data[['HPH_conso', 'HPB_conso']].sum(axis=1)
         data['HC'] = data[['HCH_conso', 'HCB_conso']].sum(axis=1)
         data['Base'] = data[['HP', 'HC']].sum(axis=1)
+
+        # TODO SI HPH_conso HPB_conso HCH_conso HCB_conso = nill
+        # Calculer autrement. 
         _logger.debug(data)
         return data
 
@@ -69,10 +72,16 @@ class DataMerger:
 
     def process(self):
         enedis_data = self.fetch_enedis_data(['Type_Compteur', 'Num_Serie'])
+        enedis_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
+            f'EnedisFluxEngine_from_{self.starting_date}_to{self.ending_date}.csv'))
         odoo_data = self.fetch_odoo_data()
+        odoo_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
+            f'OdooAPI_from_{self.starting_date}_to{self.ending_date}.csv'))
         data = self.merge_data(enedis_data, odoo_data)
         data = self.add_turpe(data)
         data = self.enrich(data)
+        data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
+            f'DataMerger_from_{self.starting_date}_to{self.ending_date}.csv'))
         return data
         #self.update_odoo(merged_data)
 

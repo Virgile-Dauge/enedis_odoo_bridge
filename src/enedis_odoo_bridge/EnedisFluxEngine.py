@@ -215,7 +215,6 @@ class EnedisFluxEngine:
             _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
         else:
             _logger.warn(f"└── Failed to Estimate consumption of any PDLs.")
-        consos.to_csv(self.root_path.joinpath('R15').joinpath(f'estimated_consumption_from_{start}_to{end}.csv'))
         return consos
     
     def enrich_estimates(self, estimates: pd.DataFrame, columns: List[str])-> pd.DataFrame:
@@ -248,4 +247,6 @@ class EnedisFluxEngine:
         if heuristic:
             self.heuristic = heuristic
         estimates = self.estimate_consumption(start, end)
-        return self.enrich_estimates(estimates, columns)
+        estimates = self.enrich_estimates(estimates, columns)
+        #estimates.to_csv(self.root_path.joinpath('R15').joinpath(f'EnedisFluxEngine_from_{start}_to{end}.csv'))
+        return estimates
