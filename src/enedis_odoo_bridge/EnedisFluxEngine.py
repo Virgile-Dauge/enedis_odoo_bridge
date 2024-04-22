@@ -128,27 +128,20 @@ class EnedisFluxEngine:
             xsd_path = list(working_path.glob('*.xsd'))[0]
             factory = FluxTransformerFactory()
             flux_transformer = factory.get_transformer(flux_type, xsd_path)
-            parsed = [flux_transformer.process_zip(a) for a in to_add]
+            for a in to_add:
+                flux_transformer.add_zip(a)
 
-            concat = pd.concat(parsed)
-            
-            #if flux is not None:
-            #    concat = pd.concat([flux, concat])
-            
-            # Tri par date, par pdl, puis du plus vieux au plus récent :
-            concat = concat.sort_values(by=['pdl', 'Date_Releve'])
-            concat = concat.reset_index(drop=True)
-            print(concat)
-            #concat.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
-            concat.to_csv(working_path.joinpath(f'{flux_type}.csv'))
+            flux = flux_transformer.preprocess()
+            #flux.to_pickle(working_path.joinpath(f'{flux_type}.pkl'))
+            flux.to_csv(working_path.joinpath(f'{flux_type}.csv'))
 
             # Maj des cheksum pour ne pas reintégrer les fichiers
             #newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
             #self.db[flux_type]['already_processed'] = already_processed + newly_processed
             _logger.info(f'Added : {to_add}')
-
+            print(flux)
             #self.update_db()
-            res[flux_type] = concat
+            res[flux_type] = flux
         return res
     
     def mkdirs(self) -> Dict[str, Path]:
