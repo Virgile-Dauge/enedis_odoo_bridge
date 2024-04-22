@@ -29,23 +29,33 @@ class SoustractionEstimator(BaseEstimator):
             - Si un seul relevé, conso = 0
             - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
         """
-        # TODO gérer les timezones pour plus grande précision de l'estimation
-        #df['Date_Releve'] = df['Date_Releve'].dt.tz_convert(None)
+
+        if start.tz is None:
+            start = start.tz_localize('Etc/GMT-2')
+
+        if end.tz is None:
+            end = end.tz_localize('Etc/GMT-2')
+
         initial = df.loc[(df[('', 'meta', 'Date_Releve')] >= start)
                     & (df[('', 'meta', 'Date_Releve')] <= end)
                     & (df[('', 'meta', 'Statut_Releve')] == 'INITIAL')
                     ]
-        
-        initial['start_date'] = start
-        initial['end_date'] = end
+               
+        # Group by 'pdl' and calculate consumption for each category
+        grouped = initial.groupby(('', 'meta', 'pdl'))
+        consos = grouped.apply(lambda x: pd.Series({
+            'HPH_conso': x[('index', 'HPH', 'Valeur')].max() - x[('index', 'HPH', 'Valeur')].min(),
+            'HCH_conso': x[('index', 'HCH', 'Valeur')].max() - x[('index', 'HCH', 'Valeur')].min(),
+            'HPB_conso': x[('index', 'HPB', 'Valeur')].max() - x[('index', 'HPB', 'Valeur')].min(),
+            'HCB_conso': x[('index', 'HCB', 'Valeur')].max() - x[('index', 'HCB', 'Valeur')].min(),
+            'Base_conso': x[('index', 'BASE', 'Valeur')].max() - x[('index', 'BASE', 'Valeur')].min(),
+            'HP_conso': x[('index', 'HP', 'Valeur')].max() - x[('index', 'HP', 'Valeur')].min(),
+            'HC_conso': x[('index', 'HC', 'Valeur')].max() - x[('index', 'HC', 'Valeur')].min(),
+        })).reset_index().rename(columns={('', 'meta', 'pdl'): 'pdl'})
 
-        pdls = initial.groupby('pdl', group_keys=True)
+        conditions = (initial[('', 'meta', 'Motif_Releve')] == 'CFNE') | (initial[('', 'meta', 'Motif_Releve')] == 'MES')
+        starting_dates = initial[conditions][[('', 'meta', 'pdl'),('', 'meta', 'Date_Releve')]].groupby(('', 'meta', 'pdl')).min().reset_index()[('', 'meta', 'Date_Releve')]
 
-        consos = DataFrame({k+'_conso': pdls[k+'_index'].max()-pdls[k+'_index'].min() 
-                            for k in ['HPH', 'HCH', 'HPB', 'HCB']})
-
-        dates = DataFrame({
-            'start_date': initial[(initial['Motif_Releve'] == 'CFNE') | (initial['Motif_Releve'] == 'MES')].groupby('pdl')['Date_Releve'].first(),
-            'end_date': end})
-
-        return pd.merge(consos, dates, on='pdl', how='left')
+        consos['start_date'] = starting_dates
+        consos['end_date'] = end
+        return consos
