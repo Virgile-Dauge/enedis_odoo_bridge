@@ -25,9 +25,11 @@ class DataMerger:
         self.starting_date, self.ending_date = gen_dates(date)
 
 
-    def fetch_enedis_data(self)-> DataFrame:
+    def fetch_enedis_data(self, columns: list[str]=None)-> DataFrame:
         # Récupérer les données depuis EnedisFluxEngine
-        return self.enedis.fetch(self.starting_date, self.ending_date, ['Type_Compteur'])
+        if not columns:
+            columns = []
+        return self.enedis.fetch(self.starting_date, self.ending_date, columns)
 
     def fetch_odoo_data(self)-> DataFrame:
         # Récupérer les données depuis OdooAPI
@@ -66,7 +68,7 @@ class DataMerger:
         self.odoo.update_draft_invoices(data, self.starting_date, self.ending_date)
 
     def process(self):
-        enedis_data = self.fetch_enedis_data()
+        enedis_data = self.fetch_enedis_data(['Type_Compteur', 'Num_Serie'])
         odoo_data = self.fetch_odoo_data()
         data = self.merge_data(enedis_data, odoo_data)
         data = self.add_turpe(data)
