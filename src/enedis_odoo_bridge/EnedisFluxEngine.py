@@ -141,7 +141,7 @@ class EnedisFluxEngine:
             #self.db[flux_type]['already_processed'] = already_processed + newly_processed
             _logger.info(f'Added : {to_add}')
             #self.update_db()
-            res[flux_type] = flux
+            res[flux_type] = flux_transformer
         return res
     
     def mkdirs(self) -> Dict[str, Path]:
@@ -209,7 +209,7 @@ class EnedisFluxEngine:
         _logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
         _logger.info(f'With {self.heuristic.get_estimator_name()} Strategy.')
 
-        consos = self.heuristic.estimate_consumption(self.data['R15'], start_pd, end_pd)
+        consos = self.heuristic.estimate_consumption(self.data['R15'].data, start_pd, end_pd)
 
         if len(consos)>0:
             _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
@@ -219,10 +219,12 @@ class EnedisFluxEngine:
         return consos
     
     def enrich_estimates(self, estimates: pd.DataFrame, columns: List[str])-> pd.DataFrame:
+        meta = self.data['R15'].get_meta()
+        #columns = [c for c in self.data['R15'].columns if c[2] in columns]
         for k in columns:
-            if k not in self.data['R15'].columns:
+            if k not in meta.columns:
                 raise ValueError(f'Asked column {k} not found in R15 data.')
-        to_add = self.data['R15'][['pdl']+columns].drop_duplicates(subset='pdl', keep='first')
+        to_add = meta[['pdl']+columns].drop_duplicates(subset='pdl', keep='first')
         return pd.merge(estimates, to_add, how='left', on='pdl')
     
     def fetch(self, start: date, end: date, columns: List[str], heuristic: BaseEstimator=None):
