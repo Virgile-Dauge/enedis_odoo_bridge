@@ -138,7 +138,7 @@ class EnedisFluxEngine:
             # Maj des cheksum pour ne pas reintégrer les fichiers
             #newly_processed = [c for a, c in zip(archives, checksums) if c not in already_processed]
             #self.db[flux_type]['already_processed'] = already_processed + newly_processed
-            _logger.info(f'Added : {to_add}')
+            _logger.info(f'Added : {[a.stem for a in to_add]}')
             #self.update_db()
             res[flux_type] = flux_transformer
         return res
