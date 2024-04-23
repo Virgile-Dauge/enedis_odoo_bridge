@@ -6,7 +6,7 @@ from enedis_odoo_bridge.consumption_estimators import BaseEstimator
 class SoustractionEstimator(BaseEstimator):
     def get_estimator_name(self):
         return 'Max - Min of available indexes'
-    def estimate_consumption(self, df: DataFrame, start: Timestamp, end: Timestamp) -> DataFrame:
+    def estimate_consumption(self, meta: DataFrame, index: DataFrame, consos: DataFrame, start: Timestamp, end: Timestamp) -> DataFrame:
         """
         Estimates the total consumption per PDL for the specified period.
 
@@ -29,26 +29,22 @@ class SoustractionEstimator(BaseEstimator):
             - Si un seul relevé, conso = 0
             - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
         """
-        initial = df.loc[(df[('', 'meta', 'Date_Releve')] >= start)
-                    & (df[('', 'meta', 'Date_Releve')] <= end)
-                    & (df[('', 'meta', 'Statut_Releve')] == 'INITIAL')
-                    ]
-               
+        #initial = df.loc[(df[('', 'meta', 'Date_Releve')] >= start)
+        #            & (df[('', 'meta', 'Date_Releve')] <= end)
+        #            & (df[('', 'meta', 'Statut_Releve')] == 'INITIAL')
+        #            ]
+        dates = self.initialize_dates(meta, start, end)
+        filter = (meta['Date_Releve'] >= start) & (meta['Date_Releve'] <= end) & (meta['Statut_Releve'] == 'INITIAL')      
         # Group by 'pdl' and calculate consumption for each category
-        grouped = initial.groupby(('', 'meta', 'pdl'))
-        consos = grouped.apply(lambda x: pd.Series({
-            'HPH_conso': x[('index', 'HPH', 'Valeur')].max() - x[('index', 'HPH', 'Valeur')].min(),
-            'HCH_conso': x[('index', 'HCH', 'Valeur')].max() - x[('index', 'HCH', 'Valeur')].min(),
-            'HPB_conso': x[('index', 'HPB', 'Valeur')].max() - x[('index', 'HPB', 'Valeur')].min(),
-            'HCB_conso': x[('index', 'HCB', 'Valeur')].max() - x[('index', 'HCB', 'Valeur')].min(),
-            'Base_conso': x[('index', 'BASE', 'Valeur')].max() - x[('index', 'BASE', 'Valeur')].min(),
-            'HP_conso': x[('index', 'HP', 'Valeur')].max() - x[('index', 'HP', 'Valeur')].min(),
-            'HC_conso': x[('index', 'HC', 'Valeur')].max() - x[('index', 'HC', 'Valeur')].min(),
-        })).reset_index().rename(columns={('', 'meta', 'pdl'): 'pdl'})
-
-        conditions = (initial[('', 'meta', 'Motif_Releve')] == 'CFNE') | (initial[('', 'meta', 'Motif_Releve')] == 'MES')
-        starting_dates = initial[conditions][[('', 'meta', 'pdl'),('', 'meta', 'Date_Releve')]].groupby(('', 'meta', 'pdl')).min().reset_index()[('', 'meta', 'Date_Releve')]
-
-        consos['start_date'] = starting_dates
-        consos['end_date'] = end
-        return consos
+        estimates = index[filter].groupby('pdl').apply(lambda x: pd.Series({
+            'HPH_conso': x['HPH_Valeur'].max() - x['HPH_Valeur'].min(),
+            'HCH_conso': x['HCH_Valeur'].max() - x['HCH_Valeur'].min(),
+            'HPB_conso': x['HPB_Valeur'].max() - x['HPB_Valeur'].min(),
+            'HCB_conso': x['HCB_Valeur'].max() - x['HCB_Valeur'].min(),
+            'Base_conso': x['BASE_Valeur'].max() - x['BASE_Valeur'].min(),
+            'HP_conso': x['HP_Valeur'].max() - x['HP_Valeur'].min(),
+            'HC_conso': x['HC_Valeur'].max() - x['HC_Valeur'].min(),
+        })).reset_index()
+        estimates = pd.merge(estimates, dates, on='pdl', how='left')
+        # SI UN SEUL RELEVE, CONSO = NaN
+        return estimates
