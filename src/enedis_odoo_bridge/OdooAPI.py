@@ -238,7 +238,7 @@ class OdooAPI:
         return df_final
 
     def prepare_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
-        required_cols = ['HP', 'HC', 'Base', 'line_id_Abonnements']
+        required_cols = ['HP', 'HC', 'Base', 'line_id_Abonnements', 'x_lisse']
         for c in required_cols:
             if c not in data.columns:
                 raise ValueError(f'Required "{c}" column found in {data.columns}')
@@ -249,9 +249,12 @@ class OdooAPI:
                         and c.replace('line_id_', '') in ['HP', 'HC', 'Base']])
         value_cols = sorted([c for c in data.columns
                       if c in ['HP', 'HC', 'Base']])
+        not_smoothed_invoices = data[data['x_lisse'] == False]
+
         consumption_lines = pd.DataFrame({
-            'id': pd.concat([data[c] for c in line_id_cols], ignore_index=True),
-            'quantity': pd.concat([data[c] for c in value_cols], ignore_index=True)
+            'id': pd.concat([not_smoothed_invoices[c] for c in line_id_cols], ignore_index=True),
+
+            'quantity': pd.concat([not_smoothed_invoices[c] for c in value_cols], ignore_index=True)
         })
         consumption_lines = consumption_lines.dropna(subset=['id']).to_dict(orient='records')
 
