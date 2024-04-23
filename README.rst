@@ -29,35 +29,50 @@
 
 |
 
-==================
-enedis_odoo_bridge
-==================
+=========================
+Projet enedis_odoo_bridge
+=========================
 
-
-    Automate enedis flux parsing, then inject data into odoo
-
-
-
-Bienvenue dans la Documentation du Pont Enedis Odoo
-==================================================
-
-Introduction
-------------
-
-Le Pont Enedis Odoo est un module Python permettant l'intégration des données d'Enedis dans Odoo, un système ERP open-source.
+Le projet **enedis_odoo_bridge** vise à automatiser le traitement des flux de données d'Enedis et leur intégration dans Odoo, une suite d'applications de gestion d'entreprise open source. Ce pont entre Enedis et Odoo simplifie la gestion des données de consommation énergétique, permettant une gestion plus efficace et automatisée des factures et des analyses de consommation.
 
 Fonctionnalités Principales
 ---------------------------
 
-- **Récupére les Flux Enedis depuis un Sftp** :
-- **TODO Déchiffre les zip** :
-- **Extrait les zip en xml** :
-- **Parse les XML des Flux** : R15, plus à venir
-- **Récupére Depuis Odoo les Factures brouillon** :
-- **Édite les lignes de factures avec les consos** :
+- **Récupération automatique des données** : Importation des données de consommation énergétique depuis Enedis.
+- **Traitement et fusion des données** : Traitement des données récupérées et fusion avec les données existantes dans Odoo.
+- **Calcul des tarifs TURPE** : Application des tarifs TURPE (Tarif d'Utilisation des Réseaux Publics d'Électricité) aux données de consommation.
+- **Mise à jour des factures dans Odoo** : Automatisation de la mise à jour des factures de consommation énergétique dans Odoo.
 
-Pour Commencer
+Classes et Responsabilités
+--------------------------
+
+1. **OdooAPI** :
+   - *Responsabilité* : Gère la communication avec l'API d'Odoo pour récupérer et mettre à jour les données.
+
+2. **EnedisFluxEngine** :
+   - *Responsabilité* : Interagit avec les flux de données d'Enedis pour récupérer les données de consommation énergétique.
+   
+   a. **Flux Transformers** :
+      - *Responsabilité* : Transforme les données des flux en une matrice exploitable, et propose des méthodes spécifiques à chaque type de flux Enedis. Flux actuellement supportés : [R15]. 
+
+   b. **Consumption Estimators** :
+      - *Responsabilité* : Chaque estimateur implémente une heuristique permettant d'estimer la consommation à partir des données du Flux R15.
+
+3. **DataMerger** :
+   - *Responsabilité* : Fusionne les données d'Enedis et d'Odoo, calcule les tarifs TURPE, et prépare les données pour la mise à jour dans Odoo.
+
+4. **Utils** :
+   - *Responsabilité* : Fournit des fonctions utilitaires pour la génération de dates et la vérification des configurations.
+
+Processus Clés
 --------------
+
+1. **Récupération des données** : Les données sont récupérées d'Enedis et d'Odoo pour une période donnée.
+2. **Fusion et traitement des données** : Les données récupérées sont fusionnées et traitées, avec calcul des tarifs TURPE.
+3. **Mise à jour dans Odoo** : Les données traitées sont utilisées pour mettre à jour les factures dans Odoo.
+
+Installation et Configuration
+-----------------------------
 
 Installation
 ^^^^^^^^^^^^
