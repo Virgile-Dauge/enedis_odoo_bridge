@@ -253,27 +253,35 @@ class OdooAPI:
 
         consumption_lines = pd.DataFrame({
             'id': pd.concat([not_smoothed_invoices[c] for c in line_id_cols], ignore_index=True),
-
             'quantity': pd.concat([not_smoothed_invoices[c] for c in value_cols], ignore_index=True)
         })
         consumption_lines = consumption_lines.dropna(subset=['id']).to_dict(orient='records')
 
         # Abonnements
-        data['days'] = (data['end_date']-data['start_date']).dt.days+1
-        subscription_lines = data[['line_id_Abonnements','days']].copy()
+        do_update_qty = ~((data['x_lisse'] == True) & (data['update_dates'] == False))
+        subscription_lines = data[do_update_qty][['line_id_Abonnements','actual_days']].copy()
 
-        subscription_lines['start_date'] = data['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
-        subscription_lines['end_date'] = data['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['start_date'] = data[do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['end_date'] = data[do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
 
-        names = self.execute('account.move.line', 'read', [data['line_id_Abonnements'].to_list()],
+        names = self.execute('account.move.line', 'read', [data[do_update_qty]['line_id_Abonnements'].to_list()],
                              {'fields': ['name']})
 
         subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
-        subscription_lines = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
-                                                                'days': 'quantity',
+        subscription_lines_dict = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
+                                                                'actual_days': 'quantity',
                                                                 'start_date': 'deferred_start_date',
                                                                 'end_date': 'deferred_end_date',}).to_dict(orient='records')
-        return consumption_lines + subscription_lines
+        subscription_lines = data[~do_update_qty][['line_id_Abonnements','actual_days']].copy()
+        subscription_lines['start_date'] = data[~do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['end_date'] = data[~do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        names = self.execute('account.move.line', 'read', [data[~do_update_qty]['line_id_Abonnements'].to_list()],
+                        {'fields': ['name']})
+        subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
+        subscription_lines_without_qty_dict = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
+                                                        'start_date': 'deferred_start_date',
+                                                        'end_date': 'deferred_end_date',}).to_dict(orient='records')
+        return consumption_lines + subscription_lines_dict + subscription_lines_without_qty_dict
   
     def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
         # On veut ajouter x_type_compteur, x_scripted, x_turpe
@@ -346,6 +354,7 @@ class OdooAPI:
         activities['summary'] = 'À Approuver'
         activities['automated'] = True
         activities['note'] = 'Merci de valider cette facture remplie automatiquement.'
+        # TODO Date adaptée : maj le 5 du mois de facturation
         activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
         self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
 
