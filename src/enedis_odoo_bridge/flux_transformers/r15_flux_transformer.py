@@ -96,21 +96,24 @@ class R15FluxTransformer(BaseFluxTransformer):
     
     def get_meta(self)-> DataFrame:
         # Select 'meta' level columns and drop the MultiIndex to simplify the DataFrame
-        meta_data = self.data.xs('meta', level=1, axis=1, drop_level=False)
+        meta_data = self.data.xs('meta', level=1, axis=1, drop_level=True)
         # Simplify the column index to remove the MultiIndex
-        meta_data.columns = meta_data.columns.droplevel(1)
+        #meta_data.columns = meta_data.columns.droplevel(1)
         meta_data.columns = meta_data.columns.droplevel(0)
         return meta_data
     
-    def get_conso(self)-> DataFrame:
+    def get_consu(self)-> DataFrame:
         # Select 'meta' level columns and drop the MultiIndex to simplify the DataFrame
-        conso_data = self.data.xs('conso', level=0, axis=1, drop_level=False)
+        conso_data = self.data.xs('conso', level=0, axis=1, drop_level=True).copy()
         # Simplify the column index to remove the MultiIndex
-        conso_data.columns = conso_data.columns.droplevel(0)
+        conso_data.columns = ['_'.join(c) for c in conso_data.columns]
+        conso_data['pdl'] = self.data[('', 'meta', 'pdl')]
         return conso_data
+    
     def get_index(self)-> DataFrame:
         # Select 'meta' level columns and drop the MultiIndex to simplify the DataFrame
-        index_data = self.data.xs('index', level=0, axis=1, drop_level=False)
+        index_data = self.data.xs('index', level=0, axis=1, drop_level=True).copy()
         # Simplify the column index to remove the MultiIndex
-        index_data.columns = index_data.columns.droplevel(0)
+        index_data.columns = ['_'.join(c) for c in index_data.columns]
+        index_data['pdl'] = self.data[('', 'meta', 'pdl')]
         return index_data

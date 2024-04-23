@@ -208,7 +208,10 @@ class EnedisFluxEngine:
         _logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
         _logger.info(f'With {self.heuristic.get_estimator_name()} Strategy.')
 
-        consos = self.heuristic.estimate_consumption(self.data['R15'].data, start_pd, end_pd)
+        meta = self.data['R15'].get_meta()
+        index = self.data['R15'].get_index()
+        consu = self.data['R15'].get_consu()
+        consos = self.heuristic.estimate_consumption(meta, index, consu, start_pd, end_pd)
 
         if len(consos)>0:
             _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
