@@ -26,14 +26,11 @@ class SoustractionEstimator(BaseEstimator):
 
             Pour l'instant on ne vérifie rien. Voyons quelques cas :
             - Si pas de relevés ?
-            - Si un seul relevé, conso = 0
+            - Si un seul relevé, conso = 0 Alors qu'il faudrait NaN.
             - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
         """
-        #initial = df.loc[(df[('', 'meta', 'Date_Releve')] >= start)
-        #            & (df[('', 'meta', 'Date_Releve')] <= end)
-        #            & (df[('', 'meta', 'Statut_Releve')] == 'INITIAL')
-        #            ]
         dates = self.initialize_dates(meta, start, end)
+        # Filter by 'Date_Releve' and 'Statut_Releve = 'INITIAL'
         filter = (meta['Date_Releve'] >= start) & (meta['Date_Releve'] <= end) & (meta['Statut_Releve'] == 'INITIAL')      
         # Group by 'pdl' and calculate consumption for each category
         estimates = index[filter].groupby('pdl').apply(lambda x: pd.Series({
