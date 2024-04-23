@@ -54,6 +54,8 @@ class DataMerger:
             + data['HCH_conso'].astype(float)*float(self.config['TURPE_TAUX_HCH_CU4'])*0.01
             + data['HPB_conso'].astype(float)*float(self.config['TURPE_TAUX_HPB_CU4'])*0.01
             + data['HCB_conso'].astype(float)*float(self.config['TURPE_TAUX_HCB_CU4'])*0.01)
+        
+        # TODO Turpe pour les pas CU4
         return data
 
     def enrich(self, data: DataFrame)-> DataFrame:

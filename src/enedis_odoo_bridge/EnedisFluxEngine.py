@@ -10,7 +10,6 @@ import json
 from datetime import datetime
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip, check_required
-from enedis_odoo_bridge.R15Parser import R15Parser
 from enedis_odoo_bridge.flux_transformers import FluxTransformerFactory
 #from enedis_odoo_bridge.estimators import Strategy, StrategyMaxMin
 from enedis_odoo_bridge.consumption_estimators import BaseEstimator, SoustractionEstimator

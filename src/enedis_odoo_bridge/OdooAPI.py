@@ -99,7 +99,7 @@ class OdooAPI:
         The function returns the cleared DataFrame, leaving only scalar values.
         """
         data = self.get_drafts(['invoice_line_ids', 'date', 'x_order_id'])
-        data = self.add_order_fields(data, ['x_pdl', 'x_puissance_souscrite'])
+        data = self.add_order_fields(data, ['x_pdl', 'x_puissance_souscrite', 'x_lisse'])
         data = self.add_cat_fields(data, [])
         data = self.filter_non_energy(data)
         return self.clear(data)
@@ -334,6 +334,8 @@ class OdooAPI:
       
     def ask_for_approval(self, model: str, ids: List[int]):
         model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
+
+        # TODO Filter id to only have invoices with no existing approuval ?
         activities = DataFrame({'res_id': ids})
         activities['res_model_id'] = model_id[0]
         activities['activity_type_id'] = 4
