@@ -1,33 +1,12 @@
-.. todo:: THIS IS SUPPOSED TO BE AN EXAMPLE. MODIFY IT ACCORDING TO YOUR NEEDS!
-
-   The document assumes you are using a source repository service that promotes a
-   contribution model similar to `GitHub's fork and pull request workflow`_.
-   While this is true for the majority of services (like GitHub, GitLab,
-   BitBucket), it might not be the case for private repositories (e.g., when
-   using Gerrit).
-
-   Also notice that the code examples might refer to GitHub URLs or the text
-   might use GitHub specific terminology (e.g., *Pull Request* instead of *Merge
-   Request*).
-
-   Please make sure to check the document having these assumptions in mind
-   and update things accordingly.
 
 .. todo:: Provide the correct links/replacements at the bottom of the document.
-
-.. todo:: You might want to have a look on `PyScaffold's contributor's guide`_,
-
-   especially if your project is open source. The text should be very similar to
-   this template, but there are a few extra contents that you might decide to
-   also include, like mentioning labels of your issue tracker or automated
-   releases.
-
 
 ============
 Contributing
 ============
 
-Welcome to ``enedis_odoo_bridge`` contributor's guide.
+Thank you for your interest in contributing to the enedis_odoo_bridge project! 
+We welcome contributions in many forms, and there's always something to do!
 
 This document focuses on getting any potential contributor familiarized
 with the development processes, but `other kinds of contributions`_ are also
@@ -41,6 +20,25 @@ Please notice, all users and contributors are expected to be **open,
 considerate, reasonable, and respectful**. When in doubt, `Python Software
 Foundation's Code of Conduct`_ is a good reference in terms of behavior
 guidelines.
+
+Preferred Ways to Contribute
+----------------------------
+
+1. **Developing New Transformers or Estimators**:
+
+   The core functionality of enedis_odoo_bridge relies heavily on its ability to accurately transform and estimate energy consumption data. We are particularly interested in expanding our library of Flux Transformers and Consumption Estimators. If you have expertise or interest in energy data, your contributions in this area would be highly valuable.
+
+   - **Flux Transformers**: These components are crucial for converting raw data from Enedis into a structured format that can be further processed. If you have ideas for new transformers or improvements to existing ones, we encourage you to contribute.
+
+   - **Consumption Estimators**: These estimators play a vital role in predicting energy consumption based on various parameters. Contributions that improve accuracy, efficiency, or add new estimation techniques are always welcome.
+
+2. **Bug Fixes and Feature Enhancements**:
+
+   If you've identified a bug or see an opportunity for enhancing existing features, we'd love to hear from you. Please feel free to open an issue or submit a pull request.
+
+3. **Documentation Improvements**:
+
+   Good documentation is key to a project's usability and its community's growth. Contributions to improve the clarity, accuracy, or completeness of our documentation are greatly appreciated.
 
 
 Issue Reports
