@@ -31,16 +31,14 @@ class SoustractionEstimator(BaseEstimator):
         """
         dates = self.initialize_dates(meta, start, end)
         # Filter by 'Date_Releve' and 'Statut_Releve = 'INITIAL'
-        filter = (meta['Date_Releve'] >= start) & (meta['Date_Releve'] <= end) & (meta['Statut_Releve'] == 'INITIAL')      
+        filter = (meta['Date_Releve'] >= start) & (meta['Date_Releve'] <= end) & (meta['Statut_Releve'] == 'INITIAL')
+
+        temporal_classes = ['HPH', 'HCH', 'HPB', 'HCB', 'BASE', 'HP', 'HC']
         # Group by 'pdl' and calculate consumption for each category
         estimates = index[filter].groupby('pdl').apply(lambda x: pd.Series({
-            'HPH_conso': x['HPH_Valeur'].max() - x['HPH_Valeur'].min(),
-            'HCH_conso': x['HCH_Valeur'].max() - x['HCH_Valeur'].min(),
-            'HPB_conso': x['HPB_Valeur'].max() - x['HPB_Valeur'].min(),
-            'HCB_conso': x['HCB_Valeur'].max() - x['HCB_Valeur'].min(),
-            'Base_conso': x['BASE_Valeur'].max() - x['BASE_Valeur'].min(),
-            'HP_conso': x['HP_Valeur'].max() - x['HP_Valeur'].min(),
-            'HC_conso': x['HC_Valeur'].max() - x['HC_Valeur'].min(),
+            k+'_conso': (x[k+'_Valeur'].max() - x[k+'_Valeur'].min() 
+                         + 10**x[k+'_Nb_Chiffres_Cadran'].max() * x[k+'_Indicateur_Passage_A_Zero'].max()) 
+                         * x[k+'_Coefficient_Lecture'].max() for k in temporal_classes
         })).reset_index()
         estimates = pd.merge(estimates, dates, on='pdl', how='left')
         # SI UN SEUL RELEVE, CONSO = NaN
