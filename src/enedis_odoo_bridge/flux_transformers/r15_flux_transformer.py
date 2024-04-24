@@ -4,7 +4,7 @@ import pandas as pd
 from pandas import DataFrame
 
 class R15FluxTransformer(BaseFluxTransformer):
-    def dict_to_dataframe(self, data_dict: dict[str, Any]):
+    def dict_to_dataframe(self, data_dict: dict[str, Any]) -> DataFrame:
         # Initialize an empty list to hold all rows before creating the DataFrame
         rows = []
 
