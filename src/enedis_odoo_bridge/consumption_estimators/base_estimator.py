@@ -48,5 +48,7 @@ class BaseEstimator(ABC):
 
         base_df['update_dates'] = base_df['actual_days'] != base_df['normal_days']
 
+        # TODO Add coverage : first valid index date and last valid index date, total number of days covered
         base_df.drop(columns=['start_date_updated', 'end_date_updated'], inplace=True)
+
         return base_df
