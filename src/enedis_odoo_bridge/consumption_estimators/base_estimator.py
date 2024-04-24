@@ -52,3 +52,8 @@ class BaseEstimator(ABC):
         base_df.drop(columns=['start_date_updated', 'end_date_updated'], inplace=True)
 
         return base_df
+    
+    def fetch(self, meta: DataFrame, index:DataFrame, consu: DataFrame, start: Timestamp, end: Timestamp)-> DataFrame:
+        dates = self.initialize_dates(meta, start, end)
+        estimates = self.estimate_consumption(meta, index, consu, start, end, dates)
+        return estimates

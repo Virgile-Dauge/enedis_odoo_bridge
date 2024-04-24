@@ -6,7 +6,7 @@ from enedis_odoo_bridge.consumption_estimators import BaseEstimator
 class SoustractionEstimator(BaseEstimator):
     def get_estimator_name(self):
         return 'Max - Min of available indexes'
-    def estimate_consumption(self, meta: DataFrame, index: DataFrame, consos: DataFrame, start: Timestamp, end: Timestamp) -> DataFrame:
+    def estimate_consumption(self, meta: DataFrame, index: DataFrame, consos: DataFrame, start: Timestamp, end: Timestamp, dates:DataFrame=None) -> DataFrame:
         """
         Estimates the total consumption per PDL for the specified period.
 
@@ -25,21 +25,23 @@ class SoustractionEstimator(BaseEstimator):
             on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.
 
             Pour l'instant on ne vérifie rien. Voyons quelques cas :
-            - Si pas de relevés ?
+            - Si pas de relevés Empty DataFrame
             - Si un seul relevé, conso = 0 Alors qu'il faudrait NaN.
-            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)
+            - Si plusieurs relevés, conso ok
         """
-        dates = self.initialize_dates(meta, start, end)
         # Filter by 'Date_Releve' and 'Statut_Releve = 'INITIAL'
         filter = (meta['Date_Releve'] >= start) & (meta['Date_Releve'] <= end) & (meta['Statut_Releve'] == 'INITIAL')
 
-        temporal_classes = ['HPH', 'HCH', 'HPB', 'HCB', 'BASE', 'HP', 'HC']
+        temporal_classes = [k for k in ['HPH', 'HCH', 'HPB', 'HCB', 'BASE', 'HP', 'HC'] if k+'_Valeur' in index.columns]
+        
         # Group by 'pdl' and calculate consumption for each category
         estimates = index[filter].groupby('pdl').apply(lambda x: pd.Series({
-            k+'_conso': (x[k+'_Valeur'].max() - x[k+'_Valeur'].min() 
-                         + 10**x[k+'_Nb_Chiffres_Cadran'].max() * x[k+'_Indicateur_Passage_A_Zero'].max()) 
+            k+'_conso': abs(x[k+'_Valeur'].max() - x[k+'_Valeur'].min() 
+                         - 10**x[k+'_Nb_Chiffres_Cadran'].max() * x[k+'_Indicateur_Passage_A_Zero'].max()) 
                          * x[k+'_Coefficient_Lecture'].max() for k in temporal_classes
         })).reset_index()
-        estimates = pd.merge(estimates, dates, on='pdl', how='left')
+
+        if dates is not None:
+            estimates = pd.merge(estimates, dates, on='pdl', how='left')
         # SI UN SEUL RELEVE, CONSO = NaN
         return estimates
