@@ -14,6 +14,8 @@ class ConcreteFluxTransformer(BaseFluxTransformer):
         # Implement abstract method
         df = DataFrame(data_dict)
         return df
+    def preprocess(self):
+        pass
 
 @pytest.fixture
 def setup_test_files():
@@ -27,7 +29,7 @@ def setup_test_files():
                             <xs:element name="root">
                                 <xs:complexType>
                                 <xs:sequence>
-                                    <xs:element maxOccurs="unbounded" name="date" type="xs:date" />
+                                    <xs:element maxOccurs="unbounded" name="date" type="xs:dateTime" />
                                 </xs:sequence>
                                 </xs:complexType>
                             </xs:element>
@@ -35,7 +37,7 @@ def setup_test_files():
                             ''')
         # Create an XML file in the temporary directory
         xml_path = tmpdir_path / "test.xml"
-        xml_path.write_text("<root><date>2021-01-01</date><date>2021-01-01</date></root>")
+        xml_path.write_text("<root><date>2021-01-01T00:00:00+02:00</date><date>2021-01-01T00:00:00+02:00</date></root>")
         
         zip_path = tmpdir_path / "test.zip"
         with zipfile.ZipFile(zip_path, 'w') as zipf:
@@ -59,4 +61,4 @@ def test_process_zip_success(setup_test_files):
     result_df = transformer.process_zip(zip_path)
     assert not result_df.empty
     print(result_df)
-    assert result_df.iloc[0]['date'] == Timestamp('2021-01-01 00:00:00')
+    assert result_df.iloc[0]['date'] == '2021-01-01T00:00:00+02:00' #.tz_localize('UTC+2')
