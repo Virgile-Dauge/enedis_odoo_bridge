@@ -160,6 +160,8 @@ class OdooAPI:
         drafts = self.execute('account.move', 'search_read', 
             [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
             {'fields': fields})
+        if not drafts:
+            raise ValueError(f'No draft invoices found in {self.url} db. Process aborted.')
         return DataFrame(drafts)
 
     def add_order_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
