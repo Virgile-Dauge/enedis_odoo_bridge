@@ -91,7 +91,10 @@ class R15FluxTransformer(BaseFluxTransformer):
         for col in self.data.columns:
             if col[2].startswith("Date_"):
                 self.data[col] = pd.to_datetime(self.data[col])
-
+            # Convert all "index" and "conso" values to float
+        for col in self.data.columns:
+            if col[0] in ['index', 'conso']:
+                self.data[col] = self.data[col].astype(float)
         return self.data
     
     def get_meta(self)-> DataFrame:
