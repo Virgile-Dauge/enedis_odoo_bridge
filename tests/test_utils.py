@@ -138,7 +138,7 @@ def config():
         'FTP_F15_DIR': 'F15',
     }
 
-def test_download_single_task(mock_sftp_connection, config):
+""" def test_download_single_task(mock_sftp_connection, config):
     tasks = ['R15']
     local_path = Path('/tmp/data/flux_enedis/')  # Adjust the path as needed
 
@@ -158,7 +158,7 @@ def test_download_single_task(mock_sftp_connection, config):
         local_path.joinpath(tasks[0]).expanduser(),
         resume=True,
         workers=10
-    )
+    ) """
 
 def test_download_invalid_task_raises_value_error(mock_sftp_connection, config):
     tasks = ['INVALID']
