@@ -30,7 +30,7 @@ class LastFirstEstimator(BaseEstimator):
 
         # Group by 'pdl' and calculate consumption for each category using the first and last occurrence
         estimates = filtered_index.groupby('pdl').apply(lambda x: pd.Series({
-            k+'_conso': x.iloc[-1][k+'_Valeur'] - x.iloc[0][k+'_Valeur']
+            k+'_conso': float('nan') if len(x) == 1 else x.iloc[-1][k+'_Valeur'] - x.iloc[0][k+'_Valeur']
                         + 10**x.iloc[0][k+'_Nb_Chiffres_Cadran'] * x[k+'_Indicateur_Passage_A_Zero'].max()
                         * x.iloc[0][k+'_Coefficient_Lecture'] for k in temporal_classes
         })).reset_index()
