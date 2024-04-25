@@ -2,22 +2,25 @@ import os
 import zipfile
 from dotenv import load_dotenv
 from pathlib import Path
-from sftpretty import Connection
+
 from datetime import date
 from calendar import monthrange
 import hashlib
 import json
 from Crypto.Cipher import AES
+from typing import Union, Any
+from rich.progress import Progress
 
-from typing import List, Dict, Tuple, Union, Any
+import paramiko
 
-def check_required(config: Dict[str, str], required: List[str]):
+
+def check_required(config: dict[str, str], required: list[str]):
     for r in required:
         if r not in config.keys():
             raise ValueError(f'Required parameter {r} not found in {config.keys()} from .env file.')
     return config
 
-def load_prefixed_dotenv(prefix: str='EOB_', required: List[str]=[]) -> Dict[str, str]:
+def load_prefixed_dotenv(prefix: str='EOB_', required: list[str]=[]) -> dict[str, str]:
     # Load the .env file
     load_dotenv()
 
@@ -26,7 +29,7 @@ def load_prefixed_dotenv(prefix: str='EOB_', required: List[str]=[]) -> Dict[str
     
     return check_required({k.replace(prefix, ''): v for k, v in env_variables.items() if k.startswith(prefix)}, required)
 
-def gen_dates(current: Union[date, None]) -> Tuple[date, date]:
+def gen_dates(current: Union[date, None]) -> tuple[date, date]:
     if not current:
         current = date.today()
     
@@ -83,39 +86,102 @@ def unzip(zip_path: Path) -> Path:
         zip_ref.extractall(out)
         return out
     
-def download(config: Dict[str, str], tasks: List[str], local: Path=Path('~/data/flux_enedis/')) -> Dict[str, Path]:
+def download_new_files(config: dict[str, str], tasks: list[str], local: Path) -> dict[str, Path]:
     """
-    Downloads a specified directory from the ftp and returns the local path.
+    Downloads specified directories from the SFTP server using paramiko, skipping files that already exist locally.
 
     Parameters:
-    type (str): The code defining the type of flux to download. Either {R15 | C15 | F15}
+    config (dict[str, str]): Configuration dictionary containing SFTP details.
+    tasks (List[str]): list of directory types to download (e.g., ['R15', 'C15']).
+    local (Path): The local root path to save downloaded files. Defaults to '~/data/flux_enedis/'.
 
     Returns:
-    Path: The local path of directory containing all downloaded files.
-
-    Raises:
-    ValueError: If the specified directory type is not found in the remote_dirs dictionary.
+    dict[str, Path]: A dictionary mapping each task to its local path containing downloaded files.
     """
-    config = check_required(config, ['FTP_ADDRESS', 'FTP_USER', 'FTP_PASSWORD',
-                                     'FTP_R15_DIR', 'FTP_C15_DIR', 'FTP_F15_DIR',])
+    required =  ['FTP_ADDRESS', 'FTP_USER', 'FTP_PASSWORD',]+[f'FTP_{k}_DIR' for k in tasks]
+    config = check_required(config, required)
     completed_tasks = {}
+
+    transport = paramiko.Transport((config['FTP_ADDRESS'], 22))
+    transport.connect(username=config['FTP_USER'], password=config['FTP_PASSWORD'])
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
     for type in tasks:
-        # Todo add a 'supported type list' as global or as something else
-        #if not type in remote_dirs.keys():
-        #    raise ValueError(f'Type {type} not found in {list(remote_dirs.keys())}')
-
         distant = '/flux_enedis/' + str(config[f'FTP_{type}_DIR'])
-        local = local.joinpath(type).expanduser()
+        local_dir = local.joinpath(type).expanduser()
+        if not local_dir.exists():
+            local_dir.mkdir(parents=True, exist_ok=True)
 
-        # resume = True permet de ne pas re-télécharger les fichiers déjà téléchargés
-        with Connection(config['FTP_ADDRESS'], username=config['FTP_USER'], password=config['FTP_PASSWORD'], port=22) as ftp:
+        # Get a list of all existing files in local_dir and its subdirectories
+        existing_files = {file.name for file in local_dir.rglob('*') if file.is_file()}
 
-            # TODO activation du Retry: [DISABLED] 
-            ftp.get_d(distant, local, resume=True, workers=10)
+        try:
+            files_to_download = sftp.listdir(distant)
+            local_files = []
+            for file_name in files_to_download:
+                if file_name not in existing_files:
+                    remote_file_path = os.path.join(distant, file_name)
+                    local_file_path = local_dir.joinpath(file_name)
+                    sftp.get(remote_file_path, str(local_file_path))
+                    local_files.append(local_file_path)
+        except Exception as e:
+            print(f"Failed to download files from {distant}: {e}")
 
-        completed_tasks[type] = local
+        completed_tasks[type] = local_files
+
+    sftp.close()
+    transport.close()
 
     return completed_tasks
+
+def download_new_files_with_progress(config: dict[str, str], tasks: list[str], local: Path) -> list[Path]:
+    """
+    Downloads specified directories from the SFTP server using paramiko, skipping files that already exist locally.
+    Now includes progress tracking with rich.
+
+    Parameters:
+    config (dict[str, str]): Configuration dictionary containing SFTP details.
+    tasks (list[str]): list of directory types to download (e.g., ['R15', 'C15']).
+    local (Path): The local root path to save downloaded files. Defaults to '~/data/flux_enedis/'.
+
+    Returns:
+    dict[str, Path]: A dictionary mapping each task to its local path containing downloaded files.
+    """
+    required =  ['FTP_ADDRESS', 'FTP_USER', 'FTP_PASSWORD',]+[f'FTP_{k}_DIR' for k in tasks]
+    config = check_required(config, required)
+    completed_tasks = {}
+
+    transport = paramiko.Transport((config['FTP_ADDRESS'], 22))
+    transport.connect(username=config['FTP_USER'], password=config['FTP_PASSWORD'])
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
+    local_files = []
+    for type in tasks:
+        distant = '/flux_enedis/' + str(config[f'FTP_{type}_DIR'])
+        local_dir = local.joinpath(type).expanduser()
+        if not local_dir.exists():
+            local_dir.mkdir(parents=True, exist_ok=True)
+
+        existing_files = {file.name for file in local_dir.rglob('*') if file.is_file()}
+
+        try:
+            files_to_download = [f for f in sftp.listdir(distant) if f not in existing_files]
+            with Progress() as progress:
+                task = progress.add_task(f"[green]Downloading {len(files_to_download)} {type} files...", total=len(files_to_download))
+                
+                for file_name in files_to_download:
+                    remote_file_path = os.path.join(distant, file_name)
+                    local_file_path = local_dir.joinpath(file_name)
+                    # Update progress bar with each file download
+                    sftp.get(remote_file_path, str(local_file_path), callback=lambda x, y: progress.update(task, advance=1))
+                    local_files.append(local_file_path)
+        except Exception as e:
+            print(f"Failed to download files from {distant}: {e}")
+ 
+    sftp.close()
+    transport.close()
+
+    return local_files
 
 def calculate_checksum(file_path: Path) -> str:
     # Initialize SHA-256 hash object
@@ -147,7 +213,7 @@ def is_valid_json(json_string: str) -> bool:
         return False
     return True
 
-def decrypt_file(file_path: Path, key: bytes, iv: bytes) -> Path:
+def decrypt_file(file_path: Path, key: bytes, iv: bytes, prefix:str) -> Path:
 
     # Initialize the AES cipher with CBC mode
     cipher = AES.new(key, AES.MODE_CBC, iv)
@@ -157,3 +223,34 @@ def decrypt_file(file_path: Path, key: bytes, iv: bytes) -> Path:
         decrypted_data = cipher.decrypt(f_in.read())
         f_out.write(decrypted_data)
     return output_file
+
+def recursively_decrypt_zip_files(directory: Path, key: bytes, iv: bytes, prefix:str):
+    """
+    Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
+
+    Parameters:
+    directory (Path): The directory to search for ZIP files.
+    key (bytes): The AES key for decryption.
+    iv (bytes): The AES initialization vector for decryption.
+    """
+    for file in directory.rglob('*.zip'):  # Recursively find all ZIP files
+        if not file.stem.startswith('decrypted_'):  # Check if the file is not already decrypted
+            decrypted_file_path = decrypt_file(file, key, iv, prefix=prefix)
+
+def recursively_decrypt_zip_files_with_progress(directory: Path, key: bytes, iv: bytes, prefix:str)-> list[Path]:
+    """
+    Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
+
+    Parameters:
+    directory (Path): The directory to search for ZIP files.
+    key (bytes): The AES key for decryption.
+    iv (bytes): The AES initialization vector for decryption.
+    """
+    files_to_decrypt = [f for f in directory.rglob('*.zip') if not f.stem.startswith('decrypted_')]
+    decrypted_files = []
+    with Progress() as progress:
+        task = progress.add_task(f"[green]Decrypting {len(files_to_decrypt)} files...", total=len(files_to_decrypt))
+        for f in files_to_decrypt:
+            decrypted_files += [decrypt_file(f, key, iv, prefix=prefix)]
+            progress.update(task, advance=1)
+    return decrypted_files
