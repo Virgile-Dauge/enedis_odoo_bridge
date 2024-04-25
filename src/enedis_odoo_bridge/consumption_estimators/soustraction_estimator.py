@@ -5,7 +5,7 @@ from enedis_odoo_bridge.consumption_estimators import BaseEstimator
 
 class SoustractionEstimator(BaseEstimator):
     def get_estimator_name(self):
-        return 'Max - Min of available indexes'
+        return 'Max - Min of available indexes for each temporal class'
     def estimate_consumption(self, meta: DataFrame, index: DataFrame, consos: DataFrame, start: Timestamp, end: Timestamp, dates:DataFrame=None) -> DataFrame:
         """
         Estimates the total consumption per PDL for the specified period.

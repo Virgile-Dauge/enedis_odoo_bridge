@@ -2,6 +2,19 @@ import pandas as pd
 from pandas import Timestamp
 from enedis_odoo_bridge.consumption_estimators import SoustractionEstimator
 
+def test_get_estimator_name():
+    # Instantiate the SoustractionEstimator
+    estimator = SoustractionEstimator()
+
+    # Expected name
+    expected_name = 'Max - Min of available indexes for each temporal class'
+
+    # Call the get_estimator_name method
+    actual_name = estimator.get_estimator_name()
+
+    # Assert that the actual name matches the expected name
+    assert actual_name == expected_name, "The estimator name does not match the expected value."
+
 def test_estimate_consumption():
     # Setup
     meta = pd.DataFrame({

@@ -12,7 +12,7 @@ from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.utils import calculate_checksum, is_valid_json, download, decrypt_file, unzip, check_required
 from enedis_odoo_bridge.flux_transformers import FluxTransformerFactory
 #from enedis_odoo_bridge.estimators import Strategy, StrategyMaxMin
-from enedis_odoo_bridge.consumption_estimators import BaseEstimator, SoustractionEstimator
+from enedis_odoo_bridge.consumption_estimators import BaseEstimator, SoustractionEstimator, LastFirstEstimator
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class EnedisFluxEngine:
         self.root_path = Path(path).expanduser()
         self.flux = flux
         self.supported_flux = ['R15']
-        self.heuristic = SoustractionEstimator()
+        self.heuristic = LastFirstEstimator()
         self.key = bytes.fromhex(self.config['AES_KEY'])
         self.iv = bytes.fromhex(self.config['AES_IV'])
 
@@ -211,7 +211,7 @@ class EnedisFluxEngine:
         meta = self.data['R15'].get_meta()
         index = self.data['R15'].get_index()
         consu = self.data['R15'].get_consu()
-        consos = self.heuristic.estimate_consumption(meta, index, consu, start_pd, end_pd)
+        consos = self.heuristic.fetch(meta, index, consu, start_pd, end_pd)
 
         if len(consos)>0:
             _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
@@ -246,7 +246,7 @@ class EnedisFluxEngine:
         :return: A pandas DataFrame containing the estimated consumption for each PDL, enriched with the specified columns from the R15 data.
         :rtype: pd.DataFrame
         """
-        if heuristic:
+        if heuristic is not None:
             self.heuristic = heuristic
         estimates = self.estimate_consumption(start, end)
         estimates = self.enrich_estimates(estimates, columns)

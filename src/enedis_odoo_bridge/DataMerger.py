@@ -27,7 +27,7 @@ class DataMerger:
 
     def fetch_enedis_data(self, columns: list[str]=None)-> DataFrame:
         # Récupérer les données depuis EnedisFluxEngine
-        if not columns:
+        if columns is None:
             columns = []
         return self.enedis.fetch(self.starting_date, self.ending_date, columns)
 

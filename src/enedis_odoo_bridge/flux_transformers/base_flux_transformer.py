@@ -1,10 +1,9 @@
-from abc import ABC, abstractmethod
-
 import os
 import zipfile
 import xmlschema
 import pandas as pd
 
+from abc import ABC, abstractmethod
 from pandas import DataFrame
 from pathlib import Path
 from typing import Any
@@ -46,7 +45,7 @@ class BaseFluxTransformer(ABC):
 
                     dfs.append(df)
                     # Optionnel : Supprimer le fichier temporaire si désiré
-                    os.remove(full_path)
+                    #os.remove(full_path)
             # Concaténer toutes les DataFrames
             if dfs:
                 concat = pd.concat(dfs, ignore_index=True).reset_index(drop=True)
@@ -62,3 +61,4 @@ class BaseFluxTransformer(ABC):
         zip_path (Path): The path to the zip file to be added.
         """
         self.data = pd.concat([self.data, self.process_zip(zip_path)])
+
