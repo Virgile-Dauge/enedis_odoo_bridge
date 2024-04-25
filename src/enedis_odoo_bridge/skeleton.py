@@ -25,15 +25,17 @@ import argparse
 import logging
 import pandas as pd
 from datetime import date, datetime
+from pathlib import Path
 
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.DataMerger import DataMerger
-from enedis_odoo_bridge.utils import gen_dates, load_prefixed_dotenv
+from enedis_odoo_bridge.utils import load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
+from rich import console
 
 pretty.install()
 
@@ -41,7 +43,7 @@ __author__ = "Virgile Daugé"
 __copyright__ = "Virgile Daugé"
 __license__ = "GPL-3.0-only"
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger('enedis_odoo_bridge')
 
 
 
@@ -57,7 +59,6 @@ _logger = logging.getLogger(__name__)
 # The functions defined in this section are wrappers around the main Python
 # API allowing them to be called directly from the terminal as a CLI
 # executable/script.
-
 
 def parse_args(args):
     """Parse command line parameters
@@ -76,21 +77,16 @@ def parse_args(args):
         version=f"enedis_odoo_bridge {__version__}",
     )
     #parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
-    parser.add_argument('-z', '--zip-path',
-        dest="zp", 
-        help="zipfile path", 
-        type=str, 
-        metavar="STR")
+    parser.add_argument('-p', '--data-path',
+        dest="data_path",
+        default='~/data/flux_enedis',
+        help="path to data", 
+        type=str,)
     parser.add_argument('-s', '--simulation',
         dest="sim",
         default=False,
         action="store_true",
         help="Perform odoo interactions on '-duplicated' database",)
-    parser.add_argument('-e', '--enedis-engine',
-        dest="enedis_engine",
-        default=False,
-        action="store_true",
-        help="Enedis Flux engine",)
     parser.add_argument('-u', '--update-flux',
         dest="update_flux",
         default=False,
@@ -121,7 +117,6 @@ def parse_args(args):
     )
     return parser.parse_args(args)
 
-
 def setup_logging(loglevel):
     """Setup basic logging
 
@@ -135,7 +130,6 @@ def setup_logging(loglevel):
         format=logformat, datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[RichHandler(rich_tracebacks=True)]
     )
-
 
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
@@ -151,76 +145,26 @@ def main(args):
     setup_logging(args.loglevel)
     env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
 
-    if args.enedis_engine:
-        _logger.debug("Starting Enedis engine...")
-        enedis = EnedisFluxEngine(config=env, path='~/data/flux_enedis', flux=['R15'], update=args.update_flux)
-        #estimates = enedis.estimate_consumption(start=starting_date, end=ending_date)
-        #_logger.debug(f"{estimates}")
-        exit()
+    data_path = Path(args.data_path).expanduser()
+        
+    if args.update_flux:
+        print(f"Fetching new files from {env['FTP_ADDRESS']} ftp...")
+        files = download_new_files_with_progress(config=env, local=data_path, tasks=['R15'])
+        decrypted_files = recursively_decrypt_zip_files_with_progress(directory=data_path, 
+                                                                      key=bytes.fromhex(env['AES_KEY']),
+                                                                      iv=bytes.fromhex(env['AES_IV']),
+                                                                      prefix='decrypted_')
+
+
+    enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15'])
+    enedis.scan()
 
     dm = DataMerger(config=env,
                     date=args.date,
-                    enedis=EnedisFluxEngine(config=env, 
-                                            path='~/data/flux_enedis', 
-                                            flux=['R15'], 
-                                            update=args.update_flux),
+                    enedis=enedis,
                     odoo=OdooAPI(config=env, sim=args.sim))
-    #turpe = Turpe(constants=env)
-    dm.process_and_update()
-    exit()
-    drafts = odoo.drafts
-    drafts_df = pd.DataFrame(drafts)
-    drafts_df.to_csv(enedis.dirs['R15'].joinpath('drafts.csv'))
-    
-    # Deprecated since logs will not be written in odoo anymore
-    #log_id = odoo.write('x_log_enedis', r15.to_x_log_enedis())[0]
 
-    consos = releves[releves['traitable_automatiquement'] == True].set_index(['pdl'])
-
-    # On ajoute "puissance_souscrite" aux consos.
-    merged = pd.merge(drafts_df, consos, on='pdl')
-    merged.to_csv(enedis.dirs['R15'].joinpath('merged.csv'))
-
-    complete = turpe.compute(merged).set_index(['pdl'])
-    lines = pd.DataFrame(odoo.get_lines()).set_index(['pdl'])
-
-    # TODO Faire des Vérifications sur les données
-
-    no_data = []
-    lines_to_inject = []
-    invoices_to_inject = []
-    for d in drafts:
-        if d['pdl'] not in complete.index or (d['pdl'] in complete.index.values
-                                                and not complete.at[d["pdl"], 'traitable_automatiquement']):
-            
-            no_data += [d['pdl']]
-            continue
-        
-        invoices_to_inject = [{'id': d['id'], #'x_log_id': log_id, 
-                               'x_turpe' : complete.at[d['pdl'],'turpe'], 
-                               'x_type_compteur': complete.at[d['pdl'],'Type_Compteur'],
-                               'x_scripted': True}]
-
-        to_update = lines.loc[d["pdl"]].set_index(['code'])
-
-        # On enlève les dates de la ligne
-        abo = to_update.loc['ABO', :]
-        lines_to_inject += [{'id': abo['id'], 'name': abo['name'].split('-')[0], 'deferred_start_date': str(starting_date), 'deferred_end_date': str(ending_date)}]
-        lines_to_inject += [{'id': to_update.at[False, 'id'], 'name': f"Dont {round(complete.at[d['pdl'],'turpe'], 2)}€ de taxes d'acheminement"}]
-
-        if 'BASE' in to_update.index:
-            lines_to_inject += [{'id': to_update.at['BASE', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HCH_conso', 'HPB_conso', 'HCB_conso']])}]
-
-        elif 'HP' in to_update.index and 'HC' in to_update.index:
-            lines_to_inject += [{'id': to_update.at['HP', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HPH_conso', 'HPB_conso']])}]
-            lines_to_inject += [{'id': to_update.at['HC', 'id'], 'quantity': sum(complete.loc[d["pdl"], ['HCH_conso', 'HCB_conso']])}]
-    if no_data:
-        _logger.warning(f'Pas de consommation pour les pdl suivants #{no_data}')
-
-    odoo.update('account.move', invoices_to_inject)
-    odoo.update('account.move.line', lines_to_inject)     
-    _logger.info("Script ends here")
-
+    #dm.process_and_update()
 
 def run():
     """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`
