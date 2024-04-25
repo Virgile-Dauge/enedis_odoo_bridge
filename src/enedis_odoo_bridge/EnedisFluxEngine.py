@@ -23,14 +23,14 @@ class EnedisFluxEngine:
         """
         Initializes the EnedisFluxEngine instance with the specified path and flux types.
 
-        :param path: A string representing the root directory for the Enedis Flux files. Defaults to '~/data/enedis/'.
+        :param path: A string representing the root directory for the Enedis Flux files.
         :type path: str
         :param flux: A list of strings representing the types of Enedis Flux files to be processed.
         :type flux: list[str]
 
         If the specified path does not exist, a FileNotFoundError is raised. The function then creates directories for each flux type if they do not already exist.
 
-        The instance variables `root_path`, `flux`, `db`, and `data` are initialized.
+        The instance variables `root_path`, `flux`, are initialized.
 
         :return: None
         :rtype: None
