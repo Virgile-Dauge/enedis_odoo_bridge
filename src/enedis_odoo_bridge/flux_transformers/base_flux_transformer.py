@@ -1,6 +1,5 @@
 import os
 import zipfile
-import xmlschema
 import pandas as pd
 
 from abc import ABC, abstractmethod
@@ -10,12 +9,12 @@ from typing import Any
 
 
 class BaseFluxTransformer(ABC):
-    def __init__(self, xsd_path: Path):
-        self.schema = xmlschema.XMLSchema(xsd_path)
+    def __init__(self):
+        #self.schema = xmlschema.XMLSchema(xsd_path)
         self.data = DataFrame()
-
+    @abstractmethod
     def xml_to_dict(self, xml_path: Path)-> dict[str, Any]:
-        return self.schema.to_dict(xml_path)
+        pass
 
     @abstractmethod
     def dict_to_dataframe(self, data_dict: dict[str, Any])-> DataFrame:
@@ -38,12 +37,12 @@ class BaseFluxTransformer(ABC):
                 if filename.endswith('.xml'):
                     # Extraction du fichier XML
                     z.extract(filename, 'temp_dir')
-                    full_path = os.path.join('temp_dir', filename)
+                    full_path = Path('temp_dir').joinpath(filename)
                     # Convertir le XML en DataFrame
                     xml_dict = self.xml_to_dict(full_path)
-                    df = self.dict_to_dataframe(xml_dict)
-
-                    dfs.append(df)
+                    if xml_dict:
+                        df = self.dict_to_dataframe(xml_dict)
+                        dfs.append(df)
                     # Optionnel : Supprimer le fichier temporaire si désiré
                     #os.remove(full_path)
             # Concaténer toutes les DataFrames

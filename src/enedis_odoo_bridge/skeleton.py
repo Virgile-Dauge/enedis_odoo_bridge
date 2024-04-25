@@ -149,20 +149,21 @@ def main(args):
         
     if args.update_flux:
         print(f"Fetching new files from {env['FTP_ADDRESS']} ftp...")
-        files = download_new_files_with_progress(config=env, local=data_path, tasks=['R15'])
+        files = download_new_files_with_progress(config=env, local=data_path, tasks=['R15', 'F15'])
         decrypted_files = recursively_decrypt_zip_files_with_progress(directory=data_path, 
                                                                       key=bytes.fromhex(env['AES_KEY']),
                                                                       iv=bytes.fromhex(env['AES_IV']),
                                                                       prefix='decrypted_')
 
-    enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15'])
+    enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'])
 
     dm = DataMerger(config=env,
                     date=args.date,
                     enedis=enedis,
                     odoo=OdooAPI(config=env, sim=args.sim))
 
-    dm.process_and_update()
+    dm.process()
+    #dm.process_and_update()
 
 def run():
     """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`

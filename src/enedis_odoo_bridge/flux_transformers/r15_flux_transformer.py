@@ -1,9 +1,14 @@
+from pathlib import Path
 from enedis_odoo_bridge.flux_transformers import BaseFluxTransformer
 from typing import Any
 import pandas as pd
 from pandas import DataFrame
+import xmlschema
 
 class R15FluxTransformer(BaseFluxTransformer):
+    def xml_to_dict(self, xml_path: Path) -> dict[str, Any]:
+        xsd_path = Path('schemas/ENEDIS.SGE.XSD.0293.Flux_R15_v2.3.2.xsd')
+        return xmlschema.XMLSchema(xsd_path).to_dict(xml_path)
     def dict_to_dataframe(self, data_dict: dict[str, Any]) -> DataFrame:
         # Initialize an empty list to hold all rows before creating the DataFrame
         rows = []

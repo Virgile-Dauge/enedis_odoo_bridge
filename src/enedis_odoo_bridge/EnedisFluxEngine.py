@@ -41,11 +41,7 @@ class EnedisFluxEngine:
         self.root_path = path
         if not self.root_path.is_dir():
             raise FileNotFoundError(f'File {self.root_path} not found.')
-        self.supported_flux = ['R15']
         
-        for f in flux:
-            if f not in self.supported_flux:
-                raise ValueError(f'Flux type {f} not supported.')
         self.flux = flux
             
         self.heuristic = None
@@ -81,9 +77,8 @@ class EnedisFluxEngine:
         res = {}
         for (flux_type, archives), working_path in zip(to_process.items(), directories):
 
-            xsd_path = list(working_path.glob('*.xsd'))[0]
             factory = FluxTransformerFactory()
-            flux_transformer = factory.get_transformer(flux_type, xsd_path)
+            flux_transformer = factory.get_transformer(flux_type)
             for a in archives:
                 flux_transformer.add_zip(a)
 
