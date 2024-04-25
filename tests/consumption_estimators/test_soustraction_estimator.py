@@ -73,3 +73,45 @@ def test_estimate_consumption_with_passage_a_zero():
     pd.testing.assert_frame_equal(result[['pdl', 'HPH_conso']].reset_index(drop=True), expected.reset_index(drop=True))
     # Additional checks can be added here, such as handling cases with no records, a single record, etc.
 
+def test_estimate_consumption_with_dates():
+    # Setup the test data
+    meta = pd.DataFrame({
+        'Date_Releve': [Timestamp('2022-01-01'), Timestamp('2022-01-10'), Timestamp('2022-01-20')],
+        'Statut_Releve': ['INITIAL', 'INITIAL', 'INITIAL'],
+        'pdl': ['pdl1', 'pdl1', 'pdl1'],
+        'HP_Valeur': [100, 150, 200],
+        'HC_Valeur': [50, 75, 100],
+        'HP_Nb_Chiffres_Cadran': [0, 0, 0],
+        'HC_Nb_Chiffres_Cadran': [0, 0, 0],
+        'HP_Indicateur_Passage_A_Zero': [0, 0, 0],
+        'HC_Indicateur_Passage_A_Zero': [0, 0, 0],
+        'HP_Coefficient_Lecture': [1, 1, 1],
+        'HC_Coefficient_Lecture': [1, 1, 1]
+    })
+
+    index = meta  # In this test case, index and meta are the same for simplicity
+    consos = pd.DataFrame()  # Not used in this implementation
+    start = Timestamp('2022-01-01')
+    end = Timestamp('2022-01-31')
+    
+    # Define a dates DataFrame with additional date information
+    dates = pd.DataFrame({
+        'pdl': ['pdl1'],
+        'additional_date_info': [Timestamp('2022-02-01')]
+    })
+
+    expected_output = pd.DataFrame({
+        'pdl': ['pdl1'],
+        'HP_conso': [100],  # 200 - 100 = 100
+        'HC_conso': [50],   # 100 - 50 = 50
+        'additional_date_info': [Timestamp('2022-02-01')]
+    })
+
+    # Instantiate the estimator
+    estimator = SoustractionEstimator()
+
+    # Call the method under test with dates
+    actual_output = estimator.estimate_consumption(meta, index, consos, start, end, dates)
+
+    # Assert that the actual output matches the expected output, including the merged dates information
+    pd.testing.assert_frame_equal(actual_output, expected_output, check_dtype=False)
