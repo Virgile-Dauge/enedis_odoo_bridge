@@ -12,7 +12,8 @@ from typing import Union, Any
 from rich.progress import Progress
 
 import paramiko
-
+import logging
+logging.getLogger("paramiko.transport").setLevel(logging.ERROR)
 
 def check_required(config: dict[str, str], required: list[str]):
     for r in required:

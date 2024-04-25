@@ -6,6 +6,7 @@ from pandas import DataFrame
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.utils import gen_dates, check_required
+from enedis_odoo_bridge.consumption_estimators import BaseEstimator, LastFirstEstimator
 
 import logging
 _logger = logging.getLogger(__name__)
@@ -25,11 +26,9 @@ class DataMerger:
         self.starting_date, self.ending_date = gen_dates(date)
 
 
-    def fetch_enedis_data(self, columns: list[str]=None)-> DataFrame:
+    def fetch_enedis_data(self, heuristic: BaseEstimator, columns: list[str])-> DataFrame:
         # Récupérer les données depuis EnedisFluxEngine
-        if columns is None:
-            columns = []
-        return self.enedis.fetch(self.starting_date, self.ending_date, columns)
+        return self.enedis.fetch(self.starting_date, self.ending_date, columns, heuristic=heuristic)
 
     def fetch_odoo_data(self)-> DataFrame:
         # Récupérer les données depuis OdooAPI
@@ -73,7 +72,10 @@ class DataMerger:
         self.odoo.update_draft_invoices(data, self.starting_date, self.ending_date)
 
     def process(self):
-        enedis_data = self.fetch_enedis_data(['Type_Compteur', 'Num_Serie'])
+        enedis_data = self.enedis.fetch(self.starting_date, self.ending_date,
+                                        columns=['Type_Compteur', 'Num_Serie'],
+                                        heuristic=LastFirstEstimator())
+
         enedis_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'EnedisFluxEngine_from_{self.starting_date}_to{self.ending_date}.csv'))
         odoo_data = self.fetch_odoo_data()
@@ -85,7 +87,6 @@ class DataMerger:
         data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'DataMerger_from_{self.starting_date}_to{self.ending_date}.csv'))
         return data
-        #self.update_odoo(merged_data)
 
     def process_and_update(self):
         data = self.process()

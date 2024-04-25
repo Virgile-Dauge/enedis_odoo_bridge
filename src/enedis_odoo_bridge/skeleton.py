@@ -155,16 +155,14 @@ def main(args):
                                                                       iv=bytes.fromhex(env['AES_IV']),
                                                                       prefix='decrypted_')
 
-
     enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15'])
-    enedis.scan()
 
     dm = DataMerger(config=env,
                     date=args.date,
                     enedis=enedis,
                     odoo=OdooAPI(config=env, sim=args.sim))
 
-    #dm.process_and_update()
+    dm.process_and_update()
 
 def run():
     """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`

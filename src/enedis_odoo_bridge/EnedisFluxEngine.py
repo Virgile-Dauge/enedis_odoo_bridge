@@ -1,11 +1,9 @@
 
 import pandas as pd
-from pandas import Timestamp, DataFrame, Series
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
 from datetime import date, datetime
 from rich import inspect
-import json
 
 from datetime import datetime
 from enedis_odoo_bridge import __version__
@@ -16,8 +14,6 @@ from enedis_odoo_bridge.flux_transformers import FluxTransformerFactory, BaseFlu
 
 import logging
 _logger = logging.getLogger('enedis_odoo_bridge')
-# Suppress paramiko.transport logs by setting its log level to ERROR
-logging.getLogger("paramiko.transport").setLevel(logging.ERROR)
 
 class EnedisFluxEngine:
     """
@@ -30,7 +26,7 @@ class EnedisFluxEngine:
         :param path: A string representing the root directory for the Enedis Flux files. Defaults to '~/data/enedis/'.
         :type path: str
         :param flux: A list of strings representing the types of Enedis Flux files to be processed.
-        :type flux: List[str]
+        :type flux: list[str]
 
         If the specified path does not exist, a FileNotFoundError is raised. The function then creates directories for each flux type if they do not already exist.
 
@@ -64,7 +60,7 @@ class EnedisFluxEngine:
         download_new_files(self.config, self.flux, self.root_path)
         recursively_decrypt_zip_files(self.root_path, self.key, self.iv, prefix='decrypted_')
 
-    def scan(self) -> Dict[str, pd.DataFrame]:
+    def scan(self) -> dict[str, pd.DataFrame]:
         """
         Scans the specified directories for the given flux types and processes the ZIP files.
 
@@ -123,7 +119,7 @@ class EnedisFluxEngine:
         end_pd = pd.to_datetime(datetime.combine(end, datetime.max.time())).tz_localize('Etc/GMT-2')
 
         _logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
-        _logger.info(f'With {self.heuristic.get_estimator_name()} Strategy.')
+        _logger.info(f'With {heuristic.get_estimator_name()} Strategy.')
 
         meta = self.data['R15'].get_meta()
         index = self.data['R15'].get_index()
@@ -136,7 +132,7 @@ class EnedisFluxEngine:
             _logger.warn(f"└── Failed to Estimate consumption of any PDLs.")
         return consos
     
-    def enrich_estimates(self, estimates: pd.DataFrame, columns: List[str])-> pd.DataFrame:
+    def enrich_estimates(self, estimates: pd.DataFrame, columns: list[str])-> pd.DataFrame:
         meta = self.data['R15'].get_meta()
         #columns = [c for c in self.data['R15'].columns if c[2] in columns]
         for k in columns:
@@ -145,7 +141,7 @@ class EnedisFluxEngine:
         to_add = meta[['pdl']+columns].drop_duplicates(subset='pdl', keep='first')
         return pd.merge(estimates, to_add, how='left', on='pdl')
     
-    def fetch(self, start: date, end: date, columns: List[str], heuristic: BaseEstimator):
+    def fetch(self, start: date, end: date, columns: list[str], heuristic: BaseEstimator):
         """
         Fetches and enriches the estimated consumption data for a specified period and set of columns.
 
@@ -157,13 +153,13 @@ class EnedisFluxEngine:
         :param end: The end date of the period for which consumption is to be estimated.
         :type end: date
         :param columns: A list of column names from the R15 dataset to be added to the estimated consumption data.
-        :type columns: List[str]
+        :type columns: list[str]
         :param heuristic: The estimator to be used for estimating consumption.
         :type heuristic: BaseEstimator
         :return: A pandas DataFrame containing the estimated consumption for each PDL, enriched with the specified columns from the R15 data.
         :rtype: pd.DataFrame
         """
-
+        self.data = self.scan()
         estimates = self.estimate_consumption(start, end, heuristic)
         estimates = self.enrich_estimates(estimates, columns)
         return estimates
