@@ -32,7 +32,7 @@ class DataMerger:
 
     def fetch_odoo_data(self)-> DataFrame:
         # Récupérer les données depuis OdooAPI
-        return self.odoo.fetch()
+        return self.odoo.fetch_drafts()
 
     def merge_data(self, enedis_data: DataFrame, odoo_data: DataFrame)-> DataFrame:
         # Fusionner les données ici
@@ -71,14 +71,16 @@ class DataMerger:
         # Mettre à jour Odoo avec les données fusionnées
         self.odoo.update_draft_invoices(data, self.starting_date, self.ending_date)
 
-    def process(self):
+    def process(self, drafts: bool=True):
         enedis_data = self.enedis.fetch(self.starting_date, self.ending_date,
                                         columns=['Type_Compteur', 'Num_Serie'],
                                         heuristic=LastFirstEstimator())
 
         enedis_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'EnedisFluxEngine_from_{self.starting_date}_to{self.ending_date}.csv'))
-        odoo_data = self.fetch_odoo_data()
+
+        odoo_data = self.fetch_odoo_data() if drafts else self.odoo.fetch_orders()
+
         odoo_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'OdooAPI_from_{self.starting_date}_to{self.ending_date}.csv'))
         data = self.merge_data(enedis_data, odoo_data)
@@ -88,9 +90,12 @@ class DataMerger:
             f'DataMerger_from_{self.starting_date}_to{self.ending_date}.csv'))
         return data
 
-    def process_and_update(self):
-        data = self.process()
-        self.update_odoo(data)
+    def process_and_update(self, drafts: bool=True):
+        data = self.process(drafts)
+        if drafts:
+            self.update_odoo(data)
+        else:
+            self.odoo.update_sale_order(data, self.starting_date, self.ending_date)
         return data
 
 

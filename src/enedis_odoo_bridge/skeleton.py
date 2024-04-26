@@ -157,13 +157,18 @@ def main(args):
 
     enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'])
 
+    #odoo = OdooAPI(config=env, sim=args.sim)
+    #orders = odoo.fetch_orders()
+    #pretty.pprint(orders)
+    #orders.to_csv(f'orders.csv')
+    #exit()
     dm = DataMerger(config=env,
                     date=args.date,
                     enedis=enedis,
                     odoo=OdooAPI(config=env, sim=args.sim))
 
-    dm.process()
-    #dm.process_and_update()
+    #dm.process()
+    dm.process_and_update(drafts=True)
 
 def run():
     """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`

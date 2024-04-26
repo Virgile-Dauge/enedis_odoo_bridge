@@ -6,7 +6,7 @@ from typing import Dict, List, Any, Hashable, Tuple
 import pandas as pd
 from pandas import DataFrame
 from datetime import date
-
+from rich import pretty
 from enedis_odoo_bridge.utils import check_required
 
 import logging
@@ -83,7 +83,7 @@ class OdooAPI:
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, args, kwargs)
         return res if isinstance(res, list) else [res]
 
-    def fetch(self) -> DataFrame:
+    def fetch_drafts(self) -> DataFrame:
         """
         Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.
 
@@ -360,3 +360,152 @@ class OdooAPI:
         activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
         self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
 
+    def get_orders(self, fields: List[str])-> DataFrame:
+        """
+        Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+
+        Args:
+            fields (List[str]): A list of fields to be included in the returned DataFrame.
+
+        Returns:
+            DataFrame: A DataFrame containing the draft invoices with the specified fields.
+
+        This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+        Draft invoices satisfies : ['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]
+        It uses the 'search_read' method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.
+        """
+        _logger.info(f'Searching subscription sales.order in {self.url} db.')
+        orders = self.execute('sale.order', 'search_read', 
+            [[['is_subscription', '=', True], ['is_expired', '=', False], ['state', '=', 'sale'], ['subscription_state', '=', '3_progress']]], 
+            {'fields': fields})
+        if not orders:
+            raise ValueError(f'No draft subscription sales.order found in {self.url} db. Process aborted.')
+        return DataFrame(orders)
+    
+    def add_order_line(self, data: DataFrame, fields:dict[str, str])-> DataFrame:
+        if 'order_line' not in data.columns:
+            raise ValueError(f'No order_line found in {data.columns}')
+        
+        df_exploded = data.explode('order_line')
+
+        order_lines = self.execute('sale.order.line', 'read', 
+                        [df_exploded['order_line'].to_list()], )
+
+        if not order_lines:
+            raise ValueError(f'No draft sale.order.line found in {self.url} db. Process aborted.')
+        
+        prods_id = [l['product_id'][0] if l['product_id'] else False for l in order_lines]
+
+        prods = self.execute('product.product', 'read', [prods_id],
+                        {'fields': ['categ_id']})
+        cat = [p['categ_id'][1].split(' ')[-1] for p in prods]
+        
+        df_exploded['cat'] = cat
+
+        # Pivoting to transform 'cat' values into separate columns
+        df_pivoted = df_exploded.pivot(index='id', columns='cat', values='order_line').reset_index()
+        # Renaming columns to reflect the source of the data
+        df_pivoted.columns = ['id'] + [f'order_line_id_{x}' for x in df_pivoted.columns if x != 'id']
+
+        # Merge the pivoted DataFrame with the original DataFrame
+        df_final = pd.merge(data, df_pivoted, on='id', how='left')
+        return df_final
+
+    def fetch_orders(self) -> DataFrame:
+        """
+        Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.
+
+        Args:
+            self (OdooAPI): An instance of the OdooAPI class.
+
+        Returns:
+            DataFrame: A DataFrame containing the draft invoices with the specified fields.
+
+        This function first fetches ['invoice_line_ids', 'date', 'x_order_id'] fields of draft invoices.
+        It then adds ['x_pdl', 'x_puissance_souscrite'] fields from the 'sale.order'.
+        Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
+        The function returns the cleared DataFrame, leaving only scalar values.
+        """
+        data = self.get_orders(['order_line', 'x_pdl', 'x_puissance_souscrite', 'x_lisse', 'start_date'])
+        #pretty.pprint(data)
+        data = self.add_order_line(data, {})
+        #pretty.pprint(data)
+        #data = self.add_cat_fields(data, [])
+        #data = self.filter_non_energy(data)
+        return self.clear(data)
+
+    def prepare_sale_order_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
+        # On veut ajouter x_type_compteur, x_scripted, x_turpe
+
+        orders = DataFrame(data['id'])
+        orders['x_turpe'] = data['turpe_fix'] + data['turpe_var']
+        # Deprecated : Maintenant on a les activités
+        #moves['x_scripted'] = True
+        #if 'Type_Compteur' in data.columns:
+        #    orders['x_type_compteur'] = data['Type_Compteur']
+        return orders.to_dict(orient='records')  
+    def prepare_order_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
+        required_cols = ['HP', 'HC', 'Base', 'order_line_id_Abonnements', 'x_lisse']
+        for c in required_cols:
+            if c not in data.columns:
+                raise ValueError(f'Required "{c}" column found in {data.columns}')
+
+        # Get cols names containing line id for consumptions only
+        order_line_id_cols = sorted([c for c in data.columns
+                        if c.startswith('order_line_id_') 
+                        and c.replace('order_line_id_', '') in ['HP', 'HC', 'Base']])
+        value_cols = sorted([c for c in data.columns
+                    if c in ['HP', 'HC', 'Base']])
+        not_smoothed_invoices = data[data['x_lisse'] == False]
+        print(not_smoothed_invoices)
+        consumption_lines = pd.DataFrame({
+            'id': pd.concat([not_smoothed_invoices[c] for c in order_line_id_cols], ignore_index=True),
+            'qty_delivered': pd.concat([not_smoothed_invoices[c] for c in value_cols], ignore_index=True)
+        })
+        consumption_lines = consumption_lines.dropna(subset=['id']).to_dict(orient='records')
+
+        # Abonnements
+        do_update_qty = ~((data['x_lisse'] == True) & (data['update_dates'] == False))
+        subscription_lines = data[do_update_qty][['order_line_id_Abonnements','actual_days']].copy()
+
+        #subscription_lines['start_date'] = data[do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        #subscription_lines['end_date'] = data[do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+
+        #names = self.execute('account.move.line', 'read', [data[do_update_qty]['line_id_Abonnements'].to_list()],
+        #                    {'fields': ['name']})
+
+        #subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
+        subscription_lines_dict = subscription_lines.rename(columns={'order_line_id_Abonnements': 'id', 
+                                                                'actual_days': 'qty_delivered',
+                                                                #'start_date': 'deferred_start_date',
+                                                                #'end_date': 'deferred_end_date',
+                                                                }).to_dict(orient='records')
+        #subscription_lines = data[~do_update_qty][['line_id_Abonnements','actual_days']].copy()
+        #subscription_lines['start_date'] = data[~do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        #subscription_lines['end_date'] = data[~do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        #names = self.execute('account.move.line', 'read', [data[~do_update_qty]['line_id_Abonnements'].to_list()],
+        #                {'fields': ['name']})
+        #subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
+        #subscription_lines_without_qty_dict = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
+        #                                                'start_date': 'deferred_start_date',
+        #                                                'end_date': 'deferred_end_date',}).to_dict(orient='records')
+        return consumption_lines + subscription_lines_dict #+ subscription_lines_without_qty_dict
+    
+    def update_sale_order(self, data: DataFrame, start: date, end: date)-> None:
+        """
+        Updates the draft invoices in the Odoo database.
+
+        Args:
+            data (DataFrame): The input data frame.
+
+        Returns:
+            None: None.
+
+        This function updates the draft invoices in the Odoo database.
+        """
+        lines = self.prepare_order_line_updates(data)
+        self.update('sale.order.line', lines)
+        orders = self.prepare_sale_order_updates(data)
+        self.update('sale.order', orders)
+        _logger.info(f'Subscription Orders updated in {self.url} db.')
+        self.ask_for_approval('sale.order', data['id'].to_list())
