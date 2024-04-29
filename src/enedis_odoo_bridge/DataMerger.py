@@ -1,6 +1,7 @@
 from typing import Dict, List
 from datetime import date
 import pandas as pd
+import numpy as np
 from pandas import DataFrame
 
 from enedis_odoo_bridge.OdooAPI import OdooAPI
@@ -45,25 +46,35 @@ class DataMerger:
         _logger.debug(merged)
         return merged
     
-    def add_turpe(self, data:DataFrame):
+    def add_taxes(self, data:DataFrame):
         data['turpe_fix'] = (data['x_puissance_souscrite'].astype(float) * float(self.config['TURPE_B_CU4'])
             + float(self.config['TURPE_CG']) + float(self.config['TURPE_CC']))/12
+        
+        cu4 = ~data[['HPH_conso', 'HPB_conso', 
+                     'HCH_conso', 'HCB_conso']].isna().all(axis=1)
         data['turpe_var'] = (
             data['HPH_conso'].astype(float)*float(self.config['TURPE_TAUX_HPH_CU4'])*0.01
             + data['HCH_conso'].astype(float)*float(self.config['TURPE_TAUX_HCH_CU4'])*0.01
             + data['HPB_conso'].astype(float)*float(self.config['TURPE_TAUX_HPB_CU4'])*0.01
             + data['HCB_conso'].astype(float)*float(self.config['TURPE_TAUX_HCB_CU4'])*0.01)
-        
+        data['CTA'] = data['turpe_fix'] * 0.2193
+        data['Assise'] = data['Base'] * 21 * 0.01
         # TODO Turpe pour les pas CU4
         return data
 
     def enrich(self, data: DataFrame)-> DataFrame:
-        data['HP'] = data[['HPH_conso', 'HPB_conso']].sum(axis=1)
-        data['HC'] = data[['HCH_conso', 'HCB_conso']].sum(axis=1)
-        data['Base'] = data[['HP', 'HC']].sum(axis=1)
-
-        # TODO SI HPH_conso HPB_conso HCH_conso HCB_conso = nill
-        # Calculer autrement. 
+        data['HP'] = data[['HPH_conso', 'HPB_conso', 'HP_conso']].sum(axis=1)
+        data['HC'] = data[['HCH_conso', 'HCB_conso', 'HC_conso']].sum(axis=1)
+        data['not_enough_data'] = data[['HPH_conso', 'HPB_conso', 'HCH_conso', 
+            'HCB_conso', 'BASE_conso', 'HP_conso', 
+            'HC_conso']].isna().all(axis=1)
+        data['Base'] = np.where(
+            data['not_enough_data'],
+            np.nan,
+            data[['HPH_conso', 'HPB_conso', 'HCH_conso', 
+            'HCB_conso', 'BASE_conso', 'HP_conso', 
+            'HC_conso']].sum(axis=1)
+        )
         _logger.debug(data)
         return data
 
@@ -84,16 +95,19 @@ class DataMerger:
         odoo_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'OdooAPI_from_{self.starting_date}_to{self.ending_date}.csv'))
         data = self.merge_data(enedis_data, odoo_data)
-        data = self.add_turpe(data)
+        
         data = self.enrich(data)
+        data = self.add_taxes(data)
         data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'DataMerger_from_{self.starting_date}_to{self.ending_date}.csv'))
+        data[data['Base'].isna()].to_csv(self.enedis.root_path.joinpath('R15').joinpath(
+            f'DataMerger_TOCHECK_from_{self.starting_date}_to{self.ending_date}.csv'))
         return data
 
     def process_and_update(self, drafts: bool=True):
         data = self.process(drafts)
         if drafts:
-            self.update_odoo(data)
+            self.update_odoo(data))
         else:
             self.odoo.update_sale_order(data, self.starting_date, self.ending_date)
         return data
