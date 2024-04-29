@@ -19,7 +19,6 @@ class F15FluxTransformer(BaseFluxTransformer):
             return xmlschema.XMLSchema(xsd_path).to_dict(xml_path)
 
     def dict_to_dataframe(self, data_dict: dict[str, Any]) -> DataFrame:
-        pretty.pprint(data_dict)
         rows = []  # Liste pour stocker les lignes avant de créer le DataFrame
 
         # Assurez-vous que 'Groupe_Valorise' est une liste pour un traitement cohérent
@@ -29,7 +28,6 @@ class F15FluxTransformer(BaseFluxTransformer):
         # Pour chaque élément dans 'Groupe_Valorise'
         exclude = ['Groupe_Valorise', 'Donnees_PRM', 'Releve']
         for dv in donnees_valorisation:
-            print(dv.keys())
             donnees_prm = dv['Donnees_PRM']
             for gv in dv['Groupe_Valorise']:
                 for ev in gv['Element_Valorise']:
