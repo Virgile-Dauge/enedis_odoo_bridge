@@ -73,7 +73,7 @@ class DataMerger:
 
     def process(self, drafts: bool=True):
         enedis_data = self.enedis.fetch(self.starting_date, self.ending_date,
-                                        columns=['Type_Compteur', 'Num_Serie'],
+                                        columns=['Type_Compteur', 'Num_Serie', 'Date_Theorique_Prochaine_Releve'],
                                         heuristic=LastFirstEstimator())
 
         enedis_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(

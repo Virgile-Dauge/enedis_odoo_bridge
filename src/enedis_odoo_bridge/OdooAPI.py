@@ -295,8 +295,16 @@ class OdooAPI:
         moves['x_end_invoice_period'] = data['end_date'].dt.strftime('%Y-%m-%d')
         # Deprecated : Maintenant on a les activités
         #moves['x_scripted'] = True
+        #additionnal_fields = ['x_type_compteur', 'x_num_serie_compteur']
+        #for f in additionnal_fields:
+        #    if f in data.columns:
+        #        moves[f] = data[f]
         if 'Type_Compteur' in data.columns:
             moves['x_type_compteur'] = data['Type_Compteur']
+        if 'Num_Serie' in data.columns:
+            moves['x_num_serie_compteur'] = data['Num_Serie'].astype(str)
+        if 'Date_Theorique_Prochaine_Releve' in data.columns:
+            moves['x_prochaine_releve'] = data['Date_Theorique_Prochaine_Releve'].dt.strftime('%Y-%m-%d')
         return moves.to_dict(orient='records')
 
     def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
@@ -341,6 +349,7 @@ class OdooAPI:
             i = int(e['id'])
             del e['id']
             data = e
+            data = {k: str(v) if isinstance(v, np.str_) else v for k, v in data.items()}
             data = {k: int(v) if type(v) is np.int64 else v for k, v in data.items()}
             data = {k: float(v) if type(v) is np.int64 else v for k, v in data.items()}
             self.execute(model, 'write', [[i], data])
