@@ -107,7 +107,7 @@ class DataMerger:
     def process_and_update(self, drafts: bool=True):
         data = self.process(drafts)
         if drafts:
-            self.update_odoo(data))
+            self.update_odoo(data)
         else:
             self.odoo.update_sale_order(data, self.starting_date, self.ending_date)
         return data

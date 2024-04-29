@@ -319,12 +319,18 @@ class OdooAPI:
 
         This function updates the draft invoices in the Odoo database.
         """
-        lines = self.prepare_line_updates(data)
+        safe = data[~data['not_enough_data']]
+        lines = self.prepare_line_updates(safe)
         self.update('account.move.line', lines)
-        moves = self.prepare_account_moves_updates(data)
+        moves = self.prepare_account_moves_updates(safe)
         self.update('account.move', moves)
         _logger.info(f'Draft invoices updated in {self.url} db.')
-        self.ask_for_approval('account.move', data['id'].to_list())
+        self.ask_for_approval('account.move', safe['id'].to_list(), 
+                              'À approuver', 
+                              'Merci de valider cette facture remplie automatiquement.')
+        self.ask_for_approval('account.move', data[data['not_enough_data']]['id'].to_list(), 
+                              'ERREUR SCRIPT', 
+                              'Pas de données Enedis.')
 
     def create(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
         """
@@ -357,7 +363,7 @@ class OdooAPI:
 
         _logger.info(f'{model} #{id} writen in Odoo db.')
       
-    def ask_for_approval(self, model: str, ids: List[int]):
+    def ask_for_approval(self, model: str, ids: List[int], msg: str, note: str):
         model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
 
         # TODO Filter id to only have invoices with no existing approuval ?
@@ -365,9 +371,9 @@ class OdooAPI:
         activities['res_model_id'] = model_id[0]
         activities['activity_type_id'] = 4
         activities['user_id'] = self.config['ODOO_FACTURISTE_ID']
-        activities['summary'] = 'À Approuver'
+        activities['summary'] = msg
         activities['automated'] = True
-        activities['note'] = 'Merci de valider cette facture remplie automatiquement.'
+        activities['note'] = note
         # TODO Date adaptée : maj le 5 du mois de facturation
         activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
         self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
