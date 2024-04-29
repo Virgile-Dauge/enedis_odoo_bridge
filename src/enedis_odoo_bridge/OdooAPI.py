@@ -287,9 +287,12 @@ class OdooAPI:
   
     def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
         # On veut ajouter x_type_compteur, x_scripted, x_turpe
-
+    
         moves = DataFrame(data['id'])
+        # TODO intérroger au préalable l'API pour récupérer les champs supportés par l'instance Odoo
         moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
+        moves['x_start_invoice_period'] = data['start_date'].dt.strftime('%Y-%m-%d')
+        moves['x_end_invoice_period'] = data['end_date'].dt.strftime('%Y-%m-%d')
         # Deprecated : Maintenant on a les activités
         #moves['x_scripted'] = True
         if 'Type_Compteur' in data.columns:
