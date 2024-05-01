@@ -58,7 +58,7 @@ class DataMerger:
             + data['HPB_conso'].astype(float)*float(self.config['TURPE_TAUX_HPB_CU4'])*0.01
             + data['HCB_conso'].astype(float)*float(self.config['TURPE_TAUX_HCB_CU4'])*0.01)
         data['CTA'] = data['turpe_fix'] * 0.2193
-        data['Assise'] = data['Base'] * 21 * 0.01
+        data['Assise'] = data['Base'] * 2.1 * 0.01
         # TODO Turpe pour les pas CU4
         return data
 
@@ -66,7 +66,7 @@ class DataMerger:
         data['HP'] = data[['HPH_conso', 'HPB_conso', 'HP_conso']].sum(axis=1)
         data['HC'] = data[['HCH_conso', 'HCB_conso', 'HC_conso']].sum(axis=1)
         data['not_enough_data'] = data[['HPH_conso', 'HPB_conso', 'HCH_conso', 
-            'HCB_conso', 'BASE_conso', 'HP_conso', 
+            'HCB_conso', 'BASE_conso', 'HP_conso',
             'HC_conso']].isna().all(axis=1)
         data['Base'] = np.where(
             data['not_enough_data'],
