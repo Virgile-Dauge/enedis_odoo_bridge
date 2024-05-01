@@ -43,6 +43,17 @@ class BaseEstimator(ABC):
         base_df['start_date'] = base_df['start_date_updated'].fillna(base_df['start_date'])
         base_df['end_date'] = base_df['end_date_updated'].fillna(base_df['end_date'])
 
+        # Define conditions for initializing start and end dates
+        valid_releve_conditions = (meta['Date_Releve'] >= start) & (meta['Date_Releve'] <= end) & (meta['Statut_Releve'] == 'INITIAL')
+
+        # Calculate first and last releve dates for each pdl
+        first_releve_dates = meta[valid_releve_conditions].groupby('pdl')['Date_Releve'].min().reset_index(name='first_releve_date')
+        last_releve_dates = meta[valid_releve_conditions].groupby('pdl')['Date_Releve'].max().reset_index(name='last_releve_date')
+
+        # Merge the first and last releve dates into the base DataFrame
+        base_df = pd.merge(base_df, first_releve_dates, on='pdl', how='left')
+        base_df = pd.merge(base_df, last_releve_dates, on='pdl', how='left')
+
         # Count the number of actual days for each pdl
         base_df['actual_days'] = base_df.apply(lambda row: (row['end_date'] - row['start_date']).days + 1, axis=1)
 
