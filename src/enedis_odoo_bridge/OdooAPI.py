@@ -32,6 +32,7 @@ class OdooAPI:
         self.uid = None
         self.proxy = None
 
+    # low level methods
     def connect(self):
         self.uid = self.get_uid()
         self.proxy = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
@@ -83,6 +84,57 @@ class OdooAPI:
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, args, kwargs)
         return res if isinstance(res, list) else [res]
 
+    # medium level methods 
+    def create(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
+        """
+        Creates entries in the Odoo database.
+
+        Args:
+            log (Dict[str, str]): A dictionary containing the entries data.
+
+        Returns:
+            int: The ID of the newly created entries in the Odoo database.
+
+        """
+        id = self.execute(model, 'create', [entries])
+        if not isinstance(id, list):
+            id = [int(id)]
+        _logger.info(f'{model} #{id} created in Odoo db.')
+        return id
+
+    def update(self, model: str, entries: List[Dict[Hashable, Any]])-> None:
+        id = []
+        for e in entries:
+            i = int(e['id'])
+            del e['id']
+            data = e
+            data = {k: str(v) if isinstance(v, np.str_) else v for k, v in data.items()}
+            data = {k: int(v) if type(v) is np.int64 else v for k, v in data.items()}
+            data = {k: float(v) if type(v) is np.int64 else v for k, v in data.items()}
+            self.execute(model, 'write', [[i], data])
+            id += [i]
+
+        _logger.info(f'{model} #{id} writen in Odoo db.')
+      
+    def ask_for_approval(self, model: str, ids: List[int], msg: str, note: str):
+        model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
+
+        # TODO Filter id to only have invoices with no existing approuval ?
+        activities = DataFrame({'res_id': ids})
+        activities['res_model_id'] = model_id[0]
+        activities['activity_type_id'] = 4
+        activities['user_id'] = self.config['ODOO_FACTURISTE_ID']
+        activities['summary'] = msg
+        activities['automated'] = True
+        activities['note'] = note
+        # TODO Date adaptée : maj le 5 du mois de facturation
+        activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
+        self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
+
+
+    
+
+    # fetch processes
     def fetch_drafts(self) -> DataFrame:
         """
         Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.
@@ -104,6 +156,30 @@ class OdooAPI:
         data = self.filter_non_energy(data)
         return self.clear(data)
 
+    def fetch_orders(self) -> DataFrame:
+        """
+        Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.
+
+        Args:
+            self (OdooAPI): An instance of the OdooAPI class.
+
+        Returns:
+            DataFrame: A DataFrame containing the draft invoices with the specified fields.
+
+        This function first fetches ['invoice_line_ids', 'date', 'x_order_id'] fields of draft invoices.
+        It then adds ['x_pdl', 'x_puissance_souscrite'] fields from the 'sale.order'.
+        Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
+        The function returns the cleared DataFrame, leaving only scalar values.
+        """
+        data = self.get_orders(['order_line', 'x_pdl', 'x_puissance_souscrite', 'x_lisse', 'start_date'])
+        #pretty.pprint(data)
+        data = self.add_order_line(data, {})
+        #pretty.pprint(data)
+        #data = self.add_cat_fields(data, [])
+        #data = self.filter_non_energy(data)
+        return self.clear(data)
+
+    # fetch helpers, all processes
     def filter_non_energy(self, data: DataFrame) -> DataFrame:
         """
         Filters out rows from the DataFrame that do not have any energy consumption data.
@@ -142,6 +218,8 @@ class OdooAPI:
         non_scalar_columns = [col for col in data.columns if any(data[col].apply(lambda x: isinstance(x, (list, dict))))]
         return data.drop(non_scalar_columns, axis=1)
 
+    
+    # fetch helpers, draft as starting point process
     def get_drafts(self, fields: List[str])-> DataFrame:
         """
         Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
@@ -242,6 +320,60 @@ class OdooAPI:
         df_final = pd.merge(data, df_pivoted, on='move_id', how='left')
         return df_final
 
+    # fetch helpers, order as starting point process
+    def get_orders(self, fields: List[str])-> DataFrame:
+        """
+        Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+
+        Args:
+            fields (List[str]): A list of fields to be included in the returned DataFrame.
+
+        Returns:
+            DataFrame: A DataFrame containing the draft invoices with the specified fields.
+
+        This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+        Draft invoices satisfies : ['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]
+        It uses the 'search_read' method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.
+        """
+        _logger.info(f'Searching subscription sales.order in {self.url} db.')
+        orders = self.execute('sale.order', 'search_read', 
+            [[['is_subscription', '=', True], ['is_expired', '=', False], ['state', '=', 'sale'], ['subscription_state', '=', '3_progress']]], 
+            {'fields': fields})
+        if not orders:
+            raise ValueError(f'No draft subscription sales.order found in {self.url} db. Process aborted.')
+        return DataFrame(orders)
+    
+    def add_order_line(self, data: DataFrame, fields:dict[str, str])-> DataFrame:
+        if 'order_line' not in data.columns:
+            raise ValueError(f'No order_line found in {data.columns}')
+        
+        df_exploded = data.explode('order_line')
+
+        order_lines = self.execute('sale.order.line', 'read', 
+                        [df_exploded['order_line'].to_list()], )
+
+        if not order_lines:
+            raise ValueError(f'No draft sale.order.line found in {self.url} db. Process aborted.')
+        
+        prods_id = [l['product_id'][0] if l['product_id'] else False for l in order_lines]
+
+        prods = self.execute('product.product', 'read', [prods_id],
+                        {'fields': ['categ_id']})
+        cat = [p['categ_id'][1].split(' ')[-1] for p in prods]
+        
+        df_exploded['cat'] = cat
+
+        # Pivoting to transform 'cat' values into separate columns
+        df_pivoted = df_exploded.pivot(index='id', columns='cat', values='order_line').reset_index()
+        # Renaming columns to reflect the source of the data
+        df_pivoted.columns = ['id'] + [f'order_line_id_{x}' for x in df_pivoted.columns if x != 'id']
+
+        # Merge the pivoted DataFrame with the original DataFrame
+        df_final = pd.merge(data, df_pivoted, on='id', how='left')
+        return df_final
+
+
+    # update helpers 
     def prepare_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
         required_cols = ['HP', 'HC', 'Base', 'line_id_Abonnements', 'x_lisse']
         for c in required_cols:
@@ -310,159 +442,6 @@ class OdooAPI:
             moves['x_prochaine_releve'] = data['Date_Theorique_Prochaine_Releve'].dt.strftime('%Y-%m-%d')
         return moves.rename(columns={'move_id': 'id'}).to_dict(orient='records')
 
-    def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
-        """
-        Updates the draft invoices in the Odoo database.
-
-        Args:
-            data (DataFrame): The input data frame.
-
-        Returns:
-            None: None.
-
-        This function updates the draft invoices in the Odoo database.
-        """
-        safe = data[~data['not_enough_data']]
-
-        
-        orders = self.prepare_sale_order_updates(safe, fields=['x_last_invoiced_releve_id'])
-        self.update('sale.order', orders)
-        _logger.info(f'{len(orders)} sale.order updated in {self.url} db.')
-
-        moves = self.prepare_account_moves_updates(safe)
-        self.update('account.move', moves)
-        _logger.info(f'{len(moves)} account.move updated in {self.url} db.')
-
-        lines = self.prepare_line_updates(safe)
-        self.update('account.move.line', lines)
-        _logger.info(f'{len(lines)} account.move.line updated in {self.url} db.')
-        self.ask_for_approval('account.move', safe['move_id'].to_list(), 
-                              'À approuver', 
-                              'Merci de valider cette facture remplie automatiquement.')
-        self.ask_for_approval('account.move', data[data['not_enough_data']]['move_id'].to_list(), 
-                              'ERREUR SCRIPT', 
-                              'Pas de données Enedis.')
-
-    def create(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
-        """
-        Creates entries in the Odoo database.
-
-        Args:
-            log (Dict[str, str]): A dictionary containing the entries data.
-
-        Returns:
-            int: The ID of the newly created entries in the Odoo database.
-
-        """
-        id = self.execute(model, 'create', [entries])
-        if not isinstance(id, list):
-            id = [int(id)]
-        _logger.info(f'{model} #{id} created in Odoo db.')
-        return id
-
-    def update(self, model: str, entries: List[Dict[Hashable, Any]])-> None:
-        id = []
-        for e in entries:
-            i = int(e['id'])
-            del e['id']
-            data = e
-            data = {k: str(v) if isinstance(v, np.str_) else v for k, v in data.items()}
-            data = {k: int(v) if type(v) is np.int64 else v for k, v in data.items()}
-            data = {k: float(v) if type(v) is np.int64 else v for k, v in data.items()}
-            self.execute(model, 'write', [[i], data])
-            id += [i]
-
-        _logger.info(f'{model} #{id} writen in Odoo db.')
-      
-    def ask_for_approval(self, model: str, ids: List[int], msg: str, note: str):
-        model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
-
-        # TODO Filter id to only have invoices with no existing approuval ?
-        activities = DataFrame({'res_id': ids})
-        activities['res_model_id'] = model_id[0]
-        activities['activity_type_id'] = 4
-        activities['user_id'] = self.config['ODOO_FACTURISTE_ID']
-        activities['summary'] = msg
-        activities['automated'] = True
-        activities['note'] = note
-        # TODO Date adaptée : maj le 5 du mois de facturation
-        activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
-        self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
-
-    def get_orders(self, fields: List[str])-> DataFrame:
-        """
-        Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
-
-        Args:
-            fields (List[str]): A list of fields to be included in the returned DataFrame.
-
-        Returns:
-            DataFrame: A DataFrame containing the draft invoices with the specified fields.
-
-        This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
-        Draft invoices satisfies : ['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]
-        It uses the 'search_read' method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.
-        """
-        _logger.info(f'Searching subscription sales.order in {self.url} db.')
-        orders = self.execute('sale.order', 'search_read', 
-            [[['is_subscription', '=', True], ['is_expired', '=', False], ['state', '=', 'sale'], ['subscription_state', '=', '3_progress']]], 
-            {'fields': fields})
-        if not orders:
-            raise ValueError(f'No draft subscription sales.order found in {self.url} db. Process aborted.')
-        return DataFrame(orders)
-    
-    def add_order_line(self, data: DataFrame, fields:dict[str, str])-> DataFrame:
-        if 'order_line' not in data.columns:
-            raise ValueError(f'No order_line found in {data.columns}')
-        
-        df_exploded = data.explode('order_line')
-
-        order_lines = self.execute('sale.order.line', 'read', 
-                        [df_exploded['order_line'].to_list()], )
-
-        if not order_lines:
-            raise ValueError(f'No draft sale.order.line found in {self.url} db. Process aborted.')
-        
-        prods_id = [l['product_id'][0] if l['product_id'] else False for l in order_lines]
-
-        prods = self.execute('product.product', 'read', [prods_id],
-                        {'fields': ['categ_id']})
-        cat = [p['categ_id'][1].split(' ')[-1] for p in prods]
-        
-        df_exploded['cat'] = cat
-
-        # Pivoting to transform 'cat' values into separate columns
-        df_pivoted = df_exploded.pivot(index='id', columns='cat', values='order_line').reset_index()
-        # Renaming columns to reflect the source of the data
-        df_pivoted.columns = ['id'] + [f'order_line_id_{x}' for x in df_pivoted.columns if x != 'id']
-
-        # Merge the pivoted DataFrame with the original DataFrame
-        df_final = pd.merge(data, df_pivoted, on='id', how='left')
-        return df_final
-
-    def fetch_orders(self) -> DataFrame:
-        """
-        Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.
-
-        Args:
-            self (OdooAPI): An instance of the OdooAPI class.
-
-        Returns:
-            DataFrame: A DataFrame containing the draft invoices with the specified fields.
-
-        This function first fetches ['invoice_line_ids', 'date', 'x_order_id'] fields of draft invoices.
-        It then adds ['x_pdl', 'x_puissance_souscrite'] fields from the 'sale.order'.
-        Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
-        The function returns the cleared DataFrame, leaving only scalar values.
-        """
-        data = self.get_orders(['order_line', 'x_pdl', 'x_puissance_souscrite', 'x_lisse', 'start_date'])
-        #pretty.pprint(data)
-        data = self.add_order_line(data, {})
-        #pretty.pprint(data)
-        #data = self.add_cat_fields(data, [])
-        #data = self.filter_non_energy(data)
-        return self.clear(data)
-
     def prepare_sale_order_updates(self, data:DataFrame, fields: list[str])-> List[Dict[Hashable, Any]]:
         print(data)
         orders = DataFrame(data['order_id'])
@@ -523,6 +502,39 @@ class OdooAPI:
         #                                                'end_date': 'deferred_end_date',}).to_dict(orient='records')
         return consumption_lines + subscription_lines_dict #+ subscription_lines_without_qty_dict
     
+    # Update processes
+    def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
+        """
+        Updates the draft invoices in the Odoo database.
+
+        Args:
+            data (DataFrame): The input data frame.
+
+        Returns:
+            None: None.
+
+        This function updates the draft invoices in the Odoo database.
+        """
+        safe = data[~data['not_enough_data']]
+
+        
+        orders = self.prepare_sale_order_updates(safe, fields=['x_last_invoiced_releve_id'])
+        self.update('sale.order', orders)
+        _logger.info(f'{len(orders)} sale.order updated in {self.url} db.')
+
+        moves = self.prepare_account_moves_updates(safe)
+        self.update('account.move', moves)
+        _logger.info(f'{len(moves)} account.move updated in {self.url} db.')
+
+        lines = self.prepare_line_updates(safe)
+        self.update('account.move.line', lines)
+        _logger.info(f'{len(lines)} account.move.line updated in {self.url} db.')
+        self.ask_for_approval('account.move', safe['move_id'].to_list(), 
+                              'À approuver', 
+                              'Merci de valider cette facture remplie automatiquement.')
+        self.ask_for_approval('account.move', data[data['not_enough_data']]['move_id'].to_list(), 
+                              'ERREUR SCRIPT', 
+                              'Pas de données Enedis.')
     def update_sale_order(self, data: DataFrame, start: date, end: date)-> None:
         """
         Updates the draft invoices in the Odoo database.
