@@ -32,7 +32,7 @@ class BaseEstimator(ABC):
         base_df['start_date'] = start
         base_df['end_date'] = end
 
-        base_df['normal_days'] = (end - start).days + 1
+        base_df['month_days'] = (end - start).days + 1
         
 
         # Merge the start and end dates into the base DataFrame
@@ -55,9 +55,11 @@ class BaseEstimator(ABC):
         base_df = pd.merge(base_df, last_releve_dates, on='pdl', how='left')
 
         # Count the number of actual days for each pdl
-        base_df['actual_days'] = base_df.apply(lambda row: (row['end_date'] - row['start_date']).days + 1, axis=1)
+        base_df['souscription_days'] = base_df.apply(lambda row: (row['end_date'] - row['start_date']).days + 1, axis=1)
 
-        base_df['update_dates'] = base_df['actual_days'] != base_df['normal_days']
+        base_df['consumption_days'] = base_df.apply(lambda row: (row['last_releve_date'] - row['first_releve_date']).days + 1, axis=1)
+
+        base_df['update_dates'] = base_df['souscription_days'] != base_df['month_days']
 
         # TODO Add coverage : first valid index date and last valid index date, total number of days covered
         base_df.drop(columns=['start_date_updated', 'end_date_updated'], inplace=True)

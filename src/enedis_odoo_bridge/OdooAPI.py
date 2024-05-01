@@ -396,7 +396,7 @@ class OdooAPI:
 
         # Abonnements
         do_update_qty = ~((data['x_lisse'] == True) & (data['update_dates'] == False))
-        subscription_lines = data[do_update_qty][['line_id_Abonnements','actual_days']].copy()
+        subscription_lines = data[do_update_qty][['line_id_Abonnements','souscription_days']].copy()
 
         subscription_lines['start_date'] = data[do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         subscription_lines['end_date'] = data[do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
@@ -406,10 +406,10 @@ class OdooAPI:
 
         subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
         subscription_lines_dict = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
-                                                                'actual_days': 'quantity',
+                                                                'souscription_days': 'quantity',
                                                                 'start_date': 'deferred_start_date',
                                                                 'end_date': 'deferred_end_date',}).to_dict(orient='records')
-        subscription_lines = data[~do_update_qty][['line_id_Abonnements','actual_days']].copy()
+        subscription_lines = data[~do_update_qty][['line_id_Abonnements','souscription_days']].copy()
         subscription_lines['start_date'] = data[~do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         subscription_lines['end_date'] = data[~do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         names = self.execute('account.move.line', 'read', [data[~do_update_qty]['line_id_Abonnements'].to_list()],
@@ -477,7 +477,7 @@ class OdooAPI:
 
         # Abonnements
         do_update_qty = ~((data['x_lisse'] == True) & (data['update_dates'] == False))
-        subscription_lines = data[do_update_qty][['order_line_id_Abonnements','actual_days']].copy()
+        subscription_lines = data[do_update_qty][['order_line_id_Abonnements','souscription_days']].copy()
 
         #subscription_lines['start_date'] = data[do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         #subscription_lines['end_date'] = data[do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
@@ -487,11 +487,11 @@ class OdooAPI:
 
         #subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
         subscription_lines_dict = subscription_lines.rename(columns={'order_line_id_Abonnements': 'id', 
-                                                                'actual_days': 'qty_delivered',
+                                                                'souscription_days': 'qty_delivered',
                                                                 #'start_date': 'deferred_start_date',
                                                                 #'end_date': 'deferred_end_date',
                                                                 }).to_dict(orient='records')
-        #subscription_lines = data[~do_update_qty][['line_id_Abonnements','actual_days']].copy()
+        #subscription_lines = data[~do_update_qty][['line_id_Abonnements','souscription_days']].copy()
         #subscription_lines['start_date'] = data[~do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         #subscription_lines['end_date'] = data[~do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         #names = self.execute('account.move.line', 'read', [data[~do_update_qty]['line_id_Abonnements'].to_list()],
