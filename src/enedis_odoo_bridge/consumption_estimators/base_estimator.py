@@ -55,18 +55,38 @@ class BaseEstimator(ABC):
         base_df = pd.merge(base_df, last_releve_dates, on='pdl', how='left')
 
         # Count the number of actual days for each pdl
-        base_df['souscription_days'] = base_df.apply(lambda row: (row['end_date'] - row['start_date']).days + 1, axis=1)
+        base_df['subscription_days'] = base_df.apply(lambda row: (row['end_date'] - row['start_date']).days + 1, axis=1)
 
         base_df['consumption_days'] = base_df.apply(lambda row: (row['last_releve_date'] - row['first_releve_date']).days + 1, axis=1)
 
-        base_df['update_dates'] = base_df['souscription_days'] != base_df['month_days']
+        base_df['update_dates'] = base_df['subscription_days'] != base_df['month_days']
 
         # TODO Add coverage : first valid index date and last valid index date, total number of days covered
         base_df.drop(columns=['start_date_updated', 'end_date_updated'], inplace=True)
 
         return base_df
     
+    def augment_estimates(self, estimates: DataFrame, dates: DataFrame)-> DataFrame:
+        """
+        Augments the estimates DataFrame with additional date information.
+
+        :param estimates: DataFrame containing estimates.
+        :param dates: DataFrame containing additional date information.
+        :return: The augmented estimates DataFrame.
+        """
+
+        # Calculate the average daily consumption for each consumption type and multiply by subscription_days
+        consumption_types = [col for col in estimates.columns if col.endswith('_conso')]
+        for ctype in consumption_types:
+            # Calculate average daily consumption
+            estimates[ctype + '_avg_daily'] = estimates[ctype] / estimates['consumption_days']
+            # Adjust total consumption based on subscription_days
+            estimates[ctype + '_adjusted'] = estimates[ctype + '_avg_daily'] * estimates['subscription_days']
+
+        return estimates
+    
     def fetch(self, meta: DataFrame, index:DataFrame, consu: DataFrame, start: Timestamp, end: Timestamp)-> DataFrame:
         dates = self.initialize_dates(meta, start, end)
         estimates = self.estimate_consumption(meta, index, consu, start, end, dates)
-        return estimates
+        augmented = self.augment_estimates(estimates, dates)
+        return augmented
