@@ -34,3 +34,35 @@ def test_initialize_dates():
     #print(expected_output, output)
     # Verify the output
     pd.testing.assert_frame_equal(output, expected_output)
+
+def test_augment_estimates():
+    # Prepare input data frames
+    estimates = pd.DataFrame({
+        'pdl': ['PDL1', 'PDL2'],
+        'electricity_conso': [100, 200],
+        'gas_conso': [300, 400],
+        'consumption_days': [10, 20],
+        'subscription_days': [15, 25]
+    })
+
+    dates = pd.DataFrame()  # Assuming dates DataFrame is not directly used in this method
+
+    # Expected output
+    expected_output = pd.DataFrame({
+        'pdl': ['PDL1', 'PDL2'],
+        'electricity_conso': [100, 200],
+        'gas_conso': [300, 400],
+        'consumption_days': [10, 20],
+        'subscription_days': [15, 25],
+        'electricity_conso_avg_daily': [10.0, 10.0],
+        'electricity_conso_adjusted': [150.0, 250.0],
+        'gas_conso_avg_daily': [30.0, 20.0],
+        'gas_conso_adjusted': [450.0, 500.0]
+    })
+
+    # Instantiate the estimator
+    estimator = ConcreteEstimator()
+    augmented_estimates = estimator.augment_estimates(estimates)
+
+    # Verify the output
+    pd.testing.assert_frame_equal(augmented_estimates.reset_index(drop=True), expected_output.reset_index(drop=True), check_dtype=False)

@@ -66,7 +66,7 @@ class BaseEstimator(ABC):
 
         return base_df
     
-    def augment_estimates(self, estimates: DataFrame, dates: DataFrame)-> DataFrame:
+    def augment_estimates(self, estimates: DataFrame)-> DataFrame:
         """
         Augments the estimates DataFrame with additional date information.
 
@@ -88,5 +88,5 @@ class BaseEstimator(ABC):
     def fetch(self, meta: DataFrame, index:DataFrame, consu: DataFrame, start: Timestamp, end: Timestamp)-> DataFrame:
         dates = self.initialize_dates(meta, start, end)
         estimates = self.estimate_consumption(meta, index, consu, start, end, dates)
-        augmented = self.augment_estimates(estimates, dates)
+        augmented = self.augment_estimates(estimates)
         return augmented
