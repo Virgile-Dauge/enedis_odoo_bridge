@@ -160,9 +160,12 @@ class OdooAPI:
         drafts = self.execute('account.move', 'search_read', 
             [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
             {'fields': fields})
+        data = DataFrame(drafts).rename(columns={'id':'move_id', 'x_order_id': 'order_id'})
+        if 'x_order_id' in fields:
+            data['order_id'] = data['order_id'].apply(lambda x: x[0])
         if not drafts:
             raise ValueError(f'No draft invoices found in {self.url} db. Process aborted.')
-        return DataFrame(drafts)
+        return data
 
     def add_order_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
         """
@@ -183,11 +186,11 @@ class OdooAPI:
         It then creates a new DataFrame from the fetched orders and adds the specified fields to the input DataFrame. 
         Finally, it returns the updated DataFrame.
         """
-        if 'x_order_id' not in data.columns:
-            raise ValueError(f'No x_order_id found in {data.columns}')
+        if 'order_id' not in data.columns:
+            raise ValueError(f'No order_id found in {data.columns}')
         
         orders = self.execute('sale.order', 'read', 
-                            [[d[0] for d in data['x_order_id'].to_list()]], 
+                            [data['order_id'].to_list()], 
                             {'fields': fields})
         df = DataFrame(orders)
         data[fields] = df[fields]
@@ -231,12 +234,12 @@ class OdooAPI:
         df_exploded['cat'] = cat
 
         # Pivoting to transform 'cat' values into separate columns
-        df_pivoted = df_exploded.pivot(index='id', columns='cat', values='invoice_line_ids').reset_index()
+        df_pivoted = df_exploded.pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
         # Renaming columns to reflect the source of the data
-        df_pivoted.columns = ['id'] + [f'line_id_{x}' for x in df_pivoted.columns if x != 'id']
+        df_pivoted.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted.columns if x != 'move_id']
 
         # Merge the pivoted DataFrame with the original DataFrame
-        df_final = pd.merge(data, df_pivoted, on='id', how='left')
+        df_final = pd.merge(data, df_pivoted, on='move_id', how='left')
         return df_final
 
     def prepare_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
@@ -288,7 +291,7 @@ class OdooAPI:
     def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
         # On veut ajouter x_type_compteur, x_scripted, x_turpe
     
-        moves = DataFrame(data['id'])
+        moves = DataFrame(data['move_id'])
         # TODO intérroger au préalable l'API pour récupérer les champs supportés par l'instance Odoo
         moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
         moves['x_start_invoice_period'] = data['start_date'].dt.strftime('%Y-%m-%d')
@@ -305,7 +308,7 @@ class OdooAPI:
             moves['x_num_serie_compteur'] = data['Num_Serie'].astype(str)
         if 'Date_Theorique_Prochaine_Releve' in data.columns:
             moves['x_prochaine_releve'] = data['Date_Theorique_Prochaine_Releve'].dt.strftime('%Y-%m-%d')
-        return moves.to_dict(orient='records')
+        return moves.rename(columns={'move_id': 'id'}).to_dict(orient='records')
 
     def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
         """
@@ -320,15 +323,23 @@ class OdooAPI:
         This function updates the draft invoices in the Odoo database.
         """
         safe = data[~data['not_enough_data']]
-        lines = self.prepare_line_updates(safe)
-        self.update('account.move.line', lines)
+
+        
+        orders = self.prepare_sale_order_updates(safe, fields=['x_last_invoiced_releve_id'])
+        self.update('sale.order', orders)
+        _logger.info(f'{len(orders)} sale.order updated in {self.url} db.')
+
         moves = self.prepare_account_moves_updates(safe)
         self.update('account.move', moves)
-        _logger.info(f'Draft invoices updated in {self.url} db.')
-        self.ask_for_approval('account.move', safe['id'].to_list(), 
+        _logger.info(f'{len(moves)} account.move updated in {self.url} db.')
+
+        lines = self.prepare_line_updates(safe)
+        self.update('account.move.line', lines)
+        _logger.info(f'{len(lines)} account.move.line updated in {self.url} db.')
+        self.ask_for_approval('account.move', safe['move_id'].to_list(), 
                               'À approuver', 
                               'Merci de valider cette facture remplie automatiquement.')
-        self.ask_for_approval('account.move', data[data['not_enough_data']]['id'].to_list(), 
+        self.ask_for_approval('account.move', data[data['not_enough_data']]['move_id'].to_list(), 
                               'ERREUR SCRIPT', 
                               'Pas de données Enedis.')
 
@@ -452,16 +463,19 @@ class OdooAPI:
         #data = self.filter_non_energy(data)
         return self.clear(data)
 
-    def prepare_sale_order_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
-        # On veut ajouter x_type_compteur, x_scripted, x_turpe
-
-        orders = DataFrame(data['id'])
-        orders['x_turpe'] = data['turpe_fix'] + data['turpe_var']
+    def prepare_sale_order_updates(self, data:DataFrame, fields: list[str])-> List[Dict[Hashable, Any]]:
+        print(data)
+        orders = DataFrame(data['order_id'])
+        if 'x_turpe' in fields:
+            orders['x_turpe'] = data['turpe_fix'] + data['turpe_var']
+        if 'x_last_invoiced_releve_id':
+            orders['x_last_invoiced_releve_id'] = data['last_releve']
         # Deprecated : Maintenant on a les activités
         #moves['x_scripted'] = True
         #if 'Type_Compteur' in data.columns:
         #    orders['x_type_compteur'] = data['Type_Compteur']
-        return orders.to_dict(orient='records')  
+        return orders.rename(columns={'order_id': 'id'}).to_dict(orient='records')
+    
     def prepare_order_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
         required_cols = ['HP', 'HC', 'Base', 'order_line_id_Abonnements', 'x_lisse']
         for c in required_cols:
@@ -523,7 +537,7 @@ class OdooAPI:
         """
         lines = self.prepare_order_line_updates(data)
         self.update('sale.order.line', lines)
-        orders = self.prepare_sale_order_updates(data)
+        orders = self.prepare_sale_order_updates(data, fields=['x_turpe'])
         self.update('sale.order', orders)
         _logger.info(f'Subscription Orders updated in {self.url} db.')
         self.ask_for_approval('sale.order', data['id'].to_list())
