@@ -25,12 +25,14 @@ class OdooAPI:
         self.config = check_required(config, ['URL', 'DB', 'USERNAME', 'PASSWORD'])
         self.url = config['URL']
         db = config['DB']
-        self.db = db + '-duplicate' if sim else db
+        self.db = db #+ '-duplicate' if sim else db
+        self.sim = sim
         self.username = config['USERNAME']
         self.password = config['PASSWORD']
 
         self.uid = None
         self.proxy = None
+
 
     # low level methods
     def connect(self):
@@ -84,6 +86,7 @@ class OdooAPI:
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, args, kwargs)
         return res if isinstance(res, list) else [res]
 
+
     # medium level methods 
     def create(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
         """
@@ -96,10 +99,13 @@ class OdooAPI:
             int: The ID of the newly created entries in the Odoo database.
 
         """
+        if self.sim:
+            return []
+        
         id = self.execute(model, 'create', [entries])
         if not isinstance(id, list):
             id = [int(id)]
-        _logger.info(f'{model} #{id} created in Odoo db.')
+        _logger.info(f'{model} #{id} created in Odoo db.' + ("[simulated]" if self.sim else ''))
         return id
 
     def update(self, model: str, entries: List[Dict[Hashable, Any]])-> None:
@@ -111,10 +117,12 @@ class OdooAPI:
             data = {k: str(v) if isinstance(v, np.str_) else v for k, v in data.items()}
             data = {k: int(v) if type(v) is np.int64 else v for k, v in data.items()}
             data = {k: float(v) if type(v) is np.int64 else v for k, v in data.items()}
-            self.execute(model, 'write', [[i], data])
+            data = {k: v for k, v in data.items() if not pd.isna(v)}
+            if not self.sim:
+                self.execute(model, 'write', [[i], data])
             id += [i]
 
-        _logger.info(f'{model} #{id} writen in Odoo db.')
+        _logger.info(f'{model} #{id} writen in Odoo db.' + ("[simulated]" if self.sim else ''))
       
     def ask_for_approval(self, model: str, ids: List[int], msg: str, note: str):
         model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
@@ -129,10 +137,9 @@ class OdooAPI:
         activities['note'] = note
         # TODO Date adaptée : maj le 5 du mois de facturation
         activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
-        self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
-
-
-    
+        self.create('mail.activity', activities.to_dict(orient='records'))
+        #self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
+   
 
     # fetch processes
     def fetch_drafts(self) -> DataFrame:
@@ -518,15 +525,15 @@ class OdooAPI:
         safe = data[~data['not_enough_data']]
 
         
-        orders = self.prepare_sale_order_updates(safe, fields=['x_last_invoiced_releve_id'])
+        orders = self.prepare_sale_order_updates(data, fields=['x_last_invoiced_releve_id'])
         self.update('sale.order', orders)
         _logger.info(f'{len(orders)} sale.order updated in {self.url} db.')
 
-        moves = self.prepare_account_moves_updates(safe)
+        moves = self.prepare_account_moves_updates(data)
         self.update('account.move', moves)
         _logger.info(f'{len(moves)} account.move updated in {self.url} db.')
 
-        lines = self.prepare_line_updates(safe)
+        lines = self.prepare_line_updates(data)
         self.update('account.move.line', lines)
         _logger.info(f'{len(lines)} account.move.line updated in {self.url} db.')
         self.ask_for_approval('account.move', safe['move_id'].to_list(), 
@@ -535,6 +542,7 @@ class OdooAPI:
         self.ask_for_approval('account.move', data[data['not_enough_data']]['move_id'].to_list(), 
                               'ERREUR SCRIPT', 
                               'Pas de données Enedis.')
+        
     def update_sale_order(self, data: DataFrame, start: date, end: date)-> None:
         """
         Updates the draft invoices in the Odoo database.
