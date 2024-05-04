@@ -31,7 +31,7 @@ from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.DataMerger import DataMerger
-from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess
+from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess, AddEnedisServiceToDraftInvoiceProcess
 from enedis_odoo_bridge.utils import CustomLoggerAdapter, load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
 
 from rich import print, pretty, inspect
@@ -77,7 +77,7 @@ def parse_args(args):
     "command",
     help="The command to execute",
     type=str,
-    choices=['facturation',],  # Example commands
+    choices=['facturation', 'services'],  # Example commands
     )
     parser.add_argument(
         "--version",
@@ -174,20 +174,21 @@ def main(args):
                     enedis=enedis,
                     odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
                     logger=logger)
-        if not args.sim and process.will_update_production_db:
-            confirm = Prompt.ask(f"This will update [red]{env['DB']}[/red] Odoo Database from [red]{env['URL']}[/red], are you sure you want to continue?", 
-                                 choices=["y", "n"], default="n", console=console)
-            if confirm.lower()!= 'y':
-                console.print("└──Operation cancelled")
-                exit(0)
-        process.run()
-        exit(0)
 
-    #dm = DataMerger(config=env,
-    #                date=args.date,
-    #                enedis=enedis,
-    #                odoo=OdooAPI(config=env, sim=args.sim))
-    #dm.process_and_update(drafts=True)
+    elif args.command =='services':
+        process = AddEnedisServiceToDraftInvoiceProcess(config=env,
+                    date=args.date,
+                    enedis=enedis,
+                    odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
+                    logger=logger)
+        
+    if not args.sim and process.will_update_production_db:
+        confirm = Prompt.ask(f"This will update [red]{env['DB']}[/red] Odoo Database from [red]{env['URL']}[/red], are you sure you want to continue?", 
+                                 choices=["y", "n"], default="n", console=console)
+        if confirm.lower()!= 'y':
+            console.print("└──Operation cancelled")
+            exit(0)
+    process.run()
 
 def run():
     """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`
