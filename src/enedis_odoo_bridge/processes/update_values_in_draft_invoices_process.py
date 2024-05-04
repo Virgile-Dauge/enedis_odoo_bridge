@@ -90,9 +90,9 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
         data = self.enrich(data)
         data = self.add_taxes(data)
         data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
-            f'DataMerger_from_{self.starting_date}_to{self.ending_date}.csv'))
+            f'DataMerger_from_{self.starting_date.strftime("%Y-%m-%d")}_to{self.ending_date.strftime("%Y-%m-%d")}.csv'))
         data[data['Base'].isna()].to_csv(self.enedis.root_path.joinpath('R15').joinpath(
-            f'DataMerger_TOCHECK_from_{self.starting_date}_to{self.ending_date}.csv'))
+            f'DataMerger_TOCHECK_from_{self.starting_date.strftime("%Y-%m-%d")}_to{self.ending_date.strftime("%Y-%m-%d")}.csv'))
         
         self.logger.info(f"├── Updating odoo entries in {self.config['DB']} from {self.config['URL']}" + (" [simulated]" if self.odoo.sim else ""))
         self.logger.extra['prefix'] = '│   ├──'
