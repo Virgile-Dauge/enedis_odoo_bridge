@@ -37,19 +37,34 @@ class AddEnedisServiceToDraftInvoiceProcess(BaseProcess):
         self.logger.extra['prefix'] = '│   '
         services = self.enedis.fetch_services(self.starting_date, self.ending_date)
 
-        pretty.pprint(services)
-        odoo_data = self.odoo.fetch_drafts()
-        
-        
-        self.logger.info(f"├── Updating odoo entries in {self.config['DB']} from {self.config['URL']}" + (" [simulated]" if self.odoo.sim else ""))
-        self.logger.extra['prefix'] = '│   ├──'
-
-        #self.odoo.update_draft_invoices(data, self.starting_date, self.ending_date)
-        
-        self.logger.extra['prefix'] = '│   '
-        self.logger.info(f"└──Update odoo entries done.")
+        drafts = self.odoo.fetch_drafts()
         self.logger.extra['prefix'] = ''
-        self.logger.info(f"└──AddEnedisServiceToDraftInvoiceProcess done.")
+        self.logger.info(f"├──Merging data:")
+        self.logger.info(f"│   ├──{len(services)} enedis entries.")
+        self.logger.debug(services)
+        self.logger.info(f"│   └──{len(drafts)} odoo entries.")
+        self.logger.debug(drafts)
+
+        data = pd.merge(services, drafts, left_on='pdl', right_on='x_pdl', how='left')
+        self.logger.debug(data)
+        data.to_csv(self.enedis.root_path.joinpath('F15').joinpath(
+            f'Services_from_{self.starting_date.strftime("%Y-%m-%d")}_to_{self.ending_date.strftime("%Y-%m-%d")}.csv'))
+        
+        # TODO 
+        # Pour chacun des produits enedis, trouver le produit correspondant dans Odoo
+
+        products = self.odoo.execute('product.template', 'search_read', 
+            [[['x_enedis_id', '=', 'F180O3C5M']]], 
+            {})
+        print(products)
+
+        # TODO
+        # Pour chacune des lignes de facture enedis, ajouter dans la facture brouillon une ligne avec le produit Odoo adapté
+        # ├── Création des lignes de facture
+        # └── update des invoice_line_ids dans la facture brouillon
+
+
+
 
 
         
