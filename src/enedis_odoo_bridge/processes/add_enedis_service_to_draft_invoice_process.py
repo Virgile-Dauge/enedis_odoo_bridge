@@ -60,8 +60,9 @@ class AddEnedisServiceToDraftInvoiceProcess(BaseProcess):
 
         # TODO
         # Pour chacune des lignes de facture enedis, ajouter dans la facture brouillon une ligne avec le produit Odoo adapté
-        # ├── Création des lignes de facture
-        # └── update des invoice_line_ids dans la facture brouillon
+        # └── Vérif si ligne déjà présente dans la facture brouillon, si ou verif quantitié
+        #       ├── Sinon Création des lignes de facture
+        #       └── update des invoice_line_ids dans la facture brouillon
 
 
 
