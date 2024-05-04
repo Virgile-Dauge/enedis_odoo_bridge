@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 from datetime import date, datetime
 from rich import inspect
-
+from pandas import Timestamp
 from datetime import datetime
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.utils import check_required, recursively_decrypt_zip_files, recursively_decrypt_zip_files, download_new_files
@@ -92,7 +92,7 @@ class EnedisFluxEngine:
             res[flux_type] = flux_transformer
         self.logger.info(f'└──Scan done.')
         return res
-    def estimate_consumption(self, start: date, end: date, heuristic: BaseEstimator) -> pd.DataFrame:
+    def estimate_consumption(self, start: Timestamp, end: Timestamp, heuristic: BaseEstimator) -> pd.DataFrame:
         """
         Estimates the total consumption per PDL for the specified period, according to the given estimator.
 
@@ -112,18 +112,15 @@ class EnedisFluxEngine:
         
         if not self.data:
             raise ValueError(f'No data found, try fetch then scan first.')
-        # On veut inclure les journées de début et de fin de la période.
-        start_pd = pd.to_datetime(datetime.combine(start, datetime.min.time())).tz_localize('Etc/GMT-2')
-        end_pd = pd.to_datetime(datetime.combine(end, datetime.max.time())).tz_localize('Etc/GMT-2')
 
-        self.logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
+        self.logger.info(f'Estimating consumption: from {start} to {end}')
         self.logger.extra['prefix'] = '│  '
         self.logger.info(f'└──With {heuristic.get_estimator_name()} Strategy.')
 
         meta = self.data['R15'].get_meta()
         index = self.data['R15'].get_index()
         consu = self.data['R15'].get_consu()
-        consos = heuristic.fetch(meta, index, consu, start_pd, end_pd)
+        consos = heuristic.fetch(meta, index, consu, start, end)
 
         if len(consos)>0:
             self.logger.info(f"    └──Succesfully Estimated consumption of {len(consos)} PDLs.")
@@ -140,7 +137,7 @@ class EnedisFluxEngine:
         to_add = meta[['pdl']+columns].drop_duplicates(subset='pdl', keep='first')
         return pd.merge(estimates, to_add, how='left', on='pdl')
     
-    def fetch(self, start: date, end: date, columns: list[str], heuristic: BaseEstimator):
+    def fetch_estimates(self, start: Timestamp, end: Timestamp, columns: list[str], heuristic: BaseEstimator)-> pd.DataFrame:
         """
         Fetches and enriches the estimated consumption data for a specified period and set of columns.
 
@@ -167,3 +164,11 @@ class EnedisFluxEngine:
         self.logger.extra['prefix'] = '├──'
         estimates = self.enrich_estimates(estimates, columns)
         return estimates
+    
+
+    def fetch_services(self, start: date, end: date)-> pd.DataFrame:
+        data = self.scan()['F15'].data
+        
+        services = data[(data.Date_Fin >= start) & (data.Date_Fin <= end) & (data.Type_Facturation == 'EVNT')]
+        return services
+

@@ -2,13 +2,13 @@
 import logging
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Timestamp
 from datetime import date
 
 from enedis_odoo_bridge.processes import BaseProcess
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
-from enedis_odoo_bridge.utils import gen_dates, check_required, CustomLoggerAdapter
+from enedis_odoo_bridge.utils import gen_Timestamps, check_required
 from enedis_odoo_bridge.consumption_estimators import LastFirstEstimator
 
 
@@ -28,7 +28,7 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
                                               'TURPE_TAUX_HPB_CU4', 
                                               'TURPE_TAUX_HCB_CU4',])
 
-        self.starting_date, self.ending_date = gen_dates(date)
+        self.starting_date, self.ending_date = gen_Timestamps(date)
 
     def enrich(self, data: DataFrame)-> DataFrame:
         data['HP'] = data[['HPH_conso', 'HPB_conso', 'HP_conso']].sum(axis=1)
@@ -65,7 +65,7 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
     def run(self):
         self.logger.info(f"Running UpdateValuesInDraftInvoicesProcess :")
         self.logger.extra['prefix'] = '│   '
-        enedis_data = self.enedis.fetch(self.starting_date, self.ending_date,
+        enedis_data = self.enedis.fetch_estimates(self.starting_date, self.ending_date,
                                         columns=['Type_Compteur', 'Num_Serie', 'Date_Theorique_Prochaine_Releve'],
                                         heuristic=LastFirstEstimator())
         
@@ -83,6 +83,7 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
         self.logger.debug(enedis_data)
         self.logger.info(f"│   └──{len(odoo_data)} odoo entries.")
         self.logger.debug(odoo_data)
+        
         data = pd.merge(odoo_data, enedis_data, left_on='x_pdl', right_on='pdl', how='left')
         self.logger.debug(data)
         
