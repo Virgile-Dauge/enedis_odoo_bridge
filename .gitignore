@@ -55,4 +55,4 @@ MANIFEST
 .python-version
 
 # Secrets 
-.env
+*.env
