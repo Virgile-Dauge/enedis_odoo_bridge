@@ -10,7 +10,7 @@ from enedis_odoo_bridge.utils import gen_dates, check_required
 from enedis_odoo_bridge.consumption_estimators import BaseEstimator, LastFirstEstimator
 
 import logging
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger('enedis_odoo_bridge')
 
 class DataMerger:
     def __init__(self, config: Dict[str, str], date:date, enedis: EnedisFluxEngine, odoo: OdooAPI) -> None:

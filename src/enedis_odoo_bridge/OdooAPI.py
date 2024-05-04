@@ -10,7 +10,7 @@ from rich import pretty
 from enedis_odoo_bridge.utils import check_required
 
 import logging
-_logger = logging.getLogger('enedis_odoo_bridge')
+
 
 def ensure_connection(func):
     def wrapper(self, *args, **kwargs):
@@ -20,7 +20,7 @@ def ensure_connection(func):
     return wrapper
 
 class OdooAPI:
-    def __init__(self, config: Dict[str, str], sim=False):
+    def __init__(self, config: Dict[str, str], sim=False, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')):
 
         self.config = check_required(config, ['URL', 'DB', 'USERNAME', 'PASSWORD'])
         self.url = config['URL']
@@ -32,13 +32,14 @@ class OdooAPI:
 
         self.uid = None
         self.proxy = None
+        self.logger = logger
 
 
     # low level methods
     def connect(self):
         self.uid = self.get_uid()
         self.proxy = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
-        _logger.info(f'Logged to {self.db} Odoo db.')
+        self.logger.info(f'Logged to {self.db} Odoo db.')
     
     def get_uid(self):
         """
@@ -82,7 +83,7 @@ class OdooAPI:
         """
         args = args if args is not None else []
         kwargs = kwargs if kwargs is not None else {}
-        _logger.debug(f'Executing {method} on {model} with args {args} and kwargs {kwargs}')
+        self.logger.debug(f'Executing {method} on {model} with args {args} and kwargs {kwargs}')
         res = self.proxy.execute_kw(self.db, self.uid, self.password, model, method, args, kwargs)
         return res if isinstance(res, list) else [res]
 
@@ -100,13 +101,13 @@ class OdooAPI:
 
         """
         if self.sim:
-            _logger.info(f'# {len(entries)} {model} creation called. [simulated]')
+            self.logger.info(f'# {len(entries)} {model} creation called. [simulated]')
             return []
         
         id = self.execute(model, 'create', [entries])
         if not isinstance(id, list):
             id = [int(id)]
-        _logger.info(f'{model} #{id} created in Odoo db.')
+        self.logger.info(f'{model} #{id} created in Odoo db.')
         return id
 
     def update(self, model: str, entries: List[Dict[Hashable, Any]])-> None:
@@ -123,7 +124,7 @@ class OdooAPI:
                 self.execute(model, 'write', [[i], data])
             id += [i]
 
-        _logger.info(f'{model} #{id} writen in Odoo db.' + ("[simulated]" if self.sim else ''))
+        self.logger.info(f'{len(entries)} {model} #{id} writen in Odoo db.' + ("[simulated]" if self.sim else ''))
       
     def ask_for_approval(self, model: str, ids: List[int], msg: str, note: str):
         model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
@@ -158,11 +159,24 @@ class OdooAPI:
         Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
         The function returns the cleared DataFrame, leaving only scalar values.
         """
+        self.logger.info(f'Reading {self.config["DB"]} odoo db from {self.config["URL"]} ...')
+        self.logger.extra['prefix'] = '│   ├──'
+
         data = self.get_drafts(['invoice_line_ids', 'date', 'x_order_id'])
+
+        self.logger.info(f"{len(data)} draft account.move found. fields=['invoice_line_ids', 'date', 'x_order_id'])")
+
         data = self.add_order_fields(data, ['x_pdl', 'x_puissance_souscrite', 'x_lisse'])
+        self.logger.info(f"added from sale.order : fields=['x_pdl', 'x_puissance_souscrite', 'x_lisse'])")
+
         data = self.add_cat_fields(data, [])
+        self.logger.info(f'account.move.lines id sorted into columns according to product category')
         data = self.filter_non_energy(data)
-        return self.clear(data)
+        self.logger.extra['prefix'] = '│   '
+        
+        data = self.clear(data)
+        self.logger.info(f'└──Droped non-energy lines, and removed non-linear data.')
+        return data 
 
     def fetch_orders(self) -> DataFrame:
         """
@@ -242,7 +256,6 @@ class OdooAPI:
         Draft invoices satisfies : ['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]
         It uses the 'search_read' method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.
         """
-        _logger.info(f'Searching drafts invoices in {self.url} db.')
         drafts = self.execute('account.move', 'search_read', 
             [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
             {'fields': fields})
@@ -346,7 +359,7 @@ class OdooAPI:
         Draft invoices satisfies : ['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]
         It uses the 'search_read' method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.
         """
-        _logger.info(f'Searching subscription sales.order in {self.url} db.')
+        self.logger.info(f'Searching subscription sales.order in {self.url} db.')
         orders = self.execute('sale.order', 'search_read', 
             [[['is_subscription', '=', True], ['is_expired', '=', False], ['state', '=', 'sale'], ['subscription_state', '=', '3_progress']]], 
             {'fields': fields})
@@ -530,15 +543,13 @@ class OdooAPI:
         
         orders = self.prepare_sale_order_updates(data, fields=['x_last_invoiced_releve_id'])
         self.update('sale.order', orders)
-        _logger.info(f'{len(orders)} sale.order updated in {self.url} db.')
 
         moves = self.prepare_account_moves_updates(data)
         self.update('account.move', moves)
-        _logger.info(f'{len(moves)} account.move updated in {self.url} db.')
 
         lines = self.prepare_line_updates(data)
         self.update('account.move.line', lines)
-        _logger.info(f'{len(lines)} account.move.line updated in {self.url} db.')
+
         self.ask_for_approval('account.move', safe['move_id'].to_list(), 
                               'À approuver', 
                               'Merci de valider cette facture remplie automatiquement.')
@@ -562,5 +573,5 @@ class OdooAPI:
         self.update('sale.order.line', lines)
         orders = self.prepare_sale_order_updates(data, fields=['x_turpe'])
         self.update('sale.order', orders)
-        _logger.info(f'Subscription Orders updated in {self.url} db.')
+        self.logger.info(f'Subscription Orders updated in {self.url} db.')
         self.ask_for_approval('sale.order', data['id'].to_list())

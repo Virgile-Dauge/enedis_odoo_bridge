@@ -14,6 +14,11 @@ from rich.progress import Progress
 import paramiko
 import logging
 logging.getLogger("paramiko.transport").setLevel(logging.ERROR)
+_logger = logging.getLogger('enedis_odoo_bridge')
+
+class CustomLoggerAdapter(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        return f'{self.extra["prefix"]}{msg}', kwargs
 
 def check_required(config: dict[str, str], required: list[str]):
     for r in required:
@@ -126,7 +131,7 @@ def download_new_files(config: dict[str, str], tasks: list[str], local: Path) ->
                     sftp.get(remote_file_path, str(local_file_path))
                     local_files.append(local_file_path)
         except Exception as e:
-            print(f"Failed to download files from {distant}: {e}")
+            _logger.error(f"Failed to download files from {distant}: {e}")
 
         completed_tasks[type] = local_files
 
@@ -177,7 +182,7 @@ def download_new_files_with_progress(config: dict[str, str], tasks: list[str], l
                     sftp.get(remote_file_path, str(local_file_path), callback=lambda x, y: progress.update(task, advance=1))
                     local_files.append(local_file_path)
         except Exception as e:
-            print(f"Failed to download files from {distant}: {e}")
+            _logger.error(f"Failed to download files from {distant}: {e}")
  
     sftp.close()
     transport.close()

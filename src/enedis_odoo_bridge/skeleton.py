@@ -32,7 +32,7 @@ from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.DataMerger import DataMerger
 from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess
-from enedis_odoo_bridge.utils import load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
+from enedis_odoo_bridge.utils import CustomLoggerAdapter, load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
@@ -46,7 +46,7 @@ __copyright__ = "Virgile Daugé"
 __license__ = "GPL-3.0-only"
 
 _logger = logging.getLogger('enedis_odoo_bridge')
-
+_logger = CustomLoggerAdapter(_logger, {"prefix": ""})
 
 
 # ---- Python API ----
@@ -150,11 +150,13 @@ def main(args):
           (for example  ``["--verbose", "42"]``).
     """
     args = parse_args(args)
-    setup_logging(args.loglevel)
-    env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
-
-    data_path = Path(args.data_path).expanduser()
     console = Console(markup=True, highlight=True)
+    logger = CustomLoggerAdapter(_logger, {"prefix": ""})
+    setup_logging(args.loglevel)
+
+    env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
+    data_path = Path(args.data_path).expanduser()
+
 
     if args.update_flux:
         print(f"Fetching new files from {env['FTP_ADDRESS']} ftp...")
@@ -164,18 +166,19 @@ def main(args):
                                                                       iv=bytes.fromhex(env['AES_IV']),
                                                                       prefix='decrypted_')
     
-    enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'])
+    enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'], logger=logger)
 
     if args.command == 'facturation':
         process = UpdateValuesInDraftInvoicesProcess(config=env,
                     date=args.date,
                     enedis=enedis,
-                    odoo=OdooAPI(config=env, sim=args.sim))
+                    odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
+                    logger=logger)
         if not args.sim and process.will_update_production_db:
             confirm = Prompt.ask(f"This will update [red]{env['DB']}[/red] Odoo Database from [red]{env['URL']}[/red], are you sure you want to continue?", 
                                  choices=["y", "n"], default="n", console=console)
             if confirm.lower()!= 'y':
-                _logger.info("Operation cancelled")
+                console.print("└──Operation cancelled")
                 exit(0)
         process.run()
         exit(0)

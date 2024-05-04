@@ -13,13 +13,12 @@ from enedis_odoo_bridge.consumption_estimators import BaseEstimator, LastFirstEs
 from enedis_odoo_bridge.flux_transformers import FluxTransformerFactory, BaseFluxTransformer
 
 import logging
-_logger = logging.getLogger('enedis_odoo_bridge')
 
 class EnedisFluxEngine:
     """
     A class for handling Enedis Flux files and allow simple access to the data.
     """
-    def __init__(self, config: dict[str,str], path: Path, flux: list[str]):
+    def __init__(self, config: dict[str,str], path: Path, flux: list[str], logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')):
         """
         Initializes the EnedisFluxEngine instance with the specified path and flux types.
 
@@ -35,6 +34,7 @@ class EnedisFluxEngine:
         :return: None
         :rtype: None
         """
+        self.logger = logger
         self.config = check_required(config, ['AES_KEY', 'AES_IV', 
                                               'FTP_USER', 'FTP_PASSWORD', 'FTP_ADDRESS',
                                               'FTP_R15_DIR', 'FTP_C15_DIR', 'FTP_F15_DIR'])
@@ -52,7 +52,7 @@ class EnedisFluxEngine:
         """
         Fetches the Enedis Flux files from the FTP server and decrypts them.
         """
-        _logger.info(f"Fetching from ftp: {self.config['FTP_ADDRESS']}")
+        self.logger.info(f"Fetching from ftp: {self.config['FTP_ADDRESS']}")
         download_new_files(self.config, self.flux, self.root_path)
         recursively_decrypt_zip_files(self.root_path, self.key, self.iv, prefix='decrypted_')
 
@@ -73,7 +73,9 @@ class EnedisFluxEngine:
         directories = [self.root_path.joinpath(k) for k in self.flux]
         to_process = {k: [a for a in self.root_path.joinpath(k).glob('*.zip') if 'decrypted_' in a.stem] for k in self.flux}
 
-        _logger.info(f'Scanning {self.root_path} for flux {self.flux}')
+        self.logger.info(f'Scanning {self.root_path} for flux {self.flux}')
+        self.logger.extra['prefix'] = '│  '
+
         res = {}
         for (flux_type, archives), working_path in zip(to_process.items(), directories):
 
@@ -85,9 +87,10 @@ class EnedisFluxEngine:
             flux = flux_transformer.preprocess()
             flux.to_csv(working_path.joinpath(f'{flux_type}.csv'))
 
-            _logger.info(f'└── Added : {len(archives)} zip files for {flux_type}')
+            self.logger.info(f'├──Added : {len(archives)} zip files for {flux_type}')
 
             res[flux_type] = flux_transformer
+        self.logger.info(f'└──Scan done.')
         return res
     def estimate_consumption(self, start: date, end: date, heuristic: BaseEstimator) -> pd.DataFrame:
         """
@@ -113,8 +116,9 @@ class EnedisFluxEngine:
         start_pd = pd.to_datetime(datetime.combine(start, datetime.min.time())).tz_localize('Etc/GMT-2')
         end_pd = pd.to_datetime(datetime.combine(end, datetime.max.time())).tz_localize('Etc/GMT-2')
 
-        _logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
-        _logger.info(f'With {heuristic.get_estimator_name()} Strategy.')
+        self.logger.info(f'Estimating consumption: from {start_pd} to {end_pd}')
+        self.logger.extra['prefix'] = '│  '
+        self.logger.info(f'└──With {heuristic.get_estimator_name()} Strategy.')
 
         meta = self.data['R15'].get_meta()
         index = self.data['R15'].get_index()
@@ -122,9 +126,9 @@ class EnedisFluxEngine:
         consos = heuristic.fetch(meta, index, consu, start_pd, end_pd)
 
         if len(consos)>0:
-            _logger.info(f"└── Succesfully Estimated consumption of {len(consos)} PDLs.")
+            self.logger.info(f"    └──Succesfully Estimated consumption of {len(consos)} PDLs.")
         else:
-            _logger.warn(f"└── Failed to Estimate consumption of any PDLs.")
+            self.logger.warn(f"    └──Failed to Estimate consumption of any PDLs.")
         return consos
     
     def enrich_estimates(self, estimates: pd.DataFrame, columns: list[str])-> pd.DataFrame:
@@ -154,7 +158,12 @@ class EnedisFluxEngine:
         :return: A pandas DataFrame containing the estimated consumption for each PDL, enriched with the specified columns from the R15 data.
         :rtype: pd.DataFrame
         """
+        self.logger.extra['prefix'] = '├──'
         self.data = self.scan()
+
+        self.logger.extra['prefix'] = '├──'
         estimates = self.estimate_consumption(start, end, heuristic)
+
+        self.logger.extra['prefix'] = '├──'
         estimates = self.enrich_estimates(estimates, columns)
         return estimates

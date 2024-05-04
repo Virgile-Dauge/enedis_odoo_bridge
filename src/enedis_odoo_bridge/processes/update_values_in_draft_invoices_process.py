@@ -12,15 +12,13 @@ from enedis_odoo_bridge.utils import gen_dates, check_required, CustomLoggerAdap
 from enedis_odoo_bridge.consumption_estimators import LastFirstEstimator
 
 
-_logger = logging.getLogger('enedis_odoo_bridge')
-_logger = CustomLoggerAdapter(_logger, {"prefix": ""})
-
 class UpdateValuesInDraftInvoicesProcess(BaseProcess):
-    def __init__(self, config: dict[str, str], enedis: EnedisFluxEngine, odoo: OdooAPI, date: date) -> None:
+    def __init__(self, config: dict[str, str], enedis: EnedisFluxEngine, odoo: OdooAPI, date: date, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')) -> None:
         self.config = config
         self.enedis = enedis
         self.odoo = odoo
         self.will_update_production_db = True
+        self.logger = logger
 
         self.config = check_required(config, ['TURPE_B_CU4', 
                                               'TURPE_CG', 
@@ -45,7 +43,7 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
             'HCB_conso', 'BASE_conso', 'HP_conso', 
             'HC_conso']].sum(axis=1)
         )
-        _logger.debug(data)
+        self.logger.debug(data)
         return data
     
     def add_taxes(self, data:DataFrame):
@@ -65,8 +63,8 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
         return data    
     
     def run(self):
-        _logger.info(f"Running UpdateValuesInDraftInvoicesProcess :")
-        _logger.extra['prefix'] = ' │   '
+        self.logger.info(f"Running UpdateValuesInDraftInvoicesProcess :")
+        self.logger.extra['prefix'] = '│   '
         enedis_data = self.enedis.fetch(self.starting_date, self.ending_date,
                                         columns=['Type_Compteur', 'Num_Serie', 'Date_Theorique_Prochaine_Releve'],
                                         heuristic=LastFirstEstimator())
@@ -79,13 +77,14 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
         odoo_data.to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'OdooAPI_from_{self.starting_date}_to{self.ending_date}.csv'))
         
-        _logger.info(f" ├── Merging data:")
-        _logger.info(f" │   ├── {len(enedis_data)} enedis entries.")
-        _logger.debug(enedis_data)
-        _logger.info(f" │   └── {len(odoo_data)} odoo entries.")
-        _logger.debug(odoo_data)
+        self.logger.extra['prefix'] = ''
+        self.logger.info(f"├──Merging data:")
+        self.logger.info(f"│   ├──{len(enedis_data)} enedis entries.")
+        self.logger.debug(enedis_data)
+        self.logger.info(f"│   └──{len(odoo_data)} odoo entries.")
+        self.logger.debug(odoo_data)
         data = pd.merge(odoo_data, enedis_data, left_on='x_pdl', right_on='pdl', how='left')
-        _logger.debug(data)
+        self.logger.debug(data)
         
         data = self.enrich(data)
         data = self.add_taxes(data)
@@ -94,8 +93,15 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
         data[data['Base'].isna()].to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'DataMerger_TOCHECK_from_{self.starting_date}_to{self.ending_date}.csv'))
         
-        _logger.info(f" └── updating odoo entries." + (" [simulated]" if self.odoo.sim else ""))
+        self.logger.info(f"├── Updating odoo entries in {self.config['DB']} from {self.config['URL']}" + (" [simulated]" if self.odoo.sim else ""))
+        self.logger.extra['prefix'] = '│   ├──'
+
         self.odoo.update_draft_invoices(data, self.starting_date, self.ending_date)
+        
+        self.logger.extra['prefix'] = '│   '
+        self.logger.info(f"└──Update odoo entries done.")
+        self.logger.extra['prefix'] = ''
+        self.logger.info(f"└──UpdateValuesInDraftInvoicesProcess done.")
 
 
         
