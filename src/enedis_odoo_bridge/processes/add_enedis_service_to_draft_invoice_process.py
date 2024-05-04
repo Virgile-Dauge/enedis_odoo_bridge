@@ -52,12 +52,37 @@ class AddEnedisServiceToDraftInvoiceProcess(BaseProcess):
         
         # TODO 
         # Pour chacun des produits enedis, trouver le produit correspondant dans Odoo
+        product_ids = {}
+        grouped = data.groupby('Id_EV')
+        for id_ev, group in grouped:
+            # Recherche du produit dans Odoo par Id_EV
+            expected_price = float(group['Prix_Unitaire'].iloc[0])
+            tva = float(group['Taux_TVA_Applicable'].iloc[0])
+            products = self.odoo.execute('product.template', 'search_read', 
+                                        [[['x_enedis_id', '=', id_ev], ['list_price', '=', expected_price]]], 
+                                        {'fields': ['name', 'list_price', 'taxes_id']})
+            if not products:
+                # Aucun produit trouvé ou le prix ne correspond pas, création d'un nouveau produit
+                new_product_data = {
+                    'name': group['Libelle_EV'].iloc[0],
+                    'list_price': expected_price,  # Définir le prix attendu
+                    'x_enedis_id': id_ev,
+                    'taxes_id': [[4, 38 if tva == 20.0 else 40, 0]] # Taxes 40 = 5,5 38=20
+                    # Ajouter d'autres champs nécessaires ici
+                }
+                new_product_id = self.odoo.execute('product.template', 'create', [new_product_data])
+                product_ids[id_ev] = new_product_id[0]
+                self.logger.info(f"New product created with ID: {new_product_id} for Id_EV: {id_ev}")
+            else:
+                product_ids[id_ev] = products[0]['id']
+                self.logger.info(f"Product found for Id_EV: {id_ev} with ID: {products[0]['id']}")
 
-        products = self.odoo.execute('product.template', 'search_read', 
-            [[['x_enedis_id', '=', 'F180O3C5M']]], 
-            {})
-        print(products)
+        # map associe chaque Id_EV à son ID de produit
+        data['product_id'] = data['Id_EV'].map(product_ids)
+        print(data)
 
+        exploded = data.explode('line_id_All')
+        print(exploded)
         # TODO
         # Pour chacune des lignes de facture enedis, ajouter dans la facture brouillon une ligne avec le produit Odoo adapté
         # └── Vérif si ligne déjà présente dans la facture brouillon, si ou verif quantitié
