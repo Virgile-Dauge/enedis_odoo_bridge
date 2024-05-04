@@ -50,6 +50,7 @@ class F15FluxTransformer(BaseFluxTransformer):
         for col in self.data.columns:
             if col.startswith("Date_"):
                 self.data[col] = pd.to_datetime(self.data[col]).dt.tz_localize('Etc/GMT-2')
-        return self.data.reset_index(drop=True).sort_values(['Id_PRM', 'Id_EV']).set_index(['Id_PRM', 'Id_EV'])
+        self.data = self.data.rename(columns={'Id_PRM': 'pdl'})
+        return self.data.reset_index(drop=True).sort_values(['pdl', 'Id_EV'])#.set_index(['pdl', 'Id_EV'])
 
     
