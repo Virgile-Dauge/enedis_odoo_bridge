@@ -31,11 +31,13 @@ from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.DataMerger import DataMerger
+from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess
 from enedis_odoo_bridge.utils import load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
 
 from rich import print, pretty, inspect
 from rich.logging import RichHandler
-from rich import console
+from rich.prompt import Prompt
+from rich.console import Console
 
 pretty.install()
 
@@ -70,7 +72,13 @@ def parse_args(args):
     Returns:
       :obj:`argparse.Namespace`: command line parameters namespace
     """
-    parser = argparse.ArgumentParser(description="Just a Fibonacci demonstration")
+    parser = argparse.ArgumentParser(description="Pont entre les données de l'Enedis et Odoo")
+    parser.add_argument(
+    "command",
+    help="The command to execute",
+    type=str,
+    choices=['facturation',],  # Example commands
+    )
     parser.add_argument(
         "--version",
         action="version",
@@ -146,7 +154,8 @@ def main(args):
     env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
 
     data_path = Path(args.data_path).expanduser()
-        
+    console = Console(markup=True, highlight=True)
+
     if args.update_flux:
         print(f"Fetching new files from {env['FTP_ADDRESS']} ftp...")
         files = download_new_files_with_progress(config=env, local=data_path, tasks=['R15', 'F15'])
@@ -154,21 +163,28 @@ def main(args):
                                                                       key=bytes.fromhex(env['AES_KEY']),
                                                                       iv=bytes.fromhex(env['AES_IV']),
                                                                       prefix='decrypted_')
-
+    
     enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'])
 
-    #odoo = OdooAPI(config=env, sim=args.sim)
-    #orders = odoo.fetch_orders()
-    #pretty.pprint(orders)
-    #orders.to_csv(f'orders.csv')
-    #exit()
-    dm = DataMerger(config=env,
+    if args.command == 'facturation':
+        process = UpdateValuesInDraftInvoicesProcess(config=env,
                     date=args.date,
                     enedis=enedis,
                     odoo=OdooAPI(config=env, sim=args.sim))
+        if not args.sim and process.will_update_production_db:
+            confirm = Prompt.ask(f"This will update [red]{env['DB']}[/red] Odoo Database from [red]{env['URL']}[/red], are you sure you want to continue?", 
+                                 choices=["y", "n"], default="n", console=console)
+            if confirm.lower()!= 'y':
+                _logger.info("Operation cancelled")
+                exit(0)
+        process.run()
+        exit(0)
 
-    #dm.process()
-    dm.process_and_update(drafts=True)
+    #dm = DataMerger(config=env,
+    #                date=args.date,
+    #                enedis=enedis,
+    #                odoo=OdooAPI(config=env, sim=args.sim))
+    #dm.process_and_update(drafts=True)
 
 def run():
     """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`
