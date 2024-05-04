@@ -81,6 +81,10 @@ class OdooAPI:
         and calls the 'execute_kw' method to execute the specified method on the specified model.
         The result of the executed method is then returned, wrapped in a list if it is a single value.
         """
+        if self.sim and method in ['create', 'write', 'unlink']:
+            self.logger.info(f'Executing {method} on {model} with args {args} and kwargs {kwargs} [simulated]')
+            return []
+        
         args = args if args is not None else []
         kwargs = kwargs if kwargs is not None else {}
         self.logger.debug(f'Executing {method} on {model} with args {args} and kwargs {kwargs}')
@@ -237,7 +241,7 @@ class OdooAPI:
         This function identifies non-scalar columns in the input DataFrame and removes them.
         Non-scalar columns are those that contain lists or dictionaries.
         """
-        non_scalar_columns = [col for col in data.columns if any(data[col].apply(lambda x: isinstance(x, (list, dict))))]
+        non_scalar_columns = [col for col in data.columns if any(data[col].apply(lambda x: isinstance(x, dict)))]
         return data.drop(non_scalar_columns, axis=1)
 
     
@@ -335,13 +339,27 @@ class OdooAPI:
         
         df_exploded['cat'] = cat
 
+        is_all = df_exploded['cat'] == 'All'
+        # Pour les catégories autres que 'ALL', pivotons normalement
+        df_pivoted_normal = df_exploded[~is_all].pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
+        df_pivoted_normal.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted_normal.columns if x != 'move_id']
+
+        # Pour 'ALL', agrégeons les valeurs dans une liste
+        df_all = df_exploded[is_all].groupby('move_id')['invoice_line_ids'].apply(list).reset_index()
+        df_all.columns = ['move_id', 'line_id_All']
+
+        # Fusionnons d'abord les DataFrames pivotés normalement et 'ALL'
+        df_merged = pd.merge(df_pivoted_normal, df_all, on='move_id', how='left')
+
+        # Ensuite, fusionnons le résultat avec le DataFrame original
+        df_final = pd.merge(data, df_merged, on='move_id', how='left')
         # Pivoting to transform 'cat' values into separate columns
-        df_pivoted = df_exploded.pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
+        #df_pivoted = df_exploded.pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
         # Renaming columns to reflect the source of the data
-        df_pivoted.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted.columns if x != 'move_id']
+        #df_pivoted.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted.columns if x != 'move_id']
 
         # Merge the pivoted DataFrame with the original DataFrame
-        df_final = pd.merge(data, df_pivoted, on='move_id', how='left')
+        #df_final = pd.merge(data, df_pivoted, on='move_id', how='left')
         return df_final
 
     # fetch helpers, order as starting point process
