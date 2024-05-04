@@ -1,10 +1,11 @@
-from enedis_odoo_bridge.flux_transformers import BaseFluxTransformer
-from typing import Any
-import pandas as pd
-from pandas import DataFrame
-from pathlib import Path
 import xmlschema
-from rich import pretty
+import pandas as pd
+
+from pandas import DataFrame
+from typing import Any
+from pathlib import Path
+
+from enedis_odoo_bridge.flux_transformers import BaseFluxTransformer
 
 class F15FluxTransformer(BaseFluxTransformer):
 
@@ -48,7 +49,7 @@ class F15FluxTransformer(BaseFluxTransformer):
                 # Convert columns where the last level of the index starts with "Date_" to datetime
         for col in self.data.columns:
             if col.startswith("Date_"):
-                self.data[col] = pd.to_datetime(self.data[col])
+                self.data[col] = pd.to_datetime(self.data[col]).dt.tz_localize('Etc/GMT-2')
         return self.data.reset_index(drop=True).sort_values(['Id_PRM', 'Id_EV']).set_index(['Id_PRM', 'Id_EV'])
 
     
