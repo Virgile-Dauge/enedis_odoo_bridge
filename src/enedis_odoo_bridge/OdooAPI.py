@@ -10,7 +10,7 @@ from rich import pretty
 from enedis_odoo_bridge.utils import check_required
 
 import logging
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger('enedis_odoo_bridge')
 
 def ensure_connection(func):
     def wrapper(self, *args, **kwargs):
@@ -100,12 +100,13 @@ class OdooAPI:
 
         """
         if self.sim:
+            _logger.info(f'# {len(entries)} {model} creation called. [simulated]')
             return []
         
         id = self.execute(model, 'create', [entries])
         if not isinstance(id, list):
             id = [int(id)]
-        _logger.info(f'{model} #{id} created in Odoo db.' + ("[simulated]" if self.sim else ''))
+        _logger.info(f'{model} #{id} created in Odoo db.')
         return id
 
     def update(self, model: str, entries: List[Dict[Hashable, Any]])-> None:
@@ -130,8 +131,8 @@ class OdooAPI:
         # TODO Filter id to only have invoices with no existing approuval ?
         activities = DataFrame({'res_id': ids})
         activities['res_model_id'] = model_id[0]
-        activities['activity_type_id'] = 4
-        activities['user_id'] = self.config['ODOO_FACTURISTE_ID']
+        activities['activity_type_id'] = int(self.config['ODOO_ACTIVITY_APPROUVAL_ID'])
+        activities['user_id'] = int(self.config['ODOO_FACTURISTE_ID'])
         activities['summary'] = msg
         activities['automated'] = True
         activities['note'] = note
@@ -279,6 +280,9 @@ class OdooAPI:
                             {'fields': fields})
         df = DataFrame(orders)
         data[fields] = df[fields]
+        if 'x_pdl' in fields:
+            # Remove every character that is not a number from every entry in the x_pdl column
+            data['x_pdl'] = data['x_pdl'].astype(str).str.replace('[^\d]', '', regex=True)
         return data
            
     def add_cat_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
@@ -450,7 +454,6 @@ class OdooAPI:
         return moves.rename(columns={'move_id': 'id'}).to_dict(orient='records')
 
     def prepare_sale_order_updates(self, data:DataFrame, fields: list[str])-> List[Dict[Hashable, Any]]:
-        print(data)
         orders = DataFrame(data['order_id'])
         if 'x_turpe' in fields:
             orders['x_turpe'] = data['turpe_fix'] + data['turpe_var']
