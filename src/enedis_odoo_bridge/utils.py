@@ -1,16 +1,18 @@
 import os
 import zipfile
+
 from dotenv import load_dotenv
 from pathlib import Path
 
-from datetime import date
+from datetime import date, datetime
 from calendar import monthrange
 import hashlib
 import json
 from Crypto.Cipher import AES
 from typing import Union, Any
 from rich.progress import Progress
-
+import pandas as pd
+from pandas import Timestamp
 import paramiko
 import logging
 logging.getLogger("paramiko.transport").setLevel(logging.ERROR)
@@ -47,6 +49,13 @@ def gen_dates(current: Union[date, None]) -> tuple[date, date]:
     starting_date = current.replace(day=1)
     ending_date = current.replace(day = monthrange(current.year, current.month)[1])
     return starting_date, ending_date
+
+def gen_Timestamps(current: Union[date, None]) -> tuple[Timestamp, Timestamp]:
+    start_date, ending_date = gen_dates(current)
+
+    start_TimeStamps = pd.to_datetime(datetime.combine(start_date, datetime.min.time())).tz_localize('Etc/GMT-2')
+    end_TimeStamps = pd.to_datetime(datetime.combine(ending_date, datetime.max.time())).tz_localize('Etc/GMT-2')
+    return start_TimeStamps, end_TimeStamps
 
 def pro_rata(start: date, end: date) -> float:
 
