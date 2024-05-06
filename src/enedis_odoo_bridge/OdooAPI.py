@@ -338,15 +338,15 @@ class OdooAPI:
         cat = [p['categ_id'][1].split(' ')[-1] for p in prods]
         
         df_exploded['cat'] = cat
-
-        is_all = df_exploded['cat'] == 'All'
+        print(cat)
+        is_pe = df_exploded['cat'] == 'Prestation-Enedis'
         # Pour les catégories autres que 'ALL', pivotons normalement
-        df_pivoted_normal = df_exploded[~is_all].pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
+        df_pivoted_normal = df_exploded[~is_pe].pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
         df_pivoted_normal.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted_normal.columns if x != 'move_id']
 
         # Pour 'ALL', agrégeons les valeurs dans une liste
-        df_all = df_exploded[is_all].groupby('move_id')['invoice_line_ids'].apply(list).reset_index()
-        df_all.columns = ['move_id', 'line_id_All']
+        df_all = df_exploded[is_pe].groupby('move_id')['invoice_line_ids'].apply(list).reset_index()
+        df_all.columns = ['move_id', 'line_id_Prestation-Enedis']
 
         # Fusionnons d'abord les DataFrames pivotés normalement et 'ALL'
         df_merged = pd.merge(df_pivoted_normal, df_all, on='move_id', how='left')

@@ -67,11 +67,24 @@ class AddEnedisServiceToDraftInvoiceProcess(BaseProcess):
                     'name': group['Libelle_EV'].iloc[0],
                     'list_price': expected_price,  # Définir le prix attendu
                     'x_enedis_id': id_ev,
-                    'taxes_id': [[4, 38 if tva == 20.0 else 40, 0]] # Taxes 40 = 5,5 38=20
                     # Ajouter d'autres champs nécessaires ici
                 }
+                cat_id = self.odoo.execute('product.category', 'search_read', 
+                                    [[['name', '=', 'Prestation-Enedis']]], 
+                                    {'fields': ['id']})
+                if cat_id:
+                    new_product_data['categ_id'] = cat_id[0]['id']
+
+                tax_id = self.odoo.execute('account.tax', 'search_read', 
+                                    [[['name', '=', f'{tva:g}% G'], ['type_tax_use', '=', 'sale']]], 
+                                    {'fields': ['id']})
+                if tax_id:
+                    new_product_data['taxes_id'] = [[4, tax_id[0]['id'], 0]]
+
                 new_product_id = self.odoo.execute('product.template', 'create', [new_product_data])
-                product_ids[id_ev] = new_product_id[0]
+
+                if new_product_id:
+                    product_ids[id_ev] = new_product_id[0]
                 self.logger.info(f"New product created with ID: {new_product_id} for Id_EV: {id_ev}")
             else:
                 product_ids[id_ev] = products[0]['id']
@@ -81,7 +94,7 @@ class AddEnedisServiceToDraftInvoiceProcess(BaseProcess):
         data['product_id'] = data['Id_EV'].map(product_ids)
         print(data)
 
-        exploded = data.explode('line_id_All')
+        exploded = data.explode('line_id_Prestation-Enedis')
         print(exploded)
         # TODO
         # Pour chacune des lignes de facture enedis, ajouter dans la facture brouillon une ligne avec le produit Odoo adapté
