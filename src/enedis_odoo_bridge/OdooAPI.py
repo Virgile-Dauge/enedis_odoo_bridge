@@ -264,10 +264,10 @@ class OdooAPI:
             [[['move_type', '=', 'out_invoice'], ['state', '=', 'draft'], ['x_order_id','!=',False]]], 
             {'fields': fields})
         data = DataFrame(drafts).rename(columns={'id':'move_id', 'x_order_id': 'order_id'})
-        if 'x_order_id' in fields:
-            data['order_id'] = data['order_id'].apply(lambda x: x[0])
         if not drafts:
             raise ValueError(f'No draft invoices found in {self.url} db. Process aborted.')
+        if 'x_order_id' in fields:
+            data['order_id'] = data['order_id'].apply(lambda x: x[0])
         return data
 
     def add_order_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
