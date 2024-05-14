@@ -38,7 +38,7 @@ Le projet **enedis_odoo_bridge** vise à automatiser le traitement des flux de d
 Fonctionnalités Principales
 ---------------------------
 
-- **Récupération automatique des données** : Importation des données de consommation énergétique depuis Enedis.
+- **Récupération automatique des données** : Importation des données de consommation énergétique depuis Enedis. Flux R15 et F15 supportés, R151 est le prochain objectif
 - **Traitement et fusion des données** : Traitement des données récupérées et fusion avec les données existantes dans Odoo.
 - **Calcul des tarifs TURPE** : Application des tarifs TURPE (Tarif d'Utilisation des Réseaux Publics d'Électricité) aux données de consommation.
 - **Mise à jour des factures dans Odoo** : Automatisation de la mise à jour des factures de consommation énergétique dans Odoo.
@@ -53,23 +53,22 @@ Classes et Responsabilités
    - *Responsabilité* : Interagit avec les flux de données d'Enedis pour récupérer les données de consommation énergétique.
    
    a. **Flux Transformers** :
-      - *Responsabilité* : Transforme les données des flux en une matrice exploitable, et propose des méthodes spécifiques à chaque type de flux Enedis. Flux actuellement supportés : [R15]. 
+      - *Responsabilité* : Transforme les données des flux en une matrice exploitable, et propose des méthodes spécifiques à chaque type de flux Enedis. Flux actuellement supportés : [R15, F15] Bientôt R151. 
 
    b. **Consumption Estimators** :
-      - *Responsabilité* : Chaque estimateur implémente une heuristique permettant d'estimer la consommation à partir des données du Flux R15.
+      - *Responsabilité* : Chaque estimateur implémente une heuristique permettant d'estimer la consommation à partir des données du Flux R15. Bientôt à partir du R151
 
-3. **DataMerger** :
-   - *Responsabilité* : Fusionne les données d'Enedis et d'Odoo, calcule les tarifs TURPE, et prépare les données pour la mise à jour dans Odoo.
+3. **Processes** :
+    L'idée des process est d'implémenter divers process métiers, qui traitent et mettent à jour des données différentes. On pourrait dire en gros que le reste c'est la lib, et ici on l'utilise en fonction de nos besoins spécifiques.
+    a. **AddEnedisServiceToDraftInvoiceProcess** :
+      - *Responsabilité* : Lit le flux F15 pour récupérer les prestations Enedis facturées et les ajouter au factures usager.ères correspondantes.
+
+    b. **UpdateValuesInDraftInvoicesProcess** :
+      - *Responsabilité* : Récupére les estimations de consommation d'EnedisFluxEngine, calcule les taxes. Récupére les factures brouillons dans Odoo, et met à jour les consommations, ainsi que les données légales de facturation comme le numéro de série du compteur.
+
 
 4. **Utils** :
    - *Responsabilité* : Fournit des fonctions utilitaires pour la génération de dates et la vérification des configurations.
-
-Processus Clés
---------------
-
-1. **Récupération des données** : Les données sont récupérées d'Enedis et d'Odoo pour une période donnée.
-2. **Fusion et traitement des données** : Les données récupérées sont fusionnées et traitées, avec calcul des tarifs TURPE.
-3. **Mise à jour dans Odoo** : Les données traitées sont utilisées pour mettre à jour les factures dans Odoo.
 
 Installation et Configuration
 -----------------------------
