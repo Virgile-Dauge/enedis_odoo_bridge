@@ -50,13 +50,15 @@ Classes et Responsabilités
    - *Responsabilité* : Gère la communication avec l'API d'Odoo pour récupérer et mettre à jour les données.
 
 2. **EnedisFluxEngine** :
-   - *Responsabilité* : Interagit avec les flux de données d'Enedis pour récupérer les données de consommation énergétique.
+   - *Responsabilité* : Interagit avec les flux de données d'Enedis pour récupérer les données contractuelles, de consommation énergétique, de facturation... 
    
    a. **Flux Transformers** :
-      - *Responsabilité* : Transforme les données des flux en une matrice exploitable, et propose des méthodes spécifiques à chaque type de flux Enedis. Flux actuellement supportés : [R15, F15] Bientôt R151. 
+      - *Responsabilité* : Transforme les données des flux en une matrice exploitable, et propose des méthodes spécifiques à chaque type de flux Enedis. Flux actuellement supportés : [R15, F15] Bientôt R151.
+      - *Prérequis*: Les transformers utilisent les xsd fournis par Enedis pour lire les XML des flux. La confidentialité de ces flux n'étant pas claire, ils ne sont pas inclus dans la repo. (dispos dans SGE, avec le kit d'implémentation des flux)
 
    b. **Consumption Estimators** :
-      - *Responsabilité* : Chaque estimateur implémente une heuristique permettant d'estimer la consommation à partir des données du Flux R15. Bientôt à partir du R151
+      - *Responsabilité* : Chaque estimateur implémente une heuristique permettant d'estimer la consommation à partir des données du Flux R15. Bientôt d'autres à partir du R151.
+      - *pourquoi une estimation ?* : Les flux ne sont pas toujours complets ou publiés à temps.
 
 3. **Processes** :
     L'idée des process est d'implémenter divers process métiers, qui traitent et mettent à jour des données différentes. On pourrait dire en gros que le reste c'est la lib, et ici on l'utilise en fonction de nos besoins spécifiques.
@@ -75,8 +77,11 @@ Installation et Configuration
 
 Installation
 ^^^^^^^^^^^^
+a. Installer depuis le repo
 
-Pour commencer, installez simplement le module `enedis_odoo_bridge` en utilisant pip :
+b. Installer le module en utilisant pip :
+Sera valable une fois un poil stabilisé, pour l'instant le package n'est pas publié. 
+Pour commencer, installe simplement le module `enedis_odoo_bridge` en utilisant pip :
 
 .. code-block:: bash
 
@@ -88,25 +93,34 @@ Configuration
 Configurez le script en remplissant un fichier .env à la racine du module
 
 .. code-block:: bash
+    # Pour Odoo
+    ENEDIS_ODOO_BRIDGE_ODOO_URL = "https://mon-site.odoo.com/"
+    ENEDIS_ODOO_BRIDGE_ODOO_DB = "ma-db"
+    ENEDIS_ODOO_BRIDGE_ODOO_USERNAME = "admin"
+    ENEDIS_ODOO_BRIDGE_ODOO_PASSWORD = "sooooseccuuure"
+    # Pour la maj des activités
+    ENEDIS_ODOO_BRIDGE_ODOO_FACTURISTE_ID = 13 
+    ENEDIS_ODOO_BRIDGE_ODOO_ACTIVITY_APPROUVAL_ID = 17
 
-    URL = "https://truc.odoo.com/"
-    DB = "truc"
-    USERNAME = "truc@truc.com"
-    PASSWORD = "truc"
-    TURPE_TAUX_HPH_CU4 = 6.67
-    TURPE_TAUX_HCH_CU4 = 4.56
-    TURPE_TAUX_HPB_CU4 = 1.43
-    TURPE_TAUX_HCB_CU4 = 0.88   
-    TURPE_B_CU4 = 9.00
-    TURPE_CG = 15.48
-    TURPE_CC = 19.92
-    FTP_ADDRESS = xxx.xxx.xxx.xxx
-    FTP_USER = truc
-    FTP_PASSWORD = truc
-    FTP_R15 = R15 ¿ R16
-    FTP_C15 = C15
-    FTP_F15 = F15
-    ENEDIS_CIPHER = truc
+    # Constantes calculs des Taxes
+    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HPH_CU4 = 6.67
+    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HCH_CU4 = 4.56
+    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HPB_CU4 = 1.43
+    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HCB_CU4 = 0.88
+    ENEDIS_ODOO_BRIDGE_TURPE_B_CU4 = 9.00
+    ENEDIS_ODOO_BRIDGE_TURPE_CG = 15.48
+    ENEDIS_ODOO_BRIDGE_TURPE_CC = 19.92
+
+    # Connexion au FTP contenant les Flux
+    ENEDIS_ODOO_BRIDGE_FTP_ADDRESS = xxx.xxx.xxx.xxx
+    ENEDIS_ODOO_BRIDGE_FTP_USER = user
+    ENEDIS_ODOO_BRIDGE_FTP_PASSWORD = pswwdd
+    ENEDIS_ODOO_BRIDGE_FTP_R15_DIR = R15 ¿ R16
+    ENEDIS_ODOO_BRIDGE_FTP_C15_DIR = C15
+    ENEDIS_ODOO_BRIDGE_FTP_F15_DIR = F15
+    # Déchiffrage des archives des flux
+    ENEDIS_ODOO_BRIDGE_AES_IV = iv
+    ENEDIS_ODOO_BRIDGE_AES_KEY = clé
 
 Utilisation
 ^^^^^^^^^^^
