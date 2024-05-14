@@ -163,7 +163,7 @@ class OdooAPI:
         Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
         The function returns the cleared DataFrame, leaving only scalar values.
         """
-        self.logger.info(f'Reading {self.config["DB"]} odoo db from {self.config["URL"]} ...')
+        self.logger.info(f'Reading {self.db} odoo db from {self.url} ...')
         self.logger.extra['prefix'] = '│   ├──'
 
         data = self.get_drafts(['invoice_line_ids', 'date', 'x_order_id'])
