@@ -22,13 +22,13 @@ def ensure_connection(func):
 class OdooAPI:
     def __init__(self, config: Dict[str, str], sim=False, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')):
 
-        self.config = check_required(config, ['URL', 'DB', 'USERNAME', 'PASSWORD'])
-        self.url = config['URL']
-        db = config['DB']
+        self.config = check_required(config, ['ODOO_URL', 'ODOO_DB', 'ODOO_USERNAME', 'ODOO_PASSWORD'])
+        self.url = config['ODOO_URL']
+        db = config['ODOO_DB']
         self.db = db #+ '-duplicate' if sim else db
         self.sim = sim
-        self.username = config['USERNAME']
-        self.password = config['PASSWORD']
+        self.username = config['ODOO_USERNAME']
+        self.password = config['ODOO_PASSWORD']
 
         self.uid = None
         self.proxy = None
