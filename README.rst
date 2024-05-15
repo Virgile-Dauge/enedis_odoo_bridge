@@ -62,11 +62,12 @@ Classes et Responsabilités
 
 3. **Processes** :
     L'idée des process est d'implémenter divers process métiers, qui traitent et mettent à jour des données différentes. On pourrait dire en gros que le reste c'est la lib, et ici on l'utilise en fonction de nos besoins spécifiques.
+    
     a. **AddEnedisServiceToDraftInvoiceProcess** :
-      - *Responsabilité* : Lit le flux F15 pour récupérer les prestations Enedis facturées et les ajouter au factures usager.ères correspondantes.
+    - *Responsabilité* : Lit le flux F15 pour récupérer les prestations Enedis facturées et les ajouter au factures usager.ères correspondantes.
 
     b. **UpdateValuesInDraftInvoicesProcess** :
-      - *Responsabilité* : Récupére les estimations de consommation d'EnedisFluxEngine, calcule les taxes. Récupére les factures brouillons dans Odoo, et met à jour les consommations, ainsi que les données légales de facturation comme le numéro de série du compteur.
+        - *Responsabilité* : Récupére les estimations de consommation d'EnedisFluxEngine, calcule les taxes. Récupére les factures brouillons dans Odoo, et met à jour les consommations, ainsi que les données légales de facturation comme le numéro de série du compteur.
 
 
 4. **Utils** :
@@ -93,6 +94,7 @@ Configuration
 Configurez le script en remplissant un fichier .env à la racine du module
 
 .. code-block:: bash
+    
     # Pour Odoo
     ENEDIS_ODOO_BRIDGE_ODOO_URL = "https://mon-site.odoo.com/"
     ENEDIS_ODOO_BRIDGE_ODOO_DB = "ma-db"
@@ -122,6 +124,7 @@ Configurez le script en remplissant un fichier .env à la racine du module
     ENEDIS_ODOO_BRIDGE_AES_IV = iv
     ENEDIS_ODOO_BRIDGE_AES_KEY = clé
 
+
 Utilisation
 ^^^^^^^^^^^
 
@@ -134,16 +137,17 @@ Pour des informations détaillées sur l'installation, la configuration et l'uti
 
 .. _pyscaffold-notes:
 
-Release on pypi 
--------------
+Release on PyPI
+---------------
 
 Simply tag 
 
 .. code-block:: bash
+
     git tag -a v0.1.0 -m "first release"
     
 Note
-====
+----
 
 This project has been set up using PyScaffold 4.5. For details and usage
 information on PyScaffold see https://pyscaffold.org/.
