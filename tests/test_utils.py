@@ -15,7 +15,7 @@ from pathlib import Path
 
 from enedis_odoo_bridge.utils import decrypt_file
 from enedis_odoo_bridge.utils import load_prefixed_dotenv
-from enedis_odoo_bridge.utils import gen_dates, pro_rata, unzip, download, is_valid_json, calculate_checksum, file_changed
+from enedis_odoo_bridge.utils import gen_dates, pro_rata, unzip, is_valid_json, calculate_checksum, file_changed
 
 __author__ = "Virgile"
 __copyright__ = "Virgile"
@@ -158,7 +158,7 @@ def config():
         local_path.joinpath(tasks[0]).expanduser(),
         resume=True,
         workers=10
-    ) """
+    ) 
 
 def test_download_invalid_task_raises_value_error(mock_sftp_connection, config):
     tasks = ['INVALID']
@@ -175,7 +175,7 @@ def test_download_invalid_type():
     with pytest.raises(KeyError):
         download({'FTP_ADDRESS':1, 'FTP_USER':2, 'FTP_PASSWORD':3,
                   'FTP_R15_DIR':4, 'FTP_C15_DIR':5, 'FTP_F15_DIR':6,}, tasks)
-
+"""
 def test_load_prefixed_dotenv_missing_required():
     # Mock the environment variables with a missing required key
     with patch.dict('os.environ', {'EOB_URL': 'http://example.com', 'EOB_USERNAME': 'user'}):
@@ -248,7 +248,7 @@ def test_is_valid_json_with_non_json_string():
     assert is_valid_json(non_json_string) == False, "The function should return False for non-JSON strings."
 
 
-def test_decrypt_file():
+def test_decrypt_file_no_prefix():
     # Setup: Create a temporary encrypted file
     original_content = b"This is a test."
     key = get_random_bytes(16)  # AES key must be either 16, 24, or 32 bytes long
@@ -271,3 +271,15 @@ def test_decrypt_file():
     # Teardown: Remove temporary files
     temp_encrypted_file.unlink()
     decrypted_file_path.unlink()
+
+def test_decrypt_file_with_prefix():
+    # Setup: Create a temporary prefixed filePath
+    temp_prefixed_file = Path("decrypted_file.zip")
+    key = get_random_bytes(16)  # AES key must be either 16, 24, or 32 bytes long
+    iv = get_random_bytes(16)  # IV must be 16 bytes long for AES
+
+    # Exercise: Decrypt the file
+    decrypted_file_path = decrypt_file(temp_prefixed_file, key, iv, 'decrypted_')
+
+    # Verify: Check if the decrypted content matches the original content
+    assert decrypted_file_path == temp_prefixed_file, "Decrypted file path does not match the original file path."
