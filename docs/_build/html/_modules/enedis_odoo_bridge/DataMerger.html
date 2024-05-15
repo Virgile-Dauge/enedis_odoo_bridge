@@ -1,0 +1,222 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>enedis_odoo_bridge.DataMerger &#8212; enedis_odoo_bridge 1.0.2.dev1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for enedis_odoo_bridge.DataMerger</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
+
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.OdooAPI</span> <span class="kn">import</span> <span class="n">OdooAPI</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.EnedisFluxEngine</span> <span class="kn">import</span> <span class="n">EnedisFluxEngine</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.utils</span> <span class="kn">import</span> <span class="n">gen_dates</span><span class="p">,</span> <span class="n">check_required</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.consumption_estimators</span> <span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">LastFirstEstimator</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;enedis_odoo_bridge&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DataMerger"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger">[docs]</a><span class="k">class</span> <span class="nc">DataMerger</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">date</span><span class="p">:</span><span class="n">date</span><span class="p">,</span> <span class="n">enedis</span><span class="p">:</span> <span class="n">EnedisFluxEngine</span><span class="p">,</span> <span class="n">odoo</span><span class="p">:</span> <span class="n">OdooAPI</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">check_required</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;TURPE_B_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_CG&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_CC&#39;</span><span class="p">,</span>
+                                              <span class="s1">&#39;TURPE_TAUX_HPH_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_TAUX_HCH_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_TAUX_HPB_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_TAUX_HCB_CU4&#39;</span><span class="p">,])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enedis</span> <span class="o">=</span> <span class="n">enedis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span> <span class="o">=</span> <span class="n">odoo</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span> <span class="o">=</span> <span class="n">gen_dates</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DataMerger.fetch_enedis_data"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.fetch_enedis_data">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_enedis_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">heuristic</span><span class="p">:</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+        <span class="c1"># Récupérer les données depuis EnedisFluxEngine</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">heuristic</span><span class="o">=</span><span class="n">heuristic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataMerger.fetch_odoo_data"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.fetch_odoo_data">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_odoo_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+        <span class="c1"># Récupérer les données depuis OdooAPI</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">fetch_drafts</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DataMerger.merge_data"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.merge_data">[docs]</a>    <span class="k">def</span> <span class="nf">merge_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enedis_data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">odoo_data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+        <span class="c1"># Fusionner les données ici</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Merging data:&quot;</span><span class="p">)</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">enedis_data</span><span class="p">)</span><span class="si">}</span><span class="s2"> enedis entries.&quot;</span><span class="p">)</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">enedis_data</span><span class="p">)</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">odoo_data</span><span class="p">)</span><span class="si">}</span><span class="s2"> odoo entries.&quot;</span><span class="p">)</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">odoo_data</span><span class="p">)</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">odoo_data</span><span class="p">,</span> <span class="n">enedis_data</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s1">&#39;x_pdl&#39;</span><span class="p">,</span> <span class="n">right_on</span><span class="o">=</span><span class="s1">&#39;pdl&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">merged</span></div>
+    
+<div class="viewcode-block" id="DataMerger.add_taxes"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.add_taxes">[docs]</a>    <span class="k">def</span> <span class="nf">add_taxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;turpe_fix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;x_puissance_souscrite&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;TURPE_B_CU4&#39;</span><span class="p">])</span>
+            <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;TURPE_CG&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;TURPE_CC&#39;</span><span class="p">]))</span><span class="o">/</span><span class="mi">12</span>
+        
+        <span class="n">cu4</span> <span class="o">=</span> <span class="o">~</span><span class="n">data</span><span class="p">[[</span><span class="s1">&#39;HPH_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HPB_conso&#39;</span><span class="p">,</span> 
+                     <span class="s1">&#39;HCH_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HCB_conso&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;turpe_var&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;HPH_conso&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;TURPE_TAUX_HPH_CU4&#39;</span><span class="p">])</span><span class="o">*</span><span class="mf">0.01</span>
+            <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;HCH_conso&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;TURPE_TAUX_HCH_CU4&#39;</span><span class="p">])</span><span class="o">*</span><span class="mf">0.01</span>
+            <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;HPB_conso&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;TURPE_TAUX_HPB_CU4&#39;</span><span class="p">])</span><span class="o">*</span><span class="mf">0.01</span>
+            <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;HCB_conso&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;TURPE_TAUX_HCB_CU4&#39;</span><span class="p">])</span><span class="o">*</span><span class="mf">0.01</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;CTA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;turpe_fix&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.2193</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Assise&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Base&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">2.1</span> <span class="o">*</span> <span class="mf">0.01</span>
+        <span class="c1"># TODO Turpe pour les pas CU4</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="DataMerger.enrich"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.enrich">[docs]</a>    <span class="k">def</span> <span class="nf">enrich</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;HP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[[</span><span class="s1">&#39;HPH_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HPB_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HP_conso&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;HC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[[</span><span class="s1">&#39;HCH_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HCB_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HC_conso&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;not_enough_data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[[</span><span class="s1">&#39;HPH_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HPB_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HCH_conso&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;HCB_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;BASE_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HP_conso&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;HC_conso&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Base&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;not_enough_data&#39;</span><span class="p">],</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">data</span><span class="p">[[</span><span class="s1">&#39;HPH_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HPB_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HCH_conso&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;HCB_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;BASE_conso&#39;</span><span class="p">,</span> <span class="s1">&#39;HP_conso&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;HC_conso&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="DataMerger.update_odoo"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.update_odoo">[docs]</a>    <span class="k">def</span> <span class="nf">update_odoo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">):</span>
+        <span class="c1"># Mettre à jour Odoo avec les données fusionnées</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">update_draft_invoices</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataMerger.process"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.process">[docs]</a>    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">drafts</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">enedis_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="p">,</span>
+                                        <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Type_Compteur&#39;</span><span class="p">,</span> <span class="s1">&#39;Num_Serie&#39;</span><span class="p">,</span> <span class="s1">&#39;Date_Theorique_Prochaine_Releve&#39;</span><span class="p">],</span>
+                                        <span class="n">heuristic</span><span class="o">=</span><span class="n">LastFirstEstimator</span><span class="p">())</span>
+
+        <span class="n">enedis_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">root_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;R15&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;EnedisFluxEngine_from_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="si">}</span><span class="s1">_to</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">))</span>
+
+        <span class="n">odoo_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_odoo_data</span><span class="p">()</span> <span class="k">if</span> <span class="n">drafts</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">fetch_orders</span><span class="p">()</span>
+
+        <span class="n">odoo_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">root_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;R15&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;OdooAPI_from_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="si">}</span><span class="s1">_to</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge_data</span><span class="p">(</span><span class="n">enedis_data</span><span class="p">,</span> <span class="n">odoo_data</span><span class="p">)</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enrich</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_taxes</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">root_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;R15&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;DataMerger_from_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="si">}</span><span class="s1">_to</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">))</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Base&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">root_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;R15&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;DataMerger_TOCHECK_from_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="si">}</span><span class="s1">_to</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="DataMerger.process_and_update"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.DataMerger.DataMerger.process_and_update">[docs]</a>    <span class="k">def</span> <span class="nf">process_and_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">drafts</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">drafts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">drafts</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_odoo</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">update_sale_order</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div></div>
+
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">enedis_odoo_bridge</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributions &amp; Help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">Module Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Virgile.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

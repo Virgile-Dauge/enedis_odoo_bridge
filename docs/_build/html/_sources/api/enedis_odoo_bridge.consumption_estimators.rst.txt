@@ -1,0 +1,37 @@
+enedis\_odoo\_bridge.consumption\_estimators package
+====================================================
+
+Submodules
+----------
+
+enedis\_odoo\_bridge.consumption\_estimators.base\_estimator module
+-------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.consumption_estimators.base_estimator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.consumption\_estimators.last\_first\_estimator module
+--------------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.consumption_estimators.last_first_estimator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.consumption\_estimators.soustraction\_estimator module
+---------------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.consumption_estimators.soustraction_estimator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: enedis_odoo_bridge.consumption_estimators
+   :members:
+   :undoc-members:
+   :show-inheritance:

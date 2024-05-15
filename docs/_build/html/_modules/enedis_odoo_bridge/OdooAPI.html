@@ -1,0 +1,702 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>enedis_odoo_bridge.OdooAPI &#8212; enedis_odoo_bridge 1.0.2.dev1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for enedis_odoo_bridge.OdooAPI</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">xmlrpc.client</span>
+<span class="kn">from</span> <span class="nn">xmlrpc.client</span> <span class="kn">import</span> <span class="n">MultiCall</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">rich</span> <span class="kn">import</span> <span class="n">pretty</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.utils</span> <span class="kn">import</span> <span class="n">check_required</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+
+<div class="viewcode-block" id="ensure_connection"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.ensure_connection">[docs]</a><span class="k">def</span> <span class="nf">ensure_connection</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+
+<div class="viewcode-block" id="OdooAPI"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI">[docs]</a><span class="k">class</span> <span class="nc">OdooAPI</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">sim</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;enedis_odoo_bridge&#39;</span><span class="p">)):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">check_required</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ODOO_URL&#39;</span><span class="p">,</span> <span class="s1">&#39;ODOO_DB&#39;</span><span class="p">,</span> <span class="s1">&#39;ODOO_USERNAME&#39;</span><span class="p">,</span> <span class="s1">&#39;ODOO_PASSWORD&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ODOO_URL&#39;</span><span class="p">]</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ODOO_DB&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">db</span> <span class="c1">#+ &#39;-duplicate&#39; if sim else db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">sim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ODOO_USERNAME&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;ODOO_PASSWORD&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+
+
+    <span class="c1"># low level methods</span>
+<div class="viewcode-block" id="OdooAPI.connect"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.connect">[docs]</a>    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_uid</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="o">=</span> <span class="n">xmlrpc</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">ServerProxy</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s1">/xmlrpc/2/object&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Logged to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="si">}</span><span class="s1"> Odoo db.&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="OdooAPI.get_uid"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.get_uid">[docs]</a>    <span class="k">def</span> <span class="nf">get_uid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Authenticates the user with the provided credentials and returns the user ID.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            self (OdooAPI): An instance of the OdooAPI class.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: The user ID obtained from the Odoo server.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            xmlrpc.client.Fault: If the authentication fails.</span>
+
+<span class="sd">        This function creates a ServerProxy object to the Odoo server&#39;s XML-RPC interface,</span>
+<span class="sd">        and calls the &#39;authenticate&#39; method to authenticate the user with the provided credentials. </span>
+<span class="sd">        The user ID obtained from the Odoo server is then returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">common_proxy</span> <span class="o">=</span> <span class="n">xmlrpc</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">ServerProxy</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">/xmlrpc/2/common&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">common_proxy</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">password</span><span class="p">,</span> <span class="p">{})</span></div>
+<div class="viewcode-block" id="OdooAPI.execute"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.execute">[docs]</a>    <span class="nd">@ensure_connection</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Executes a method on the Odoo server.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model (str): The model to execute the method on.</span>
+<span class="sd">            method (str): The method to execute.</span>
+<span class="sd">            *args: Additional positional arguments to pass to the method.</span>
+<span class="sd">            **kwargs: Additional keyword arguments to pass to the method.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List: The result of the executed method, if it returns a list. Otherwise, a single value is wrapped in a list.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            xmlrpc.client.Fault: If the execution fails.</span>
+
+<span class="sd">        This function creates a ServerProxy object to the Odoo server&#39;s XML-RPC interface,</span>
+<span class="sd">        and calls the &#39;execute_kw&#39; method to execute the specified method on the specified model.</span>
+<span class="sd">        The result of the executed method is then returned, wrapped in a list if it is a single value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="ow">and</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;create&#39;</span><span class="p">,</span> <span class="s1">&#39;write&#39;</span><span class="p">,</span> <span class="s1">&#39;unlink&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Executing </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s1"> on </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s1"> with args </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s1"> and kwargs </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s1"> [simulated]&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        
+        <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Executing </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s1"> on </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s1"> with args </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s1"> and kwargs </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="o">.</span><span class="n">execute_kw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">password</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="n">res</span><span class="p">]</span></div>
+
+
+    <span class="c1"># medium level methods </span>
+<div class="viewcode-block" id="OdooAPI.create"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.create">[docs]</a>    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">entries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span><span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates entries in the Odoo database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            log (Dict[str, str]): A dictionary containing the entries data.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: The ID of the newly created entries in the Odoo database.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;# </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s1"> creation called. [simulated]&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        
+        <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;create&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">entries</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">id</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s1"> #</span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s1"> created in Odoo db.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">id</span></div>
+
+<div class="viewcode-block" id="OdooAPI.update"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">entries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span><span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+            <span class="k">del</span> <span class="n">e</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">e</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">v</span><span class="p">)}</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;write&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="n">i</span><span class="p">],</span> <span class="n">data</span><span class="p">])</span>
+            <span class="nb">id</span> <span class="o">+=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s1"> #</span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s1"> writen in Odoo db.&#39;</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;[simulated]&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">))</span></div>
+      
+<div class="viewcode-block" id="OdooAPI.ask_for_approval"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.ask_for_approval">[docs]</a>    <span class="k">def</span> <span class="nf">ask_for_approval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">model_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;ir.model&#39;</span><span class="p">,</span> <span class="s1">&#39;search&#39;</span><span class="p">,</span> <span class="p">[[[</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="n">model</span><span class="p">]]])</span>
+
+        <span class="c1"># TODO Filter id to only have invoices with no existing approuval ?</span>
+        <span class="n">activities</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;res_id&#39;</span><span class="p">:</span> <span class="n">ids</span><span class="p">})</span>
+        <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;res_model_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;activity_type_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ODOO_ACTIVITY_APPROUVAL_ID&#39;</span><span class="p">])</span>
+        <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;ODOO_FACTURISTE_ID&#39;</span><span class="p">])</span>
+        <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;summary&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg</span>
+        <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;automated&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;note&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">note</span>
+        <span class="c1"># TODO Date adaptée : maj le 5 du mois de facturation</span>
+        <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;date_deadline&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s1">&#39;mail.activity&#39;</span><span class="p">,</span> <span class="n">activities</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">))</span></div>
+        <span class="c1">#self.execute(&#39;mail.activity&#39;, &#39;create&#39;, [activities.to_dict(orient=&#39;records&#39;)])</span>
+   
+
+    <span class="c1"># fetch processes</span>
+<div class="viewcode-block" id="OdooAPI.fetch_drafts"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.fetch_drafts">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_drafts</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            self (OdooAPI): An instance of the OdooAPI class.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: A DataFrame containing the draft invoices with the specified fields.</span>
+
+<span class="sd">        This function first fetches [&#39;invoice_line_ids&#39;, &#39;date&#39;, &#39;x_order_id&#39;] fields of draft invoices.</span>
+<span class="sd">        It then adds [&#39;x_pdl&#39;, &#39;x_puissance_souscrite&#39;] fields from the &#39;sale.order&#39;.</span>
+<span class="sd">        Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.</span>
+<span class="sd">        The function returns the cleared DataFrame, leaving only scalar values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Reading </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="si">}</span><span class="s1"> odoo db from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s1"> ...&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">extra</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;│   ├──&#39;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_drafts</span><span class="p">([</span><span class="s1">&#39;invoice_line_ids&#39;</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;x_order_id&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2"> draft account.move found. fields=[&#39;invoice_line_ids&#39;, &#39;date&#39;, &#39;x_order_id&#39;])&quot;</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_order_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x_pdl&#39;</span><span class="p">,</span> <span class="s1">&#39;x_puissance_souscrite&#39;</span><span class="p">,</span> <span class="s1">&#39;x_lisse&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;added from sale.order : fields=[&#39;x_pdl&#39;, &#39;x_puissance_souscrite&#39;, &#39;x_lisse&#39;])&quot;</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_cat_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;account.move.lines id sorted into columns according to product category&#39;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_non_energy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">extra</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;│   &#39;</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;└──Droped non-energy lines, and removed non-linear data.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span> </div>
+
+<div class="viewcode-block" id="OdooAPI.fetch_orders"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.fetch_orders">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            self (OdooAPI): An instance of the OdooAPI class.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: A DataFrame containing the draft invoices with the specified fields.</span>
+
+<span class="sd">        This function first fetches [&#39;invoice_line_ids&#39;, &#39;date&#39;, &#39;x_order_id&#39;] fields of draft invoices.</span>
+<span class="sd">        It then adds [&#39;x_pdl&#39;, &#39;x_puissance_souscrite&#39;] fields from the &#39;sale.order&#39;.</span>
+<span class="sd">        Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.</span>
+<span class="sd">        The function returns the cleared DataFrame, leaving only scalar values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_orders</span><span class="p">([</span><span class="s1">&#39;order_line&#39;</span><span class="p">,</span> <span class="s1">&#39;x_pdl&#39;</span><span class="p">,</span> <span class="s1">&#39;x_puissance_souscrite&#39;</span><span class="p">,</span> <span class="s1">&#39;x_lisse&#39;</span><span class="p">,</span> <span class="s1">&#39;start_date&#39;</span><span class="p">])</span>
+        <span class="c1">#pretty.pprint(data)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_order_line</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="c1">#pretty.pprint(data)</span>
+        <span class="c1">#data = self.add_cat_fields(data, [])</span>
+        <span class="c1">#data = self.filter_non_energy(data)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+    <span class="c1"># fetch helpers, all processes</span>
+<div class="viewcode-block" id="OdooAPI.filter_non_energy"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.filter_non_energy">[docs]</a>    <span class="k">def</span> <span class="nf">filter_non_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filters out rows from the DataFrame that do not have any energy consumption data.</span>
+
+<span class="sd">        This method checks for the presence of non-null values in the columns that represent energy consumption</span>
+<span class="sd">        (&#39;line_id_Base&#39;, &#39;line_id_HP&#39;, &#39;line_id_HC&#39;). If a row does not have any non-null values in these columns,</span>
+<span class="sd">        it is considered to not have energy consumption data and is filtered out.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (DataFrame): The input DataFrame containing invoice line items.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: A DataFrame with rows that lack energy consumption data removed.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            The method specifically looks for the presence of &#39;line_id_Base&#39;, &#39;line_id_HP&#39;, and &#39;line_id_HC&#39; columns</span>
+<span class="sd">            to determine if the invoice is related to energy consumption. </span>
+<span class="sd">            Rows are kept if they have at least one non-null value in any of these columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">to_check</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;line_id_Base&#39;</span><span class="p">,</span> <span class="s1">&#39;line_id_HP&#39;</span><span class="p">,</span> <span class="s1">&#39;line_id_HC&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="n">to_check</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
+      
+<div class="viewcode-block" id="OdooAPI.clear"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes non-scalar columns from the input DataFrame.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (DataFrame): The input DataFrame to be cleaned.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: The input DataFrame with non-scalar columns removed.</span>
+
+<span class="sd">        This function identifies non-scalar columns in the input DataFrame and removes them.</span>
+<span class="sd">        Non-scalar columns are those that contain lists or dictionaries.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">non_scalar_columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)))]</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">non_scalar_columns</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+    
+    <span class="c1"># fetch helpers, draft as starting point process</span>
+<div class="viewcode-block" id="OdooAPI.get_drafts"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.get_drafts">[docs]</a>    <span class="k">def</span> <span class="nf">get_drafts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fields (List[str]): A list of fields to be included in the returned DataFrame.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: A DataFrame containing the draft invoices with the specified fields.</span>
+
+<span class="sd">        This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.</span>
+<span class="sd">        Draft invoices satisfies : [&#39;move_type&#39;, &#39;=&#39;, &#39;out_invoice&#39;], [&#39;state&#39;, &#39;=&#39;, &#39;draft&#39;], [&#39;x_order_id&#39;,&#39;!=&#39;,False]</span>
+<span class="sd">        It uses the &#39;search_read&#39; method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">drafts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;account.move&#39;</span><span class="p">,</span> <span class="s1">&#39;search_read&#39;</span><span class="p">,</span> 
+            <span class="p">[[[</span><span class="s1">&#39;move_type&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;out_invoice&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;draft&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x_order_id&#39;</span><span class="p">,</span><span class="s1">&#39;!=&#39;</span><span class="p">,</span><span class="kc">False</span><span class="p">]]],</span> 
+            <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="n">fields</span><span class="p">})</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">drafts</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span><span class="s1">&#39;move_id&#39;</span><span class="p">,</span> <span class="s1">&#39;x_order_id&#39;</span><span class="p">:</span> <span class="s1">&#39;order_id&#39;</span><span class="p">})</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">drafts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No draft invoices found in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s1"> db. Process aborted.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;x_order_id&#39;</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;order_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;order_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="OdooAPI.add_order_fields"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.add_order_fields">[docs]</a>    <span class="k">def</span> <span class="nf">add_order_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the specified fields from the &#39;sale.order&#39; model to the input DataFrame based on the &#39;x_order_id&#39; column.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (DataFrame): The input DataFrame to be updated.</span>
+<span class="sd">            fields (List[str]): A list of fields to be added from the &#39;sale.order&#39; model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: The input DataFrame with the specified fields added.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the input DataFrame does not have the &#39;x_order_id&#39; column.</span>
+
+<span class="sd">        This function first checks if the input DataFrame has the &#39;x_order_id&#39; column. </span>
+<span class="sd">        If it does, it fetches the corresponding orders from the &#39;sale.order&#39; model using the &#39;read&#39; method of the Odoo API. </span>
+<span class="sd">        It then creates a new DataFrame from the fetched orders and adds the specified fields to the input DataFrame. </span>
+<span class="sd">        Finally, it returns the updated DataFrame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;order_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No order_id found in </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        
+        <span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;sale.order&#39;</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">,</span> 
+                            <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;order_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()],</span> 
+                            <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="n">fields</span><span class="p">})</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">orders</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">fields</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">fields</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;x_pdl&#39;</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+            <span class="c1"># Remove every character that is not a number from every entry in the x_pdl column</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;x_pdl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;x_pdl&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;[^\d]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+           
+<div class="viewcode-block" id="OdooAPI.add_cat_fields"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.add_cat_fields">[docs]</a>    <span class="k">def</span> <span class="nf">add_cat_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add one category column to the data frame for each invoice line, set with the corresponding line id.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (DataFrame): The input data frame.</span>
+<span class="sd">            fields (List[str]): The list of category fields to add.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: The input data frame with the added category fields.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the input data frame does not have the required columns.</span>
+
+<span class="sd">        After checking that the input data frame has the required columns,</span>
+<span class="sd">        Then fetchs the lines of each invoice with invoice_line_ids key.</span>
+<span class="sd">        Then fetchs the product of each line with product_id key found for each line.</span>
+<span class="sd">        Then explodes each invoice line into a separate row.</span>
+<span class="sd">        Then adds the cat columns from the fetcheds products.</span>
+<span class="sd">        We now have all the data, but we need to return to one row for each invoice.</span>
+<span class="sd">        We can do this by pivoting the data, and then merging the pivoted data with the original data frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;invoice_line_ids&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No invoice_line_ids found in </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">df_exploded</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s1">&#39;invoice_line_ids&#39;</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;account.move.line&#39;</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">df_exploded</span><span class="p">[</span><span class="s1">&#39;invoice_line_ids&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()],</span>
+                             <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;product_id&#39;</span><span class="p">]})</span>
+        
+        <span class="n">prods_id</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="p">[</span><span class="s1">&#39;product_id&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="s1">&#39;product_id&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
+
+        <span class="n">prods</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;product.product&#39;</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">prods_id</span><span class="p">],</span>
+                        <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;categ_id&#39;</span><span class="p">]})</span>
+        <span class="n">cat</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;categ_id&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prods</span><span class="p">]</span>
+        
+        <span class="n">df_exploded</span><span class="p">[</span><span class="s1">&#39;cat&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cat</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cat</span><span class="p">)</span>
+        <span class="n">is_pe</span> <span class="o">=</span> <span class="n">df_exploded</span><span class="p">[</span><span class="s1">&#39;cat&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Prestation-Enedis&#39;</span>
+        <span class="c1"># Pour les catégories autres que &#39;ALL&#39;, pivotons normalement</span>
+        <span class="n">df_pivoted_normal</span> <span class="o">=</span> <span class="n">df_exploded</span><span class="p">[</span><span class="o">~</span><span class="n">is_pe</span><span class="p">]</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;move_id&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;cat&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;invoice_line_ids&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">df_pivoted_normal</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;move_id&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;line_id_</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">df_pivoted_normal</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="s1">&#39;move_id&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Pour &#39;ALL&#39;, agrégeons les valeurs dans une liste</span>
+        <span class="n">df_all</span> <span class="o">=</span> <span class="n">df_exploded</span><span class="p">[</span><span class="n">is_pe</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;move_id&#39;</span><span class="p">)[</span><span class="s1">&#39;invoice_line_ids&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="n">df_all</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;move_id&#39;</span><span class="p">,</span> <span class="s1">&#39;line_id_Prestation-Enedis&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Fusionnons d&#39;abord les DataFrames pivotés normalement et &#39;ALL&#39;</span>
+        <span class="n">df_merged</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">df_pivoted_normal</span><span class="p">,</span> <span class="n">df_all</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;move_id&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Ensuite, fusionnons le résultat avec le DataFrame original</span>
+        <span class="n">df_final</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">df_merged</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;move_id&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+        <span class="c1"># Pivoting to transform &#39;cat&#39; values into separate columns</span>
+        <span class="c1">#df_pivoted = df_exploded.pivot(index=&#39;move_id&#39;, columns=&#39;cat&#39;, values=&#39;invoice_line_ids&#39;).reset_index()</span>
+        <span class="c1"># Renaming columns to reflect the source of the data</span>
+        <span class="c1">#df_pivoted.columns = [&#39;move_id&#39;] + [f&#39;line_id_{x}&#39; for x in df_pivoted.columns if x != &#39;move_id&#39;]</span>
+
+        <span class="c1"># Merge the pivoted DataFrame with the original DataFrame</span>
+        <span class="c1">#df_final = pd.merge(data, df_pivoted, on=&#39;move_id&#39;, how=&#39;left&#39;)</span>
+        <span class="k">return</span> <span class="n">df_final</span></div>
+
+    <span class="c1"># fetch helpers, order as starting point process</span>
+<div class="viewcode-block" id="OdooAPI.get_orders"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.get_orders">[docs]</a>    <span class="k">def</span> <span class="nf">get_orders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fields (List[str]): A list of fields to be included in the returned DataFrame.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: A DataFrame containing the draft invoices with the specified fields.</span>
+
+<span class="sd">        This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.</span>
+<span class="sd">        Draft invoices satisfies : [&#39;move_type&#39;, &#39;=&#39;, &#39;out_invoice&#39;], [&#39;state&#39;, &#39;=&#39;, &#39;draft&#39;], [&#39;x_order_id&#39;,&#39;!=&#39;,False]</span>
+<span class="sd">        It uses the &#39;search_read&#39; method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Searching subscription sales.order in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s1"> db.&#39;</span><span class="p">)</span>
+        <span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;sale.order&#39;</span><span class="p">,</span> <span class="s1">&#39;search_read&#39;</span><span class="p">,</span> 
+            <span class="p">[[[</span><span class="s1">&#39;is_subscription&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;is_expired&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;sale&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;subscription_state&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;3_progress&#39;</span><span class="p">]]],</span> 
+            <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="n">fields</span><span class="p">})</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">orders</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No draft subscription sales.order found in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s1"> db. Process aborted.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">orders</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="OdooAPI.add_order_line"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.add_order_line">[docs]</a>    <span class="k">def</span> <span class="nf">add_order_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span><span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;order_line&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No order_line found in </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        
+        <span class="n">df_exploded</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s1">&#39;order_line&#39;</span><span class="p">)</span>
+
+        <span class="n">order_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;sale.order.line&#39;</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">,</span> 
+                        <span class="p">[</span><span class="n">df_exploded</span><span class="p">[</span><span class="s1">&#39;order_line&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()],</span> <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">order_lines</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No draft sale.order.line found in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s1"> db. Process aborted.&#39;</span><span class="p">)</span>
+        
+        <span class="n">prods_id</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="p">[</span><span class="s1">&#39;product_id&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="s1">&#39;product_id&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">order_lines</span><span class="p">]</span>
+
+        <span class="n">prods</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;product.product&#39;</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">prods_id</span><span class="p">],</span>
+                        <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;categ_id&#39;</span><span class="p">]})</span>
+        <span class="n">cat</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;categ_id&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prods</span><span class="p">]</span>
+        
+        <span class="n">df_exploded</span><span class="p">[</span><span class="s1">&#39;cat&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cat</span>
+
+        <span class="c1"># Pivoting to transform &#39;cat&#39; values into separate columns</span>
+        <span class="n">df_pivoted</span> <span class="o">=</span> <span class="n">df_exploded</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s1">&#39;cat&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s1">&#39;order_line&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+        <span class="c1"># Renaming columns to reflect the source of the data</span>
+        <span class="n">df_pivoted</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;order_line_id_</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">df_pivoted</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="s1">&#39;id&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Merge the pivoted DataFrame with the original DataFrame</span>
+        <span class="n">df_final</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">df_pivoted</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df_final</span></div>
+
+
+    <span class="c1"># update helpers </span>
+<div class="viewcode-block" id="OdooAPI.prepare_line_updates"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_line_updates">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_line_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="n">DataFrame</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">required_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;HP&#39;</span><span class="p">,</span> <span class="s1">&#39;HC&#39;</span><span class="p">,</span> <span class="s1">&#39;Base&#39;</span><span class="p">,</span> <span class="s1">&#39;line_id_Abonnements&#39;</span><span class="p">,</span> <span class="s1">&#39;x_lisse&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">required_cols</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Required &quot;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s1">&quot; column found in </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Get cols names containing line id for consumptions only</span>
+        <span class="n">line_id_cols</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+                        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;line_id_&#39;</span><span class="p">)</span> 
+                        <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;line_id_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;HP&#39;</span><span class="p">,</span> <span class="s1">&#39;HC&#39;</span><span class="p">,</span> <span class="s1">&#39;Base&#39;</span><span class="p">]])</span>
+        <span class="n">value_cols</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+                      <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;HP&#39;</span><span class="p">,</span> <span class="s1">&#39;HC&#39;</span><span class="p">,</span> <span class="s1">&#39;Base&#39;</span><span class="p">]])</span>
+        <span class="n">not_smoothed_invoices</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;x_lisse&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">False</span><span class="p">]</span>
+
+        <span class="n">consumption_lines</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">not_smoothed_invoices</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">line_id_cols</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="s1">&#39;quantity&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">not_smoothed_invoices</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">value_cols</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">})</span>
+        <span class="n">consumption_lines</span> <span class="o">=</span> <span class="n">consumption_lines</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Abonnements</span>
+        <span class="n">do_update_qty</span> <span class="o">=</span> <span class="o">~</span><span class="p">((</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;x_lisse&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">True</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;update_dates&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">False</span><span class="p">))</span>
+        <span class="n">subscription_lines</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">do_update_qty</span><span class="p">][[</span><span class="s1">&#39;line_id_Abonnements&#39;</span><span class="p">,</span><span class="s1">&#39;subscription_days&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">subscription_lines</span><span class="p">[</span><span class="s1">&#39;start_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">do_update_qty</span><span class="p">][</span><span class="s1">&#39;start_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%S&#39;</span><span class="p">)</span>
+        <span class="n">subscription_lines</span><span class="p">[</span><span class="s1">&#39;end_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">do_update_qty</span><span class="p">][</span><span class="s1">&#39;end_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%S&#39;</span><span class="p">)</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;account.move.line&#39;</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">do_update_qty</span><span class="p">][</span><span class="s1">&#39;line_id_Abonnements&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()],</span>
+                             <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]})</span>
+
+        <span class="n">subscription_lines</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">]</span>
+        <span class="n">subscription_lines_dict</span> <span class="o">=</span> <span class="n">subscription_lines</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;line_id_Abonnements&#39;</span><span class="p">:</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span> 
+                                                                <span class="s1">&#39;subscription_days&#39;</span><span class="p">:</span> <span class="s1">&#39;quantity&#39;</span><span class="p">,</span>
+                                                                <span class="s1">&#39;start_date&#39;</span><span class="p">:</span> <span class="s1">&#39;deferred_start_date&#39;</span><span class="p">,</span>
+                                                                <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="s1">&#39;deferred_end_date&#39;</span><span class="p">,})</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)</span>
+        <span class="n">subscription_lines</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">do_update_qty</span><span class="p">][[</span><span class="s1">&#39;line_id_Abonnements&#39;</span><span class="p">,</span><span class="s1">&#39;subscription_days&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">subscription_lines</span><span class="p">[</span><span class="s1">&#39;start_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">do_update_qty</span><span class="p">][</span><span class="s1">&#39;start_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%S&#39;</span><span class="p">)</span>
+        <span class="n">subscription_lines</span><span class="p">[</span><span class="s1">&#39;end_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">do_update_qty</span><span class="p">][</span><span class="s1">&#39;end_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%S&#39;</span><span class="p">)</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;account.move.line&#39;</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">do_update_qty</span><span class="p">][</span><span class="s1">&#39;line_id_Abonnements&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()],</span>
+                        <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]})</span>
+        <span class="n">subscription_lines</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">]</span>
+        <span class="n">subscription_lines_without_qty_dict</span> <span class="o">=</span> <span class="n">subscription_lines</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;line_id_Abonnements&#39;</span><span class="p">:</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span> 
+                                                        <span class="s1">&#39;start_date&#39;</span><span class="p">:</span> <span class="s1">&#39;deferred_start_date&#39;</span><span class="p">,</span>
+                                                        <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="s1">&#39;deferred_end_date&#39;</span><span class="p">,})</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">consumption_lines</span> <span class="o">+</span> <span class="n">subscription_lines_dict</span> <span class="o">+</span> <span class="n">subscription_lines_without_qty_dict</span></div>
+  
+<div class="viewcode-block" id="OdooAPI.prepare_account_moves_updates"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_account_moves_updates">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_account_moves_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="n">DataFrame</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="c1"># On veut ajouter x_type_compteur, x_scripted, x_turpe</span>
+    
+        <span class="n">moves</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;move_id&#39;</span><span class="p">])</span>
+        <span class="c1"># TODO intérroger au préalable l&#39;API pour récupérer les champs supportés par l&#39;instance Odoo</span>
+        <span class="n">moves</span><span class="p">[</span><span class="s1">&#39;x_turpe&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;turpe_fix&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;turpe_var&#39;</span><span class="p">]</span>
+        <span class="n">moves</span><span class="p">[</span><span class="s1">&#39;x_start_invoice_period&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;start_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">moves</span><span class="p">[</span><span class="s1">&#39;x_end_invoice_period&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;end_date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="c1"># Deprecated : Maintenant on a les activités</span>
+        <span class="c1">#moves[&#39;x_scripted&#39;] = True</span>
+        <span class="c1">#additionnal_fields = [&#39;x_type_compteur&#39;, &#39;x_num_serie_compteur&#39;]</span>
+        <span class="c1">#for f in additionnal_fields:</span>
+        <span class="c1">#    if f in data.columns:</span>
+        <span class="c1">#        moves[f] = data[f]</span>
+        <span class="k">if</span> <span class="s1">&#39;Type_Compteur&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">moves</span><span class="p">[</span><span class="s1">&#39;x_type_compteur&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Type_Compteur&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;Num_Serie&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">moves</span><span class="p">[</span><span class="s1">&#39;x_num_serie_compteur&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Num_Serie&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;Date_Theorique_Prochaine_Releve&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">moves</span><span class="p">[</span><span class="s1">&#39;x_prochaine_releve&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Date_Theorique_Prochaine_Releve&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">moves</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;move_id&#39;</span><span class="p">:</span> <span class="s1">&#39;id&#39;</span><span class="p">})</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OdooAPI.prepare_sale_order_updates"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_sale_order_updates">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_sale_order_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span><span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">orders</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;order_id&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s1">&#39;x_turpe&#39;</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+            <span class="n">orders</span><span class="p">[</span><span class="s1">&#39;x_turpe&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;turpe_fix&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;turpe_var&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;x_last_invoiced_releve_id&#39;</span><span class="p">:</span>
+            <span class="n">orders</span><span class="p">[</span><span class="s1">&#39;x_last_invoiced_releve_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;last_releve&#39;</span><span class="p">]</span>
+        <span class="c1"># Deprecated : Maintenant on a les activités</span>
+        <span class="c1">#moves[&#39;x_scripted&#39;] = True</span>
+        <span class="c1">#if &#39;Type_Compteur&#39; in data.columns:</span>
+        <span class="c1">#    orders[&#39;x_type_compteur&#39;] = data[&#39;Type_Compteur&#39;]</span>
+        <span class="k">return</span> <span class="n">orders</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;order_id&#39;</span><span class="p">:</span> <span class="s1">&#39;id&#39;</span><span class="p">})</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="OdooAPI.prepare_order_line_updates"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_order_line_updates">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_order_line_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="n">DataFrame</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">required_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;HP&#39;</span><span class="p">,</span> <span class="s1">&#39;HC&#39;</span><span class="p">,</span> <span class="s1">&#39;Base&#39;</span><span class="p">,</span> <span class="s1">&#39;order_line_id_Abonnements&#39;</span><span class="p">,</span> <span class="s1">&#39;x_lisse&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">required_cols</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Required &quot;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s1">&quot; column found in </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Get cols names containing line id for consumptions only</span>
+        <span class="n">order_line_id_cols</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+                        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;order_line_id_&#39;</span><span class="p">)</span> 
+                        <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;order_line_id_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;HP&#39;</span><span class="p">,</span> <span class="s1">&#39;HC&#39;</span><span class="p">,</span> <span class="s1">&#39;Base&#39;</span><span class="p">]])</span>
+        <span class="n">value_cols</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+                    <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;HP&#39;</span><span class="p">,</span> <span class="s1">&#39;HC&#39;</span><span class="p">,</span> <span class="s1">&#39;Base&#39;</span><span class="p">]])</span>
+        <span class="n">not_smoothed_invoices</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;x_lisse&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">False</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">not_smoothed_invoices</span><span class="p">)</span>
+        <span class="n">consumption_lines</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">not_smoothed_invoices</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">order_line_id_cols</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="s1">&#39;qty_delivered&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">not_smoothed_invoices</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">value_cols</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">})</span>
+        <span class="n">consumption_lines</span> <span class="o">=</span> <span class="n">consumption_lines</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Abonnements</span>
+        <span class="n">do_update_qty</span> <span class="o">=</span> <span class="o">~</span><span class="p">((</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;x_lisse&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">True</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;update_dates&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">False</span><span class="p">))</span>
+        <span class="n">subscription_lines</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">do_update_qty</span><span class="p">][[</span><span class="s1">&#39;order_line_id_Abonnements&#39;</span><span class="p">,</span><span class="s1">&#39;subscription_days&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1">#subscription_lines[&#39;start_date&#39;] = data[do_update_qty][&#39;start_date&#39;].dt.strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;)</span>
+        <span class="c1">#subscription_lines[&#39;end_date&#39;] = data[do_update_qty][&#39;end_date&#39;].dt.strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;)</span>
+
+        <span class="c1">#names = self.execute(&#39;account.move.line&#39;, &#39;read&#39;, [data[do_update_qty][&#39;line_id_Abonnements&#39;].to_list()],</span>
+        <span class="c1">#                    {&#39;fields&#39;: [&#39;name&#39;]})</span>
+
+        <span class="c1">#subscription_lines[&#39;name&#39;] = [n[&#39;name&#39;].split(&#39;-&#39;)[0] for n in names]</span>
+        <span class="n">subscription_lines_dict</span> <span class="o">=</span> <span class="n">subscription_lines</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;order_line_id_Abonnements&#39;</span><span class="p">:</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span> 
+                                                                <span class="s1">&#39;subscription_days&#39;</span><span class="p">:</span> <span class="s1">&#39;qty_delivered&#39;</span><span class="p">,</span>
+                                                                <span class="c1">#&#39;start_date&#39;: &#39;deferred_start_date&#39;,</span>
+                                                                <span class="c1">#&#39;end_date&#39;: &#39;deferred_end_date&#39;,</span>
+                                                                <span class="p">})</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)</span>
+        <span class="c1">#subscription_lines = data[~do_update_qty][[&#39;line_id_Abonnements&#39;,&#39;subscription_days&#39;]].copy()</span>
+        <span class="c1">#subscription_lines[&#39;start_date&#39;] = data[~do_update_qty][&#39;start_date&#39;].dt.strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;)</span>
+        <span class="c1">#subscription_lines[&#39;end_date&#39;] = data[~do_update_qty][&#39;end_date&#39;].dt.strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;)</span>
+        <span class="c1">#names = self.execute(&#39;account.move.line&#39;, &#39;read&#39;, [data[~do_update_qty][&#39;line_id_Abonnements&#39;].to_list()],</span>
+        <span class="c1">#                {&#39;fields&#39;: [&#39;name&#39;]})</span>
+        <span class="c1">#subscription_lines[&#39;name&#39;] = [n[&#39;name&#39;].split(&#39;-&#39;)[0] for n in names]</span>
+        <span class="c1">#subscription_lines_without_qty_dict = subscription_lines.rename(columns={&#39;line_id_Abonnements&#39;: &#39;id&#39;, </span>
+        <span class="c1">#                                                &#39;start_date&#39;: &#39;deferred_start_date&#39;,</span>
+        <span class="c1">#                                                &#39;end_date&#39;: &#39;deferred_end_date&#39;,}).to_dict(orient=&#39;records&#39;)</span>
+        <span class="k">return</span> <span class="n">consumption_lines</span> <span class="o">+</span> <span class="n">subscription_lines_dict</span> <span class="c1">#+ subscription_lines_without_qty_dict</span></div>
+    
+    <span class="c1"># Update processes</span>
+<div class="viewcode-block" id="OdooAPI.update_draft_invoices"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.update_draft_invoices">[docs]</a>    <span class="k">def</span> <span class="nf">update_draft_invoices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="n">date</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">date</span><span class="p">)</span><span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the draft invoices in the Odoo database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (DataFrame): The input data frame.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None: None.</span>
+
+<span class="sd">        This function updates the draft invoices in the Odoo database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">safe</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;not_enough_data&#39;</span><span class="p">]]</span>
+
+        
+        <span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_sale_order_updates</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x_last_invoiced_releve_id&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;sale.order&#39;</span><span class="p">,</span> <span class="n">orders</span><span class="p">)</span>
+
+        <span class="n">moves</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_account_moves_updates</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;account.move&#39;</span><span class="p">,</span> <span class="n">moves</span><span class="p">)</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_line_updates</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;account.move.line&#39;</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ask_for_approval</span><span class="p">(</span><span class="s1">&#39;account.move&#39;</span><span class="p">,</span> <span class="n">safe</span><span class="p">[</span><span class="s1">&#39;move_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">(),</span> 
+                              <span class="s1">&#39;À approuver&#39;</span><span class="p">,</span> 
+                              <span class="s1">&#39;Merci de valider cette facture remplie automatiquement.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ask_for_approval</span><span class="p">(</span><span class="s1">&#39;account.move&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;not_enough_data&#39;</span><span class="p">]][</span><span class="s1">&#39;move_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">(),</span> 
+                              <span class="s1">&#39;ERREUR SCRIPT&#39;</span><span class="p">,</span> 
+                              <span class="s1">&#39;Pas de données Enedis.&#39;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="OdooAPI.update_sale_order"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.OdooAPI.OdooAPI.update_sale_order">[docs]</a>    <span class="k">def</span> <span class="nf">update_sale_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="n">date</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">date</span><span class="p">)</span><span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the draft invoices in the Odoo database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (DataFrame): The input data frame.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None: None.</span>
+
+<span class="sd">        This function updates the draft invoices in the Odoo database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_order_line_updates</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;sale.order.line&#39;</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
+        <span class="n">orders</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_sale_order_updates</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x_turpe&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;sale.order&#39;</span><span class="p">,</span> <span class="n">orders</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Subscription Orders updated in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s1"> db.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ask_for_approval</span><span class="p">(</span><span class="s1">&#39;sale.order&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">enedis_odoo_bridge</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributions &amp; Help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">Module Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Virgile.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

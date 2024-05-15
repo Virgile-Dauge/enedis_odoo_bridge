@@ -1,0 +1,45 @@
+enedis\_odoo\_bridge.flux\_transformers package
+===============================================
+
+Submodules
+----------
+
+enedis\_odoo\_bridge.flux\_transformers.base\_flux\_transformer module
+----------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.flux_transformers.base_flux_transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.flux\_transformers.f15\_flux\_transformer module
+---------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.flux_transformers.f15_flux_transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.flux\_transformers.flux\_transformer\_factory module
+-------------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.flux_transformers.flux_transformer_factory
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.flux\_transformers.r15\_flux\_transformer module
+---------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.flux_transformers.r15_flux_transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: enedis_odoo_bridge.flux_transformers
+   :members:
+   :undoc-members:
+   :show-inheritance:

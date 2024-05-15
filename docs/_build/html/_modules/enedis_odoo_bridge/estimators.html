@@ -1,0 +1,224 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>enedis_odoo_bridge.estimators &#8212; enedis_odoo_bridge 0.1.0.post1.dev53+ge4128ea.d20240420 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for enedis_odoo_bridge.estimators</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">Timestamp</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">Series</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span>
+<span class="c1"># Interface commune pour les stratégies</span>
+<div class="viewcode-block" id="Strategy"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.Strategy">[docs]</a><span class="k">class</span> <span class="nc">Strategy</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<div class="viewcode-block" id="Strategy.get_strategy_name"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.Strategy.get_strategy_name">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_strategy_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+<div class="viewcode-block" id="Strategy.estimate_consumption"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.Strategy.estimate_consumption">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">estimate_consumption</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">],</span> <span class="n">start</span><span class="p">:</span> <span class="n">Timestamp</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+        <span class="k">pass</span></div></div>
+
+
+<span class="c1"># Implémentation de différentes stratégies</span>
+<div class="viewcode-block" id="StrategyMaxMin"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.StrategyMaxMin">[docs]</a><span class="k">class</span> <span class="nc">StrategyMaxMin</span><span class="p">(</span><span class="n">Strategy</span><span class="p">):</span>
+<div class="viewcode-block" id="StrategyMaxMin.get_strategy_name"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.StrategyMaxMin.get_strategy_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_strategy_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Max - Min of available indexes&#39;</span></div>
+<div class="viewcode-block" id="StrategyMaxMin.estimate_consumption"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.StrategyMaxMin.estimate_consumption">[docs]</a>    <span class="k">def</span> <span class="nf">estimate_consumption</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">],</span> <span class="n">start</span><span class="p">:</span> <span class="n">Timestamp</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Estimates the total consumption per PDL for the specified period.</span>
+
+<span class="sd">        :param self: Instance of the StrategyMinMax class.</span>
+<span class="sd">        :param data: The dataframe containing mesures.</span>
+<span class="sd">        :type data: pandas DataFrame</span>
+<span class="sd">        :param start: The start date of the period.</span>
+<span class="sd">        :type start: pandas Timestamp</span>
+<span class="sd">        :param end: The end date of the period.</span>
+<span class="sd">        :type end: pandas Timestamp</span>
+<span class="sd">        :return: The total consumption for the specified period, on each </span>
+<span class="sd">        :rtype: pandas DataFrame</span>
+
+<span class="sd">        Idée : On filtre les relevés de la période, avec Statut_Releve = &#39;INITIAL&#39;. </span>
+<span class="sd">        On les regroupe par pdl, puis pour chaque groupe, </span>
+<span class="sd">            on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.</span>
+
+<span class="sd">            Pour l&#39;instant on ne vérifie rien. Voyons quelques cas :</span>
+<span class="sd">            - Si pas de relevés ?</span>
+<span class="sd">            - Si un seul relevé, conso = 0</span>
+<span class="sd">            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;R15&#39;</span><span class="p">]</span>
+        <span class="c1"># TODO gérer les timezones pour plus grande précision de l&#39;estimation</span>
+        <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">initial</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">start</span><span class="p">)</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">)</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Statut_Releve&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;INITIAL&#39;</span><span class="p">)]</span>
+        
+        <span class="n">initial</span><span class="p">[</span><span class="s1">&#39;start_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="n">initial</span><span class="p">[</span><span class="s1">&#39;end_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end</span>
+
+        <span class="n">pdls</span> <span class="o">=</span> <span class="n">initial</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;pdl&#39;</span><span class="p">,</span> <span class="n">group_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">consos</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">({</span><span class="n">k</span><span class="o">+</span><span class="s1">&#39;_conso&#39;</span><span class="p">:</span> <span class="n">pdls</span><span class="p">[</span><span class="n">k</span><span class="o">+</span><span class="s1">&#39;_index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">-</span><span class="n">pdls</span><span class="p">[</span><span class="n">k</span><span class="o">+</span><span class="s1">&#39;_index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> 
+                            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;HPH&#39;</span><span class="p">,</span> <span class="s1">&#39;HCH&#39;</span><span class="p">,</span> <span class="s1">&#39;HPB&#39;</span><span class="p">,</span> <span class="s1">&#39;HCB&#39;</span><span class="p">]})</span>
+
+        <span class="n">dates</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">({</span>
+            <span class="s1">&#39;start_date&#39;</span><span class="p">:</span> <span class="n">initial</span><span class="p">[(</span><span class="n">initial</span><span class="p">[</span><span class="s1">&#39;Motif_Releve&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;CFNE&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">initial</span><span class="p">[</span><span class="s1">&#39;Motif_Releve&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;MES&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;pdl&#39;</span><span class="p">)[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">first</span><span class="p">(),</span>
+            <span class="s1">&#39;end_date&#39;</span><span class="p">:</span> <span class="n">end</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">consos</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;pdl&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="StrategyAugmentedMaxMin"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.StrategyAugmentedMaxMin">[docs]</a><span class="k">class</span> <span class="nc">StrategyAugmentedMaxMin</span><span class="p">(</span><span class="n">Strategy</span><span class="p">):</span>
+<div class="viewcode-block" id="StrategyAugmentedMaxMin.get_strategy_name"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.StrategyAugmentedMaxMin.get_strategy_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_strategy_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;Max - Min of available indexes, missing days are remplaced by mean daily consumption&#39;</span></div>
+<div class="viewcode-block" id="StrategyAugmentedMaxMin.estimate_consumption"><a class="viewcode-back" href="../../api/enedis_odoo_bridge.html#enedis_odoo_bridge.estimators.StrategyAugmentedMaxMin.estimate_consumption">[docs]</a>    <span class="k">def</span> <span class="nf">estimate_consumption</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">],</span> <span class="n">start</span><span class="p">:</span> <span class="n">Timestamp</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Estimates the total consumption per PDL for the specified period.</span>
+
+<span class="sd">        :param self: Instance of the StrategyMinMax class.</span>
+<span class="sd">        :param data: The dataframe containing mesures.</span>
+<span class="sd">        :type data: pandas DataFrame</span>
+<span class="sd">        :param start: The start date of the period.</span>
+<span class="sd">        :type start: pandas Timestamp</span>
+<span class="sd">        :param end: The end date of the period.</span>
+<span class="sd">        :type end: pandas Timestamp</span>
+<span class="sd">        :return: The total consumption for the specified period, on each </span>
+<span class="sd">        :rtype: pandas DataFrame</span>
+
+<span class="sd">        Idée : On filtre les relevés de la période, avec Statut_Releve = &#39;INITIAL&#39;. </span>
+<span class="sd">        On les regroupe par pdl, puis pour chaque groupe, </span>
+<span class="sd">            on fait la différence entre le plus grand et le plus petit index pour chaque classe de conso.</span>
+
+<span class="sd">            Pour l&#39;instant on ne vérifie rien. Voyons quelques cas :</span>
+<span class="sd">            - Si pas de relevés ?</span>
+<span class="sd">            - Si un seul relevé, conso = 0</span>
+<span class="sd">            - Si plusieurs relevés, conso ok (sauf si passage par zéro du compteur ou coef lecture != 1)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;R15&#39;</span><span class="p">]</span>
+        <span class="c1"># TODO gérer les timezones pour plus grande précision de l&#39;estimation</span>
+        <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">initial</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">start</span><span class="p">)</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">)</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;Statut_Releve&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;INITIAL&#39;</span><span class="p">)]</span>
+
+        <span class="c1"># TODO Compter le nombre de jours manquants.</span>
+        <span class="c1"># TODO Ajouter la moyenne des consos/jours*nb jours manquants pour chaque pdl</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">pdls</span> <span class="o">=</span> <span class="n">initial</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;pdl&#39;</span><span class="p">)</span>
+
+        <span class="n">indices_min_par_groupe</span> <span class="o">=</span> <span class="n">pdls</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="n">indices_max_par_groupe</span> <span class="o">=</span> <span class="n">pdls</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;Date_Releve&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">pdl</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">initial</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;pdl&#39;</span><span class="p">):</span>
+            <span class="c1"># Find min record</span>
+
+            <span class="c1"># Find max record</span>
+            <span class="o">...</span>
+
+        <span class="c1"># Pour chaque pdl, on fait la différence entre le plus grand et le plus petit des index pour chaque classe de conso.</span>
+        <span class="n">consos</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">({</span><span class="n">k</span><span class="o">+</span><span class="s1">&#39;_conso&#39;</span><span class="p">:</span> <span class="n">pdls</span><span class="p">[</span><span class="n">k</span><span class="o">+</span><span class="s1">&#39;_index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">-</span><span class="n">pdls</span><span class="p">[</span><span class="n">k</span><span class="o">+</span><span class="s1">&#39;_index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> 
+                            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;HPH&#39;</span><span class="p">,</span> <span class="s1">&#39;HCH&#39;</span><span class="p">,</span> <span class="s1">&#39;HPB&#39;</span><span class="p">,</span> <span class="s1">&#39;HCB&#39;</span><span class="p">]})</span>
+        <span class="k">return</span> <span class="n">consos</span></div></div>
+
+
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">enedis_odoo_bridge</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributions &amp; Help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">Module Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Virgile.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

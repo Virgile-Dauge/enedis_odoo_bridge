@@ -1,0 +1,822 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>enedis_odoo_bridge package &#8212; enedis_odoo_bridge 1.0.2.dev1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="enedis_odoo_bridge.consumption_estimators package" href="enedis_odoo_bridge.consumption_estimators.html" />
+    <link rel="prev" title="enedis_odoo_bridge" href="modules.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="enedis-odoo-bridge-package">
+<h1>enedis_odoo_bridge package<a class="headerlink" href="#enedis-odoo-bridge-package" title="Permalink to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html">enedis_odoo_bridge.consumption_estimators package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#module-enedis_odoo_bridge.consumption_estimators.base_estimator">enedis_odoo_bridge.consumption_estimators.base_estimator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#module-enedis_odoo_bridge.consumption_estimators.last_first_estimator">enedis_odoo_bridge.consumption_estimators.last_first_estimator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#module-enedis_odoo_bridge.consumption_estimators.soustraction_estimator">enedis_odoo_bridge.consumption_estimators.soustraction_estimator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#module-enedis_odoo_bridge.consumption_estimators">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="enedis_odoo_bridge.flux_transformers.html">enedis_odoo_bridge.flux_transformers package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.flux_transformers.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.flux_transformers.html#module-enedis_odoo_bridge.flux_transformers.base_flux_transformer">enedis_odoo_bridge.flux_transformers.base_flux_transformer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.flux_transformers.html#module-enedis_odoo_bridge.flux_transformers.f15_flux_transformer">enedis_odoo_bridge.flux_transformers.f15_flux_transformer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.flux_transformers.html#module-enedis_odoo_bridge.flux_transformers.flux_transformer_factory">enedis_odoo_bridge.flux_transformers.flux_transformer_factory module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.flux_transformers.html#module-enedis_odoo_bridge.flux_transformers.r15_flux_transformer">enedis_odoo_bridge.flux_transformers.r15_flux_transformer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.flux_transformers.html#module-enedis_odoo_bridge.flux_transformers">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="enedis_odoo_bridge.processes.html">enedis_odoo_bridge.processes package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.processes.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.processes.html#module-enedis_odoo_bridge.processes.add_enedis_service_to_draft_invoice_process">enedis_odoo_bridge.processes.add_enedis_service_to_draft_invoice_process module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.processes.html#module-enedis_odoo_bridge.processes.base_process">enedis_odoo_bridge.processes.base_process module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.processes.html#module-enedis_odoo_bridge.processes.update_values_in_draft_invoices_process">enedis_odoo_bridge.processes.update_values_in_draft_invoices_process module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enedis_odoo_bridge.processes.html#module-enedis_odoo_bridge.processes">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-enedis_odoo_bridge.DataMerger">
+<span id="enedis-odoo-bridge-datamerger-module"></span><h2>enedis_odoo_bridge.DataMerger module<a class="headerlink" href="#module-enedis_odoo_bridge.DataMerger" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.DataMerger.</span></span><span class="sig-name descname"><span class="pre">DataMerger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">enedis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine" title="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine"><span class="pre">EnedisFluxEngine</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">odoo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#enedis_odoo_bridge.OdooAPI.OdooAPI" title="enedis_odoo_bridge.OdooAPI.OdooAPI"><span class="pre">OdooAPI</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.10/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.add_taxes">
+<span class="sig-name descname"><span class="pre">add_taxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.add_taxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.add_taxes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.enrich">
+<span class="sig-name descname"><span class="pre">enrich</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.enrich"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.enrich" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.fetch_enedis_data">
+<span class="sig-name descname"><span class="pre">fetch_enedis_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">heuristic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator" title="enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator"><span class="pre">BaseEstimator</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.fetch_enedis_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.fetch_enedis_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.fetch_odoo_data">
+<span class="sig-name descname"><span class="pre">fetch_odoo_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.fetch_odoo_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.fetch_odoo_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.merge_data">
+<span class="sig-name descname"><span class="pre">merge_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enedis_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">odoo_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.merge_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.merge_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">drafts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.process_and_update">
+<span class="sig-name descname"><span class="pre">process_and_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">drafts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.process_and_update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.process_and_update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.DataMerger.DataMerger.update_odoo">
+<span class="sig-name descname"><span class="pre">update_odoo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/DataMerger.html#DataMerger.update_odoo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.DataMerger.DataMerger.update_odoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-enedis_odoo_bridge.EnedisFluxEngine">
+<span id="enedis-odoo-bridge-enedisfluxengine-module"></span><h2>enedis_odoo_bridge.EnedisFluxEngine module<a class="headerlink" href="#module-enedis_odoo_bridge.EnedisFluxEngine" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.EnedisFluxEngine.</span></span><span class="sig-name descname"><span class="pre">EnedisFluxEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">config:</span> <span class="pre">dict[str,</span> <span class="pre">str],</span> <span class="pre">path:</span> <span class="pre">~pathlib.Path,</span> <span class="pre">flux:</span> <span class="pre">list[str],</span> <span class="pre">logger:</span> <span class="pre">~logging.Logger</span> <span class="pre">=</span> <span class="pre">&lt;Logger</span> <span class="pre">enedis_odoo_bridge</span> <span class="pre">(WARNING)&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/EnedisFluxEngine.html#EnedisFluxEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.10/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class for handling Enedis Flux files and allow simple access to the data.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.enrich_estimates">
+<span class="sig-name descname"><span class="pre">enrich_estimates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/EnedisFluxEngine.html#EnedisFluxEngine.enrich_estimates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.enrich_estimates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.estimate_consumption">
+<span class="sig-name descname"><span class="pre">estimate_consumption</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.2)"><span class="pre">Timestamp</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.2)"><span class="pre">Timestamp</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">heuristic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator" title="enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator"><span class="pre">BaseEstimator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/EnedisFluxEngine.html#EnedisFluxEngine.estimate_consumption"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.estimate_consumption" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates the total consumption per PDL for the specified period, according to the given estimator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>self</strong> – Instance of the EnedisFluxEngine class.</p></li>
+<li><p><strong>start</strong> (<em>date</em>) – The start date of the period.</p></li>
+<li><p><strong>end</strong> (<em>date</em>) – The end date of the period.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The total consumption for the specified period, on each</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p>On affiche l’estimation commandée,
+On appelle la fonction estimate_consumption de l’estimateur choisi
+On affiche un rapport de l’estimation.
+On retourne la liste des consommations pour chaque PDL.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.fetch_distant">
+<span class="sig-name descname"><span class="pre">fetch_distant</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/EnedisFluxEngine.html#EnedisFluxEngine.fetch_distant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.fetch_distant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches the Enedis Flux files from the FTP server and decrypts them.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.fetch_estimates">
+<span class="sig-name descname"><span class="pre">fetch_estimates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.2)"><span class="pre">Timestamp</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.2)"><span class="pre">Timestamp</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heuristic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator" title="enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator"><span class="pre">BaseEstimator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/EnedisFluxEngine.html#EnedisFluxEngine.fetch_estimates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.fetch_estimates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches and enriches the estimated consumption data for a specified period and set of columns.</p>
+<p>This method first estimates the total consumption per PDL (Point de Livraison) for the given period using the specified heuristic strategy.
+It then enriches these estimates with additional data columns from the R15 dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>date</em>) – The start date of the period for which consumption is to be estimated.</p></li>
+<li><p><strong>end</strong> (<em>date</em>) – The end date of the period for which consumption is to be estimated.</p></li>
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – A list of column names from the R15 dataset to be added to the estimated consumption data.</p></li>
+<li><p><strong>heuristic</strong> (<a class="reference internal" href="enedis_odoo_bridge.consumption_estimators.html#enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator" title="enedis_odoo_bridge.consumption_estimators.base_estimator.BaseEstimator"><em>BaseEstimator</em></a>) – The estimator to be used for estimating consumption.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pandas DataFrame containing the estimated consumption for each PDL, enriched with the specified columns from the R15 data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.fetch_services">
+<span class="sig-name descname"><span class="pre">fetch_services</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/EnedisFluxEngine.html#EnedisFluxEngine.fetch_services"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.fetch_services" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.scan">
+<span class="sig-name descname"><span class="pre">scan</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">pandas.core.frame.DataFrame</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/EnedisFluxEngine.html#EnedisFluxEngine.scan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.EnedisFluxEngine.EnedisFluxEngine.scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scans the specified directories for the given flux types and processes the ZIP files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>self</strong> – Instance of the EnedisFluxEngine class.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing DataFrames for each processed flux type.</p>
+</dd>
+</dl>
+<p>The function first retrieves the directories for each flux type and the list of ZIP files in each directory.
+It then iterates through each flux type, checking for any new files.
+If there is new files, it creates a new DataFrame by parsing the contents of each ZIP file and concatenating them.
+It concatenates already processed DataFrames with the new one if necessary.
+The resulting DataFrame is then saved as a CSV file in the corresponding directory.
+The function also updates the ‘light_db.json’ file with the latest checksums of processed ZIP files.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-enedis_odoo_bridge.OdooAPI">
+<span id="enedis-odoo-bridge-odooapi-module"></span><h2>enedis_odoo_bridge.OdooAPI module<a class="headerlink" href="#module-enedis_odoo_bridge.OdooAPI" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.OdooAPI.</span></span><span class="sig-name descname"><span class="pre">OdooAPI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">config:</span> <span class="pre">~typing.Dict[str,</span> <span class="pre">str],</span> <span class="pre">sim=False,</span> <span class="pre">logger:</span> <span class="pre">~logging.Logger</span> <span class="pre">=</span> <span class="pre">&lt;Logger</span> <span class="pre">enedis_odoo_bridge</span> <span class="pre">(WARNING)&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.10/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.add_cat_fields">
+<span class="sig-name descname"><span class="pre">add_cat_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.add_cat_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.add_cat_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add one category column to the data frame for each invoice line, set with the corresponding line id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>) – The input data frame.</p></li>
+<li><p><strong>fields</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – The list of category fields to add.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The input data frame with the added category fields.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.10/library/exceptions.html#ValueError" title="(in Python v3.10)"><strong>ValueError</strong></a> – If the input data frame does not have the required columns.</p>
+</dd>
+</dl>
+<p>After checking that the input data frame has the required columns,
+Then fetchs the lines of each invoice with invoice_line_ids key.
+Then fetchs the product of each line with product_id key found for each line.
+Then explodes each invoice line into a separate row.
+Then adds the cat columns from the fetcheds products.
+We now have all the data, but we need to return to one row for each invoice.
+We can do this by pivoting the data, and then merging the pivoted data with the original data frame.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.add_order_fields">
+<span class="sig-name descname"><span class="pre">add_order_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.add_order_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.add_order_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the specified fields from the ‘sale.order’ model to the input DataFrame based on the ‘x_order_id’ column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>) – The input DataFrame to be updated.</p></li>
+<li><p><strong>fields</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – A list of fields to be added from the ‘sale.order’ model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The input DataFrame with the specified fields added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.10/library/exceptions.html#ValueError" title="(in Python v3.10)"><strong>ValueError</strong></a> – If the input DataFrame does not have the ‘x_order_id’ column.</p>
+</dd>
+</dl>
+<p>This function first checks if the input DataFrame has the ‘x_order_id’ column.
+If it does, it fetches the corresponding orders from the ‘sale.order’ model using the ‘read’ method of the Odoo API.
+It then creates a new DataFrame from the fetched orders and adds the specified fields to the input DataFrame.
+Finally, it returns the updated DataFrame.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.add_order_line">
+<span class="sig-name descname"><span class="pre">add_order_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.add_order_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.add_order_line" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.ask_for_approval">
+<span class="sig-name descname"><span class="pre">ask_for_approval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">note</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.ask_for_approval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.ask_for_approval" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes non-scalar columns from the input DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>DataFrame</em>) – The input DataFrame to be cleaned.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The input DataFrame with non-scalar columns removed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+<p>This function identifies non-scalar columns in the input DataFrame and removes them.
+Non-scalar columns are those that contain lists or dictionaries.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.connect">
+<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.connect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.create">
+<span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Hashable" title="(in Python v3.10)"><span class="pre">Hashable</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Any" title="(in Python v3.10)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates entries in the Odoo database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – A dictionary containing the entries data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The ID of the newly created entries in the Odoo database.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.execute" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.fetch_drafts">
+<span class="sig-name descname"><span class="pre">fetch_drafts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.fetch_drafts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.fetch_drafts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>self</strong> (<a class="reference internal" href="#enedis_odoo_bridge.OdooAPI.OdooAPI" title="enedis_odoo_bridge.OdooAPI.OdooAPI"><em>OdooAPI</em></a>) – An instance of the OdooAPI class.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame containing the draft invoices with the specified fields.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+<p>This function first fetches [‘invoice_line_ids’, ‘date’, ‘x_order_id’] fields of draft invoices.
+It then adds [‘x_pdl’, ‘x_puissance_souscrite’] fields from the ‘sale.order’.
+Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
+The function returns the cleared DataFrame, leaving only scalar values.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.fetch_orders">
+<span class="sig-name descname"><span class="pre">fetch_orders</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.fetch_orders"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.fetch_orders" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches draft invoices from Odoo db, enrich them with data form sale.order and account.move.lines data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>self</strong> (<a class="reference internal" href="#enedis_odoo_bridge.OdooAPI.OdooAPI" title="enedis_odoo_bridge.OdooAPI.OdooAPI"><em>OdooAPI</em></a>) – An instance of the OdooAPI class.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame containing the draft invoices with the specified fields.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+<p>This function first fetches [‘invoice_line_ids’, ‘date’, ‘x_order_id’] fields of draft invoices.
+It then adds [‘x_pdl’, ‘x_puissance_souscrite’] fields from the ‘sale.order’.
+Finally, it adds one category column to the data frame for each invoice line, set with the corresponding line id.
+The function returns the cleared DataFrame, leaving only scalar values.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.filter_non_energy">
+<span class="sig-name descname"><span class="pre">filter_non_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.filter_non_energy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.filter_non_energy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filters out rows from the DataFrame that do not have any energy consumption data.</p>
+<p>This method checks for the presence of non-null values in the columns that represent energy consumption
+(‘line_id_Base’, ‘line_id_HP’, ‘line_id_HC’). If a row does not have any non-null values in these columns,
+it is considered to not have energy consumption data and is filtered out.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>DataFrame</em>) – The input DataFrame containing invoice line items.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame with rows that lack energy consumption data removed.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The method specifically looks for the presence of ‘line_id_Base’, ‘line_id_HP’, and ‘line_id_HC’ columns
+to determine if the invoice is related to energy consumption.
+Rows are kept if they have at least one non-null value in any of these columns.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.get_drafts">
+<span class="sig-name descname"><span class="pre">get_drafts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.get_drafts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.get_drafts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fields</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – A list of fields to be included in the returned DataFrame.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame containing the draft invoices with the specified fields.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+<p>This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+Draft invoices satisfies : [‘move_type’, ‘=’, ‘out_invoice’], [‘state’, ‘=’, ‘draft’], [‘x_order_id’,’!=’,False]
+It uses the ‘search_read’ method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.get_orders">
+<span class="sig-name descname"><span class="pre">get_orders</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.get_orders"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.get_orders" title="Permalink to this definition">¶</a></dt>
+<dd><p>Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fields</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – A list of fields to be included in the returned DataFrame.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame containing the draft invoices with the specified fields.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+<p>This function searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
+Draft invoices satisfies : [‘move_type’, ‘=’, ‘out_invoice’], [‘state’, ‘=’, ‘draft’], [‘x_order_id’,’!=’,False]
+It uses the ‘search_read’ method to retrieve the draft invoices and includes the specified fields in the returned DataFrame.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.get_uid">
+<span class="sig-name descname"><span class="pre">get_uid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.get_uid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.get_uid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Authenticates the user with the provided credentials and returns the user ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>self</strong> (<a class="reference internal" href="#enedis_odoo_bridge.OdooAPI.OdooAPI" title="enedis_odoo_bridge.OdooAPI.OdooAPI"><em>OdooAPI</em></a>) – An instance of the OdooAPI class.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The user ID obtained from the Odoo server.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)">int</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.10/library/xmlrpc.client.html#xmlrpc.client.Fault" title="(in Python v3.10)"><strong>xmlrpc.client.Fault</strong></a> – If the authentication fails.</p>
+</dd>
+</dl>
+<p>This function creates a ServerProxy object to the Odoo server’s XML-RPC interface,
+and calls the ‘authenticate’ method to authenticate the user with the provided credentials.
+The user ID obtained from the Odoo server is then returned.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_account_moves_updates">
+<span class="sig-name descname"><span class="pre">prepare_account_moves_updates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Hashable" title="(in Python v3.10)"><span class="pre">Hashable</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Any" title="(in Python v3.10)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.prepare_account_moves_updates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_account_moves_updates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_line_updates">
+<span class="sig-name descname"><span class="pre">prepare_line_updates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Hashable" title="(in Python v3.10)"><span class="pre">Hashable</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Any" title="(in Python v3.10)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.prepare_line_updates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_line_updates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_order_line_updates">
+<span class="sig-name descname"><span class="pre">prepare_order_line_updates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Hashable" title="(in Python v3.10)"><span class="pre">Hashable</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Any" title="(in Python v3.10)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.prepare_order_line_updates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_order_line_updates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_sale_order_updates">
+<span class="sig-name descname"><span class="pre">prepare_sale_order_updates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Hashable" title="(in Python v3.10)"><span class="pre">Hashable</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Any" title="(in Python v3.10)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.prepare_sale_order_updates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.prepare_sale_order_updates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.List" title="(in Python v3.10)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Dict" title="(in Python v3.10)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Hashable" title="(in Python v3.10)"><span class="pre">Hashable</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Any" title="(in Python v3.10)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.update_draft_invoices">
+<span class="sig-name descname"><span class="pre">update_draft_invoices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.update_draft_invoices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.update_draft_invoices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the draft invoices in the Odoo database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>DataFrame</em>) – The input data frame.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p>This function updates the draft invoices in the Odoo database.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.OdooAPI.update_sale_order">
+<span class="sig-name descname"><span class="pre">update_sale_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#OdooAPI.update_sale_order"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.OdooAPI.update_sale_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the draft invoices in the Odoo database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>DataFrame</em>) – The input data frame.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p>This function updates the draft invoices in the Odoo database.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.OdooAPI.ensure_connection">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.OdooAPI.</span></span><span class="sig-name descname"><span class="pre">ensure_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/OdooAPI.html#ensure_connection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.OdooAPI.ensure_connection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-enedis_odoo_bridge.skeleton">
+<span id="enedis-odoo-bridge-skeleton-module"></span><h2>enedis_odoo_bridge.skeleton module<a class="headerlink" href="#module-enedis_odoo_bridge.skeleton" title="Permalink to this heading">¶</a></h2>
+<p>This is a skeleton file that can serve as a starting point for a Python
+console script. To run this script uncomment the following lines in the
+<code class="docutils literal notranslate"><span class="pre">[options.entry_points]</span></code> section in <code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">console_scripts</span> <span class="o">=</span>
+     <span class="n">fibonacci</span> <span class="o">=</span> <span class="n">enedis_odoo_bridge</span><span class="o">.</span><span class="n">skeleton</span><span class="p">:</span><span class="n">run</span>
+</pre></div>
+</div>
+<p>Then run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">.</span></code> (or <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code> for editable mode)
+which will install the command <code class="docutils literal notranslate"><span class="pre">fibonacci</span></code> inside your current environment.</p>
+<p>Besides console scripts, the header (i.e. until <code class="docutils literal notranslate"><span class="pre">_logger</span></code>…) of this file can
+also be used as template for Python modules.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This file can be renamed depending on your needs or safely removed if not needed.</p>
+</div>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://setuptools.pypa.io/en/latest/userguide/entry_point.html">https://setuptools.pypa.io/en/latest/userguide/entry_point.html</a></p></li>
+<li><p><a class="reference external" href="https://pip.pypa.io/en/stable/reference/pip_install">https://pip.pypa.io/en/stable/reference/pip_install</a></p></li>
+</ul>
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.skeleton.main">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.skeleton.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/skeleton.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.skeleton.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper allowing <code class="xref py py-func docutils literal notranslate"><span class="pre">fib()</span></code> to be called with string arguments in a CLI fashion</p>
+<p>Instead of returning the value from <code class="xref py py-func docutils literal notranslate"><span class="pre">fib()</span></code>, it prints the result to the
+<code class="docutils literal notranslate"><span class="pre">stdout</span></code> in a nicely formatted message.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – command line parameters as list of strings
+(for example  <code class="docutils literal notranslate"><span class="pre">[&quot;--verbose&quot;,</span> <span class="pre">&quot;42&quot;]</span></code>).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.skeleton.parse_args">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.skeleton.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/skeleton.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.skeleton.parse_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse command line parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – command line parameters as list of strings
+(for example  <code class="docutils literal notranslate"><span class="pre">[&quot;--help&quot;]</span></code>).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>command line parameters namespace</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.10/library/argparse.html#argparse.Namespace" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.Namespace</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.skeleton.run">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.skeleton.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/skeleton.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.skeleton.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls <a class="reference internal" href="#enedis_odoo_bridge.skeleton.main" title="enedis_odoo_bridge.skeleton.main"><code class="xref py py-func docutils literal notranslate"><span class="pre">main()</span></code></a> passing the CLI arguments extracted from <a class="reference external" href="https://docs.python.org/3.10/library/sys.html#sys.argv" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sys.argv</span></code></a></p>
+<p>This function can be used as entry point to create console scripts with setuptools.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.skeleton.setup_logging">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.skeleton.</span></span><span class="sig-name descname"><span class="pre">setup_logging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loglevel</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/skeleton.html#setup_logging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.skeleton.setup_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup basic logging</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>loglevel</strong> (<a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – minimum loglevel for emitting messages</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-enedis_odoo_bridge.utils">
+<span id="enedis-odoo-bridge-utils-module"></span><h2>enedis_odoo_bridge.utils module<a class="headerlink" href="#module-enedis_odoo_bridge.utils" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.CustomLoggerAdapter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">CustomLoggerAdapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#CustomLoggerAdapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.CustomLoggerAdapter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.10/library/logging.html#logging.LoggerAdapter" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">LoggerAdapter</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.CustomLoggerAdapter.process">
+<span class="sig-name descname"><span class="pre">process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#CustomLoggerAdapter.process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.CustomLoggerAdapter.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the logging message and keyword arguments passed in to
+a logging call to insert contextual information. You can either
+manipulate the message itself, the keyword args or both. Return
+the message and kwargs modified (or not) to suit your needs.</p>
+<p>Normally, you’ll only need to override this one method in a
+LoggerAdapter subclass for your specific needs.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.calculate_checksum">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">calculate_checksum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#calculate_checksum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.calculate_checksum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.check_required">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">check_required</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#check_required"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.check_required" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.decrypt_file">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">decrypt_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#bytes" title="(in Python v3.10)"><span class="pre">bytes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">iv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#bytes" title="(in Python v3.10)"><span class="pre">bytes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'decrypted_'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#decrypt_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.decrypt_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.download_new_files">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">download_new_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tasks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#download_new_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.download_new_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads specified directories from the SFTP server using paramiko, skipping files that already exist locally.</p>
+<p>Parameters:
+config (dict[str, str]): Configuration dictionary containing SFTP details.
+tasks (List[str]): list of directory types to download (e.g., [‘R15’, ‘C15’]).
+local (Path): The local root path to save downloaded files. Defaults to ‘~/data/flux_enedis/’.</p>
+<p>Returns:
+dict[str, Path]: A dictionary mapping each task to its local path containing downloaded files.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.download_new_files_with_progress">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">download_new_files_with_progress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tasks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#download_new_files_with_progress"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.download_new_files_with_progress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads specified directories from the SFTP server using paramiko, skipping files that already exist locally.
+Now includes progress tracking with rich.</p>
+<p>Parameters:
+config (dict[str, str]): Configuration dictionary containing SFTP details.
+tasks (list[str]): list of directory types to download (e.g., [‘R15’, ‘C15’]).
+local (Path): The local root path to save downloaded files. Defaults to ‘~/data/flux_enedis/’.</p>
+<p>Returns:
+dict[str, Path]: A dictionary mapping each task to its local path containing downloaded files.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.file_changed">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">file_changed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stored_checksum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#file_changed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.file_changed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.gen_Timestamps">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">gen_Timestamps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.2)"><span class="pre">pandas._libs.tslibs.timestamps.Timestamp</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v2.2.2)"><span class="pre">pandas._libs.tslibs.timestamps.Timestamp</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#gen_Timestamps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.gen_Timestamps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.gen_dates">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">gen_dates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">datetime.date</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">datetime.date</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#gen_dates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.gen_dates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.is_valid_json">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">is_valid_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#is_valid_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.is_valid_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.load_prefixed_dotenv">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">load_prefixed_dotenv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'EOB_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#load_prefixed_dotenv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.load_prefixed_dotenv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.pro_rata">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">pro_rata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/datetime.html#datetime.date" title="(in Python v3.10)"><span class="pre">date</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#float" title="(in Python v3.10)"><span class="pre">float</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#pro_rata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.pro_rata" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.recursively_decrypt_zip_files">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">recursively_decrypt_zip_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#bytes" title="(in Python v3.10)"><span class="pre">bytes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">iv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#bytes" title="(in Python v3.10)"><span class="pre">bytes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#recursively_decrypt_zip_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.recursively_decrypt_zip_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively decrypts all ZIP files in the specified directory that are not already decrypted.</p>
+<p>Parameters:
+directory (Path): The directory to search for ZIP files.
+key (bytes): The AES key for decryption.
+iv (bytes): The AES initialization vector for decryption.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.recursively_decrypt_zip_files_with_progress">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">recursively_decrypt_zip_files_with_progress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#bytes" title="(in Python v3.10)"><span class="pre">bytes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">iv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#bytes" title="(in Python v3.10)"><span class="pre">bytes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#list" title="(in Python v3.10)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">pathlib.Path</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#recursively_decrypt_zip_files_with_progress"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.recursively_decrypt_zip_files_with_progress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively decrypts all ZIP files in the specified directory that are not already decrypted.</p>
+<p>Parameters:
+directory (Path): The directory to search for ZIP files.
+key (bytes): The AES key for decryption.
+iv (bytes): The AES initialization vector for decryption.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enedis_odoo_bridge.utils.unzip">
+<span class="sig-prename descclassname"><span class="pre">enedis_odoo_bridge.utils.</span></span><span class="sig-name descname"><span class="pre">unzip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zip_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.10/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">Path</span></a></span></span><a class="reference internal" href="../_modules/enedis_odoo_bridge/utils.html#unzip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enedis_odoo_bridge.utils.unzip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the contents of the given zip file to a specified directory.</p>
+<p>Parameters:
+zip_path (str): The path to the zip file to be extracted.</p>
+<p>Returns:
+Path: The path to the directory where the contents of the zip file were extracted.</p>
+<p>Raises:
+FileNotFoundError: If the specified zip file does not exist.</p>
+<p>This function uses the built-in <cite>zipfile</cite> module to extract the contents of the zip file to a specified directory. It first creates the specified directory if it does not already exist. Then, it extracts the contents of the zip file to that directory.</p>
+<p>Example:
+<code class="docutils literal notranslate"><span class="pre">`python</span>
+<span class="pre">extracted_dir</span> <span class="pre">=</span> <span class="pre">unzip('/path/to/myfile.zip')</span>
+<span class="pre">print(extracted_dir)</span>&#160; <span class="pre">#</span> <span class="pre">Output:</span> <span class="pre">'/path/to/myfile/'</span>
+<span class="pre">`</span></code></p>
+</dd></dl>
+
+</section>
+<section id="module-enedis_odoo_bridge">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-enedis_odoo_bridge" title="Permalink to this heading">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">enedis_odoo_bridge</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributions &amp; Help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Module Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">enedis_odoo_bridge package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">enedis_odoo_bridge</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">enedis_odoo_bridge</a></li>
+      <li>Next: <a href="enedis_odoo_bridge.consumption_estimators.html" title="next chapter">enedis_odoo_bridge.consumption_estimators package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Virgile.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/api/enedis_odoo_bridge.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

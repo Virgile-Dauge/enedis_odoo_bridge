@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>enedis_odoo_bridge.flux_transformers.f15_flux_transformer &#8212; enedis_odoo_bridge 1.0.2.dev1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for enedis_odoo_bridge.flux_transformers.f15_flux_transformer</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">xmlschema</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.flux_transformers</span> <span class="kn">import</span> <span class="n">BaseFluxTransformer</span>
+
+<div class="viewcode-block" id="F15FluxTransformer"><a class="viewcode-back" href="../../../api/enedis_odoo_bridge.flux_transformers.html#enedis_odoo_bridge.flux_transformers.f15_flux_transformer.F15FluxTransformer">[docs]</a><span class="k">class</span> <span class="nc">F15FluxTransformer</span><span class="p">(</span><span class="n">BaseFluxTransformer</span><span class="p">):</span>
+
+<div class="viewcode-block" id="F15FluxTransformer.xml_to_dict"><a class="viewcode-back" href="../../../api/enedis_odoo_bridge.flux_transformers.html#enedis_odoo_bridge.flux_transformers.f15_flux_transformer.F15FluxTransformer.xml_to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">xml_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xml_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span><span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">xml_path</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;FA.xml&#39;</span><span class="p">):</span>
+            <span class="n">xsd_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;schemas/GRD.XSD.0302.Flux_F15_Donnees_Generales_v3.3.2.xsd&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{}</span>
+            <span class="c1">#return xmlschema.XMLSchema(xsd_path).to_dict(xml_path)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;FL&#39;</span> <span class="ow">in</span> <span class="n">xml_path</span><span class="o">.</span><span class="n">stem</span><span class="p">:</span>
+            <span class="n">xsd_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;schemas/GRD.XSD.0299.Flux_F15_Donnees_Detail_v3.3.2.xsd&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">xmlschema</span><span class="o">.</span><span class="n">XMLSchema</span><span class="p">(</span><span class="n">xsd_path</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">xml_path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="F15FluxTransformer.dict_to_dataframe"><a class="viewcode-back" href="../../../api/enedis_odoo_bridge.flux_transformers.html#enedis_odoo_bridge.flux_transformers.f15_flux_transformer.F15FluxTransformer.dict_to_dataframe">[docs]</a>    <span class="k">def</span> <span class="nf">dict_to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Liste pour stocker les lignes avant de créer le DataFrame</span>
+
+        <span class="c1"># Assurez-vous que &#39;Groupe_Valorise&#39; est une liste pour un traitement cohérent</span>
+        <span class="n">donnees_valorisation</span> <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;Donnees_Valorisation&#39;</span><span class="p">]</span>
+        <span class="c1">#groupe_valorise = groupe_valorise if isinstance(groupe_valorise, list) else [groupe_valorise]</span>
+        <span class="c1">#pretty.pprint(donnees_valorisation)</span>
+        <span class="c1"># Pour chaque élément dans &#39;Groupe_Valorise&#39;</span>
+        <span class="n">exclude</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Groupe_Valorise&#39;</span><span class="p">,</span> <span class="s1">&#39;Donnees_PRM&#39;</span><span class="p">,</span> <span class="s1">&#39;Releve&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">dv</span> <span class="ow">in</span> <span class="n">donnees_valorisation</span><span class="p">:</span>
+            <span class="n">donnees_prm</span> <span class="o">=</span> <span class="n">dv</span><span class="p">[</span><span class="s1">&#39;Donnees_PRM&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">gv</span> <span class="ow">in</span> <span class="n">dv</span><span class="p">[</span><span class="s1">&#39;Groupe_Valorise&#39;</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">gv</span><span class="p">[</span><span class="s1">&#39;Element_Valorise&#39;</span><span class="p">]:</span>
+                    <span class="c1">#print(ev)</span>
+                    <span class="n">row</span> <span class="o">=</span> <span class="n">donnees_prm</span> <span class="o">|</span> <span class="n">ev</span> <span class="o">|</span> <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;Rappel_En_Tete&#39;</span><span class="p">]</span> <span class="o">|</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dv</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">}</span>
+                    <span class="n">row</span><span class="p">[</span><span class="s1">&#39;Nature_EV&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gv</span><span class="p">[</span><span class="s1">&#39;Nature_EV&#39;</span><span class="p">]</span>
+                    
+                    <span class="k">if</span> <span class="s1">&#39;Releve&#39;</span> <span class="ow">in</span> <span class="n">dv</span><span class="p">:</span>
+                        <span class="n">row</span><span class="p">[</span><span class="s1">&#39;Nb_Releve&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dv</span><span class="p">[</span><span class="s1">&#39;Releve&#39;</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dv</span><span class="p">[</span><span class="s1">&#39;Releve&#39;</span><span class="p">]):</span>
+                            <span class="n">row</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;Id_Releve_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;Id_Releve&#39;</span><span class="p">]</span>
+
+                    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>  <span class="c1"># Ajoutez la ligne à la liste des lignes</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>  <span class="c1"># Créez et retournez le DataFrame à partir de la liste des lignes</span></div>
+    
+<div class="viewcode-block" id="F15FluxTransformer.preprocess"><a class="viewcode-back" href="../../../api/enedis_odoo_bridge.flux_transformers.html#enedis_odoo_bridge.flux_transformers.f15_flux_transformer.F15FluxTransformer.preprocess">[docs]</a>    <span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+                <span class="c1"># Convert columns where the last level of the index starts with &quot;Date_&quot; to datetime</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Date_&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">])</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s1">&#39;Etc/GMT-2&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;Id_PRM&#39;</span><span class="p">:</span> <span class="s1">&#39;pdl&#39;</span><span class="p">})</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s1">&#39;pdl&#39;</span><span class="p">,</span> <span class="s1">&#39;Id_EV&#39;</span><span class="p">])</span><span class="c1">#.set_index([&#39;pdl&#39;, &#39;Id_EV&#39;])</span></div></div>
+
+    
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">enedis_odoo_bridge</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributions &amp; Help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">Module Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Virgile.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>enedis_odoo_bridge.processes.add_enedis_service_to_draft_invoice_process &#8212; enedis_odoo_bridge 1.0.2.dev1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for enedis_odoo_bridge.processes.add_enedis_service_to_draft_invoice_process</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">rich</span> <span class="kn">import</span> <span class="nb">print</span><span class="p">,</span> <span class="n">pretty</span><span class="p">,</span> <span class="n">inspect</span>
+
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.processes</span> <span class="kn">import</span> <span class="n">BaseProcess</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.OdooAPI</span> <span class="kn">import</span> <span class="n">OdooAPI</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.EnedisFluxEngine</span> <span class="kn">import</span> <span class="n">EnedisFluxEngine</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.utils</span> <span class="kn">import</span> <span class="n">gen_Timestamps</span><span class="p">,</span> <span class="n">check_required</span><span class="p">,</span> <span class="n">CustomLoggerAdapter</span>
+<span class="kn">from</span> <span class="nn">enedis_odoo_bridge.consumption_estimators</span> <span class="kn">import</span> <span class="n">LastFirstEstimator</span>
+
+
+<div class="viewcode-block" id="AddEnedisServiceToDraftInvoiceProcess"><a class="viewcode-back" href="../../../api/enedis_odoo_bridge.processes.html#enedis_odoo_bridge.processes.add_enedis_service_to_draft_invoice_process.AddEnedisServiceToDraftInvoiceProcess">[docs]</a><span class="k">class</span> <span class="nc">AddEnedisServiceToDraftInvoiceProcess</span><span class="p">(</span><span class="n">BaseProcess</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">enedis</span><span class="p">:</span> <span class="n">EnedisFluxEngine</span><span class="p">,</span> <span class="n">odoo</span><span class="p">:</span> <span class="n">OdooAPI</span><span class="p">,</span> <span class="n">date</span><span class="p">:</span> <span class="n">date</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;enedis_odoo_bridge&#39;</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enedis</span> <span class="o">=</span> <span class="n">enedis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span> <span class="o">=</span> <span class="n">odoo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">will_update_production_db</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">check_required</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;TURPE_B_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_CG&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_CC&#39;</span><span class="p">,</span>
+                                              <span class="s1">&#39;TURPE_TAUX_HPH_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_TAUX_HCH_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_TAUX_HPB_CU4&#39;</span><span class="p">,</span> 
+                                              <span class="s1">&#39;TURPE_TAUX_HCB_CU4&#39;</span><span class="p">,])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span> <span class="o">=</span> <span class="n">gen_Timestamps</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+
+    
+<div class="viewcode-block" id="AddEnedisServiceToDraftInvoiceProcess.run"><a class="viewcode-back" href="../../../api/enedis_odoo_bridge.processes.html#enedis_odoo_bridge.processes.add_enedis_service_to_draft_invoice_process.AddEnedisServiceToDraftInvoiceProcess.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running AddEnedisServiceToDraftInvoiceProcess :&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">extra</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;│   &#39;</span>
+        <span class="n">services</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">fetch_services</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="p">)</span>
+
+        <span class="n">drafts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">fetch_drafts</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">extra</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;├──Merging data:&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;│   ├──</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">services</span><span class="p">)</span><span class="si">}</span><span class="s2"> enedis entries.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">services</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;│   └──</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">drafts</span><span class="p">)</span><span class="si">}</span><span class="s2"> odoo entries.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">drafts</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">services</span><span class="p">,</span> <span class="n">drafts</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s1">&#39;pdl&#39;</span><span class="p">,</span> <span class="n">right_on</span><span class="o">=</span><span class="s1">&#39;x_pdl&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enedis</span><span class="o">.</span><span class="n">root_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;F15&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Services_from_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">starting_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">_to_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ending_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">.csv&#39;</span><span class="p">))</span>
+        
+        <span class="c1"># Pour chacun des produits enedis, trouver le produit correspondant dans Odoo</span>
+        <span class="n">product_ids</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">grouped</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;Id_EV&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">id_ev</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">:</span>
+            <span class="c1"># Recherche du produit dans Odoo par Id_EV</span>
+            <span class="n">expected_price</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;Prix_Unitaire&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">tva</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;Taux_TVA_Applicable&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">products</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;product.template&#39;</span><span class="p">,</span> <span class="s1">&#39;search_read&#39;</span><span class="p">,</span> 
+                                        <span class="p">[[[</span><span class="s1">&#39;x_enedis_id&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="n">id_ev</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;list_price&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="n">expected_price</span><span class="p">]]],</span> 
+                                        <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;list_price&#39;</span><span class="p">,</span> <span class="s1">&#39;taxes_id&#39;</span><span class="p">]})</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">products</span><span class="p">:</span>
+                <span class="c1"># Aucun produit trouvé ou le prix ne correspond pas, création d&#39;un nouveau produit</span>
+                <span class="n">new_product_data</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;Libelle_EV&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s1">&#39;list_price&#39;</span><span class="p">:</span> <span class="n">expected_price</span><span class="p">,</span>  <span class="c1"># Définir le prix attendu</span>
+                    <span class="s1">&#39;x_enedis_id&#39;</span><span class="p">:</span> <span class="n">id_ev</span><span class="p">,</span>
+                    <span class="c1"># Ajouter d&#39;autres champs nécessaires ici</span>
+                <span class="p">}</span>
+                <span class="n">cat_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;product.category&#39;</span><span class="p">,</span> <span class="s1">&#39;search_read&#39;</span><span class="p">,</span> 
+                                    <span class="p">[[[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;Prestation-Enedis&#39;</span><span class="p">]]],</span> 
+                                    <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]})</span>
+                <span class="k">if</span> <span class="n">cat_id</span><span class="p">:</span>
+                    <span class="n">new_product_data</span><span class="p">[</span><span class="s1">&#39;categ_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cat_id</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+
+                <span class="n">tax_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;account.tax&#39;</span><span class="p">,</span> <span class="s1">&#39;search_read&#39;</span><span class="p">,</span> 
+                                    <span class="p">[[[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">tva</span><span class="si">:</span><span class="s1">g</span><span class="si">}</span><span class="s1">% G&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;type_tax_use&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;sale&#39;</span><span class="p">]]],</span> 
+                                    <span class="p">{</span><span class="s1">&#39;fields&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]})</span>
+                <span class="k">if</span> <span class="n">tax_id</span><span class="p">:</span>
+                    <span class="n">new_product_data</span><span class="p">[</span><span class="s1">&#39;taxes_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">4</span><span class="p">,</span> <span class="n">tax_id</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="mi">0</span><span class="p">]]</span>
+
+                <span class="n">new_product_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">odoo</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;product.template&#39;</span><span class="p">,</span> <span class="s1">&#39;create&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">new_product_data</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">new_product_id</span><span class="p">:</span>
+                    <span class="n">product_ids</span><span class="p">[</span><span class="n">id_ev</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_product_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;New product created with ID: </span><span class="si">{</span><span class="n">new_product_id</span><span class="si">}</span><span class="s2"> for Id_EV: </span><span class="si">{</span><span class="n">id_ev</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">product_ids</span><span class="p">[</span><span class="n">id_ev</span><span class="p">]</span> <span class="o">=</span> <span class="n">products</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Product found for Id_EV: </span><span class="si">{</span><span class="n">id_ev</span><span class="si">}</span><span class="s2"> with ID: </span><span class="si">{</span><span class="n">products</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># map associe chaque Id_EV à son ID de produit</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;product_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Id_EV&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">product_ids</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">exploded</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s1">&#39;line_id_Prestation-Enedis&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">exploded</span><span class="p">)</span></div></div>
+        <span class="c1"># TODO</span>
+        <span class="c1"># Pour chacune des lignes de facture enedis, ajouter dans la facture brouillon une ligne avec le produit Odoo adapté</span>
+        <span class="c1"># └── Vérif si ligne déjà présente dans la facture brouillon, si ou verif quantitié</span>
+        <span class="c1">#       ├── Sinon Création des lignes de facture</span>
+        <span class="c1">#       └── update des invoice_line_ids dans la facture brouillon</span>
+
+
+
+
+
+        
+        
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">enedis_odoo_bridge</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributions &amp; Help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">Module Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Virgile.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

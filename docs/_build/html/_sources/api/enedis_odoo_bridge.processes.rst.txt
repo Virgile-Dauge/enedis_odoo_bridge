@@ -1,0 +1,37 @@
+enedis\_odoo\_bridge.processes package
+======================================
+
+Submodules
+----------
+
+enedis\_odoo\_bridge.processes.add\_enedis\_service\_to\_draft\_invoice\_process module
+---------------------------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.processes.add_enedis_service_to_draft_invoice_process
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.processes.base\_process module
+---------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.processes.base_process
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.processes.update\_values\_in\_draft\_invoices\_process module
+----------------------------------------------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.processes.update_values_in_draft_invoices_process
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: enedis_odoo_bridge.processes
+   :members:
+   :undoc-members:
+   :show-inheritance:

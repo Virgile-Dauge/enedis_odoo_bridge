@@ -1,0 +1,63 @@
+enedis\_odoo\_bridge package
+============================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   enedis_odoo_bridge.consumption_estimators
+   enedis_odoo_bridge.flux_transformers
+   enedis_odoo_bridge.processes
+
+Submodules
+----------
+
+enedis\_odoo\_bridge.DataMerger module
+--------------------------------------
+
+.. automodule:: enedis_odoo_bridge.DataMerger
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.EnedisFluxEngine module
+--------------------------------------------
+
+.. automodule:: enedis_odoo_bridge.EnedisFluxEngine
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.OdooAPI module
+-----------------------------------
+
+.. automodule:: enedis_odoo_bridge.OdooAPI
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.skeleton module
+------------------------------------
+
+.. automodule:: enedis_odoo_bridge.skeleton
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+enedis\_odoo\_bridge.utils module
+---------------------------------
+
+.. automodule:: enedis_odoo_bridge.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: enedis_odoo_bridge
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+enedis_odoo_bridge
+==================
+
+.. toctree::
+   :maxdepth: 4
+
+   enedis_odoo_bridge
