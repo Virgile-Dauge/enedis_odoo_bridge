@@ -4,10 +4,11 @@ from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
     
 class BaseProcess(ABC):
-    def __init__(self, config: dict[str, str], enedis: EnedisFluxEngine, odoo: OdooAPI):
+    def __init__(self, config: dict[str, str], enedis: EnedisFluxEngine, odoo: OdooAPI=None, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')):
         self.config = config
         self.enedis = enedis
         self.odoo = odoo
+        self.logger = logger
         self.will_update_production_db  = True
 
     @abstractmethod

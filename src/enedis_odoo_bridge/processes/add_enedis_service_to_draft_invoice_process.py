@@ -50,7 +50,6 @@ class AddEnedisServiceToDraftInvoiceProcess(BaseProcess):
         data.to_csv(self.enedis.root_path.joinpath('F15').joinpath(
             f'Services_from_{self.starting_date.strftime("%Y-%m-%d")}_to_{self.ending_date.strftime("%Y-%m-%d")}.csv'))
         
-        # TODO 
         # Pour chacun des produits enedis, trouver le produit correspondant dans Odoo
         product_ids = {}
         grouped = data.groupby('Id_EV')
