@@ -188,7 +188,7 @@ def main(args):
                     logger=logger)
         
     if not args.sim and process.will_update_production_db:
-        confirm = Prompt.ask(f"This will update [red]{env['DB']}[/red] Odoo Database from [red]{env['URL']}[/red], are you sure you want to continue?", 
+        confirm = Prompt.ask(f"This will update [red]{env['ODOO_DB']}[/red] Odoo Database from [red]{env['ODOO_URL']}[/red], are you sure you want to continue?", 
                                  choices=["y", "n"], default="n", console=console)
         if confirm.lower()!= 'y':
             console.print("└──Operation cancelled")

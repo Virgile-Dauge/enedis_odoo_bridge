@@ -94,7 +94,7 @@ class UpdateValuesInDraftInvoicesProcess(BaseProcess):
         data[data['Base'].isna()].to_csv(self.enedis.root_path.joinpath('R15').joinpath(
             f'DataMerger_TOCHECK_from_{self.starting_date.strftime("%Y-%m-%d")}_to{self.ending_date.strftime("%Y-%m-%d")}.csv'))
         
-        self.logger.info(f"├── Updating odoo entries in {self.config['DB']} from {self.config['URL']}" + (" [simulated]" if self.odoo.sim else ""))
+        self.logger.info(f"├── Updating odoo entries in {self.config['ODOO_DB']} from {self.config['ODOO_URL']}" + (" [simulated]" if self.odoo.sim else ""))
         self.logger.extra['prefix'] = '│   ├──'
 
         self.odoo.update_draft_invoices(data, self.starting_date, self.ending_date)
