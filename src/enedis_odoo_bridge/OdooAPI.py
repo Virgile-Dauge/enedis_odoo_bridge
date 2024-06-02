@@ -490,10 +490,8 @@ class OdooAPI:
             orders['x_turpe'] = data['turpe_fix'] + data['turpe_var']
         if 'x_last_invoiced_releve_id':
             orders['x_last_invoiced_releve_id'] = data['last_releve']
-        # Deprecated : Maintenant on a les activités
-        #moves['x_scripted'] = True
-        #if 'Type_Compteur' in data.columns:
-        #    orders['x_type_compteur'] = data['Type_Compteur']
+        
+        orders['x_invoicing_state'] = 'populated'
         return orders.rename(columns={'order_id': 'id'}).to_dict(orient='records')
     
     def prepare_order_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
