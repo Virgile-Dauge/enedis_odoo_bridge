@@ -30,7 +30,7 @@ from pathlib import Path
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
-from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess, AddEnedisServiceToDraftInvoiceProcess, ExtractMESFromR15Process
+from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess, AddEnedisServiceToDraftInvoiceProcess, ExtractMESFromR15Process, PopulateSubscriptionsInvoicesFromFileProcess
 from enedis_odoo_bridge.utils import CustomLoggerAdapter, load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
 
 from rich import print, pretty, inspect
@@ -88,6 +88,10 @@ def parse_args(args):
         dest="data_path",
         default='~/data/flux_enedis',
         help="path to data", 
+        type=str,)
+    parser.add_argument('-m', '--manual-data',
+        dest="manual_data_path",
+        help="path to manual csv file", 
         type=str,)
     parser.add_argument('-s', '--simulation',
         dest="sim",
@@ -168,11 +172,20 @@ def main(args):
     enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'], logger=logger)
 
     if args.command == 'facturation':
-        process = UpdateValuesInDraftInvoicesProcess(config=env,
+        if not args.manual_data_path:
+            console.print("manual file required, use -m option to specify one")
+            exit(1)
+        process = PopulateSubscriptionsInvoicesFromFileProcess(config=env,
+                    data_path=args.manual_data_path,
                     date=args.date,
-                    enedis=enedis,
+                    enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15'], logger=logger),
                     odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
                     logger=logger)
+        #process = UpdateValuesInDraftInvoicesProcess(config=env,
+        #            date=args.date,
+        #            enedis=enedis,
+        #            odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
+        #            logger=logger)
 
     elif args.command =='services':
         process = AddEnedisServiceToDraftInvoiceProcess(config=env,
