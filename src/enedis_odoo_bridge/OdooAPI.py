@@ -146,7 +146,32 @@ class OdooAPI:
         self.create('mail.activity', activities.to_dict(orient='records'))
         #self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
    
+    def search_read(self, model: str, filters: list[list[tuple[str, str, str]]], fields: list[str]):
+        """
+        Searches for entries in the Odoo database and returns them as a DataFrame.
 
+        Args:
+            model (str): The model to search in.
+            filters (List[List[Tuple[str, str, str]]]): A list of filters to apply to the search.
+            fields (List[str]): The fields to return for each entry.
+
+        Returns:
+            DataFrame: A DataFrame containing the search results.
+
+        Raises:
+            xmlrpc.client.Fault: If the search fails.
+
+        This function creates a ServerProxy object to the Odoo server's XML-RPC interface,
+        and calls the'search_read' method to search for the specified entries in the specified model.
+        The search results are then returned as a DataFrame, with the specified fields.
+        """
+        resp = self.execute(model,'search_read', args=filters, kwargs={'fields': fields})
+        return DataFrame(resp).rename(columns={'id': f'{model}_id'})
+
+    def read(self, model: str, ids: list[int], fields: list[str]):
+        resp = self.execute(model, 'read', [ids], {'fields': fields})
+        return DataFrame(resp).rename(columns={'id': f'{model}_id'})
+    
     # fetch processes
     def fetch_drafts(self) -> DataFrame:
         """
@@ -179,6 +204,7 @@ class OdooAPI:
         self.logger.extra['prefix'] = '│   '
         
         data = self.clear(data)
+
         self.logger.info(f'└──Droped non-energy lines, and removed non-linear data.')
         return data 
 
@@ -289,6 +315,7 @@ class OdooAPI:
         It then creates a new DataFrame from the fetched orders and adds the specified fields to the input DataFrame. 
         Finally, it returns the updated DataFrame.
         """
+
         if 'order_id' not in data.columns:
             raise ValueError(f'No order_id found in {data.columns}')
         
@@ -467,7 +494,8 @@ class OdooAPI:
     
         moves = DataFrame(data['move_id'])
         # TODO intérroger au préalable l'API pour récupérer les champs supportés par l'instance Odoo
-        moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
+        if not 'x_turpe' in data.columns:
+            moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
         moves['x_start_invoice_period'] = data['start_date'].dt.strftime('%Y-%m-%d')
         moves['x_end_invoice_period'] = data['end_date'].dt.strftime('%Y-%m-%d')
         # Deprecated : Maintenant on a les activités
@@ -488,7 +516,7 @@ class OdooAPI:
         orders = DataFrame(data['order_id'])
         if 'x_turpe' in fields:
             orders['x_turpe'] = data['turpe_fix'] + data['turpe_var']
-        if 'x_last_invoiced_releve_id':
+        if 'last_releve' in data.columns:
             orders['x_last_invoiced_releve_id'] = data['last_releve']
         
         orders['x_invoicing_state'] = 'populated'
