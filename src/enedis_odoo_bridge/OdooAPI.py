@@ -478,13 +478,13 @@ class OdooAPI:
                                                                 'subscription_days': 'quantity',
                                                                 'start_date': 'deferred_start_date',
                                                                 'end_date': 'deferred_end_date',}).to_dict(orient='records')
-        subscription_lines = data[~do_update_qty][['line_id_Abonnements','subscription_days']].copy()
+        subscription_lines = data[~do_update_qty][['line_id_Abonnements']].copy()
         subscription_lines['start_date'] = data[~do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         subscription_lines['end_date'] = data[~do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         names = self.execute('account.move.line', 'read', [data[~do_update_qty]['line_id_Abonnements'].to_list()],
                         {'fields': ['name']})
         subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
-        subscription_lines_without_qty_dict = subscription_lines.rename(columns={'line_id_Abonnements': 'id', 
+        subscription_lines_without_qty_dict = subscription_lines.rename(columns={'line_id_Abonnements': 'id',
                                                         'start_date': 'deferred_start_date',
                                                         'end_date': 'deferred_end_date',}).to_dict(orient='records')
         return consumption_lines + subscription_lines_dict + subscription_lines_without_qty_dict
@@ -496,6 +496,7 @@ class OdooAPI:
         # TODO intérroger au préalable l'API pour récupérer les champs supportés par l'instance Odoo
         if not 'x_turpe' in data.columns:
             moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
+            
         moves['x_start_invoice_period'] = data['start_date'].dt.strftime('%Y-%m-%d')
         moves['x_end_invoice_period'] = data['end_date'].dt.strftime('%Y-%m-%d')
         # Deprecated : Maintenant on a les activités
@@ -592,14 +593,15 @@ class OdooAPI:
         self.update('account.move', moves)
 
         lines = self.prepare_line_updates(data)
+        print(lines)
         self.update('account.move.line', lines)
 
-        self.ask_for_approval('account.move', safe['move_id'].to_list(), 
-                              'À approuver', 
-                              'Merci de valider cette facture remplie automatiquement.')
-        self.ask_for_approval('account.move', data[data['not_enough_data']]['move_id'].to_list(), 
-                              'ERREUR SCRIPT', 
-                              'Pas de données Enedis.')
+        #self.ask_for_approval('account.move', safe['move_id'].to_list(), 
+        #                      'À approuver', 
+        #                      'Merci de valider cette facture remplie automatiquement.')
+        #self.ask_for_approval('account.move', data[data['not_enough_data']]['move_id'].to_list(), 
+        #                      'ERREUR SCRIPT', 
+        #                      'Pas de données Enedis.')
         
     def update_sale_order(self, data: DataFrame, start: date, end: date)-> None:
         """
