@@ -20,7 +20,7 @@ class BaseEstimator(ABC):
         :return: A DataFrame with 'pdl', 'start_date', and 'end_date' columns, initialized based on the meta DataFrame.
         """
         # Define conditions for initializing start and end dates
-        start_date_condition = (meta['Motif_Releve'] == 'CFNE') | (meta['Motif_Releve'] == 'MES')
+        start_date_condition = ((meta['Motif_Releve'] == 'CFNE') | (meta['Motif_Releve'] == 'MES')) & (meta['Date_Releve'] >= start)
         end_date_condition = (meta['Motif_Releve'] == 'CFNS')
 
         # Initialize start_date and end_date for each pdl based on conditions
@@ -29,8 +29,8 @@ class BaseEstimator(ABC):
 
         # Create a base DataFrame with all unique pdls
         base_df = pd.DataFrame(meta['pdl'].unique(), columns=['pdl'])
-        base_df['start_date'] = start
-        base_df['end_date'] = end
+        base_df['start_date'] = start.tz_localize(None)
+        base_df['end_date'] = end.tz_localize(None)
 
         base_df['month_days'] = (end - start).days + 1
         
@@ -39,6 +39,16 @@ class BaseEstimator(ABC):
         base_df = pd.merge(base_df, start_dates, on='pdl', how='left', suffixes=('', '_updated'))
         base_df = pd.merge(base_df, end_dates, on='pdl', how='left',suffixes=('', '_updated'))
 
+
+        # Assuming base_df['end_date_updated'] might have timezone-aware datetime objects,
+        # you can convert them to naive datetime objects before the assignment.
+
+        if base_df['start_date_updated'].notnull().any():
+            base_df['start_date_updated'] = base_df['start_date_updated'].dt.tz_localize(None)
+        # Convert 'end_date_updated' to naive datetime (remove timezone info) if it's not None
+        if base_df['end_date_updated'].notnull().any():
+            base_df['end_date_updated'] = base_df['end_date_updated'].dt.tz_localize(None)
+        
         # Update start_date only if there's a corresponding entry in start_date_updates
         base_df['start_date'] = base_df['start_date_updated'].fillna(base_df['start_date'])
         base_df['end_date'] = base_df['end_date_updated'].fillna(base_df['end_date'])
@@ -53,7 +63,7 @@ class BaseEstimator(ABC):
         # Merge the first and last releve dates into the base DataFrame
         base_df = pd.merge(base_df, first_releve_dates, on='pdl', how='left')
         base_df = pd.merge(base_df, last_releve_dates, on='pdl', how='left')
-
+        
         # Count the number of actual days for each pdl
         base_df['subscription_days'] = base_df.apply(lambda row: (row['end_date'] - row['start_date']).days + 1, axis=1)
 
