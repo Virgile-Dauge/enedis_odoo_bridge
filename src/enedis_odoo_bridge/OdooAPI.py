@@ -1,12 +1,11 @@
 import xmlrpc.client
 from xmlrpc.client import MultiCall
 import numpy as np
-from pathlib import Path
-from typing import Dict, List, Any, Hashable, Tuple
+from typing import Any, Hashable
 import pandas as pd
 from pandas import DataFrame
 from datetime import date
-from rich import pretty
+
 from enedis_odoo_bridge.utils import check_required
 
 import logging
@@ -20,12 +19,11 @@ def ensure_connection(func):
     return wrapper
 
 class OdooAPI:
-    def __init__(self, config: Dict[str, str], sim=False, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')):
+    def __init__(self, config: dict[str, str], sim=False, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')):
 
         self.config = check_required(config, ['ODOO_URL', 'ODOO_DB', 'ODOO_USERNAME', 'ODOO_PASSWORD'])
         self.url = config['ODOO_URL']
-        db = config['ODOO_DB']
-        self.db = db #+ '-duplicate' if sim else db
+        self.db = config['ODOO_DB']
         self.sim = sim
         self.username = config['ODOO_USERNAME']
         self.password = config['ODOO_PASSWORD']
@@ -36,12 +34,12 @@ class OdooAPI:
 
 
     # low level methods
-    def connect(self):
+    def connect(self)-> None:
         self.uid = self.get_uid()
         self.proxy = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
         self.logger.info(f'Logged to {self.db} Odoo db.')
     
-    def get_uid(self):
+    def get_uid(self)-> None:
         """
         Authenticates the user with the provided credentials and returns the user ID.
 
@@ -61,7 +59,7 @@ class OdooAPI:
         common_proxy = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
         return common_proxy.authenticate(self.db, self.username, self.password, {})
     @ensure_connection
-    def execute(self, model: str, method: str, args=None, kwargs=None) -> List:
+    def execute(self, model: str, method: str, args=None, kwargs=None) -> list:
         """
         Executes a method on the Odoo server.
 
@@ -93,7 +91,7 @@ class OdooAPI:
 
 
     # medium level methods 
-    def create(self, model: str, entries: List[Dict[Hashable, Any]])-> List[int]:
+    def create(self, model: str, entries: list[dict[Hashable, Any]])-> list[int]:
         """
         Creates entries in the Odoo database.
 
@@ -114,7 +112,7 @@ class OdooAPI:
         self.logger.info(f'{model} #{id} created in Odoo db.')
         return id
 
-    def update(self, model: str, entries: List[Dict[Hashable, Any]])-> None:
+    def update(self, model: str, entries: list[dict[Hashable, Any]])-> None:
         id = []
         for e in entries:
             i = int(e['id'])
@@ -130,7 +128,7 @@ class OdooAPI:
 
         self.logger.info(f'{len(entries)} {model} #{id} writen in Odoo db.' + ("[simulated]" if self.sim else ''))
       
-    def ask_for_approval(self, model: str, ids: List[int], msg: str, note: str):
+    def ask_for_approval(self, model: str, ids: list[int], msg: str, note: str)-> None:
         model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
 
         # TODO Filter id to only have invoices with no existing approuval ?
@@ -168,7 +166,7 @@ class OdooAPI:
         resp = self.execute(model,'search_read', args=filters, kwargs={'fields': fields})
         return DataFrame(resp).rename(columns={'id': f'{model}_id'})
 
-    def read(self, model: str, ids: list[int], fields: list[str]):
+    def read(self, model: str, ids: list[int], fields: list[str]) -> DataFrame:
         resp = self.execute(model, 'read', [ids], {'fields': fields})
         return DataFrame(resp).rename(columns={'id': f'{model}_id'})
     
@@ -224,11 +222,7 @@ class OdooAPI:
         The function returns the cleared DataFrame, leaving only scalar values.
         """
         data = self.get_orders(['order_line', 'x_pdl', 'x_puissance_souscrite', 'x_lisse', 'start_date'])
-        #pretty.pprint(data)
         data = self.add_order_line(data, {})
-        #pretty.pprint(data)
-        #data = self.add_cat_fields(data, [])
-        #data = self.filter_non_energy(data)
         return self.clear(data)
 
     # fetch helpers, all processes
@@ -272,7 +266,7 @@ class OdooAPI:
 
     
     # fetch helpers, draft as starting point process
-    def get_drafts(self, fields: List[str])-> DataFrame:
+    def get_drafts(self, fields: list[str])-> DataFrame:
         """
         Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
 
@@ -296,7 +290,7 @@ class OdooAPI:
             data['order_id'] = data['order_id'].apply(lambda x: x[0])
         return data
 
-    def add_order_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
+    def add_order_fields(self, data: DataFrame, fields: list[str])-> DataFrame:
         """
         Adds the specified fields from the 'sale.order' model to the input DataFrame based on the 'x_order_id' column.
 
@@ -329,7 +323,7 @@ class OdooAPI:
             data['x_pdl'] = data['x_pdl'].astype(str).str.replace('[^\d]', '', regex=True)
         return data
            
-    def add_cat_fields(self, data: DataFrame, fields: List[str])-> DataFrame:
+    def add_cat_fields(self, data: DataFrame, fields: list[str])-> DataFrame:
         """
         Add one category column to the data frame for each invoice line, set with the corresponding line id.
 
@@ -368,9 +362,10 @@ class OdooAPI:
         print(cat)
         is_pe = df_exploded['cat'] == 'Prestation-Enedis'
         # Pour les catégories autres que 'ALL', pivotons normalement
+        print(df_exploded)
         df_pivoted_normal = df_exploded[~is_pe].pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
         df_pivoted_normal.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted_normal.columns if x != 'move_id']
-
+        print(df_pivoted_normal)
         # Pour 'ALL', agrégeons les valeurs dans une liste
         df_all = df_exploded[is_pe].groupby('move_id')['invoice_line_ids'].apply(list).reset_index()
         df_all.columns = ['move_id', 'line_id_Prestation-Enedis']
@@ -380,17 +375,11 @@ class OdooAPI:
 
         # Ensuite, fusionnons le résultat avec le DataFrame original
         df_final = pd.merge(data, df_merged, on='move_id', how='left')
-        # Pivoting to transform 'cat' values into separate columns
-        #df_pivoted = df_exploded.pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
-        # Renaming columns to reflect the source of the data
-        #df_pivoted.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted.columns if x != 'move_id']
 
-        # Merge the pivoted DataFrame with the original DataFrame
-        #df_final = pd.merge(data, df_pivoted, on='move_id', how='left')
         return df_final
 
     # fetch helpers, order as starting point process
-    def get_orders(self, fields: List[str])-> DataFrame:
+    def get_orders(self, fields: list[str])-> DataFrame:
         """
         Searches for draft invoices in the specified Odoo database and returns them as a DataFrame.
 
@@ -443,7 +432,7 @@ class OdooAPI:
 
 
     # update helpers 
-    def prepare_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
+    def prepare_line_updates(self, data:DataFrame)-> list[dict[Hashable, Any]]:
         required_cols = ['HP', 'HC', 'Base', 'line_id_Abonnements', 'x_lisse']
         for c in required_cols:
             if c not in data.columns:
@@ -489,7 +478,7 @@ class OdooAPI:
                                                         'end_date': 'deferred_end_date',}).to_dict(orient='records')
         return consumption_lines + subscription_lines_dict + subscription_lines_without_qty_dict
   
-    def prepare_account_moves_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
+    def prepare_account_moves_updates(self, data:DataFrame)-> list[dict[Hashable, Any]]:
         # On veut ajouter x_type_compteur, x_scripted, x_turpe
     
         moves = DataFrame(data['move_id'])
@@ -513,7 +502,7 @@ class OdooAPI:
             moves['x_prochaine_releve'] = data['Date_Theorique_Prochaine_Releve'].dt.strftime('%Y-%m-%d')
         return moves.rename(columns={'move_id': 'id'}).to_dict(orient='records')
 
-    def prepare_sale_order_updates(self, data:DataFrame, fields: list[str])-> List[Dict[Hashable, Any]]:
+    def prepare_sale_order_updates(self, data:DataFrame, fields: list[str])-> list[dict[Hashable, Any]]:
         orders = DataFrame(data['order_id'])
         if 'x_turpe' in fields:
             orders['x_turpe'] = data['turpe_fix'] + data['turpe_var']
@@ -523,7 +512,7 @@ class OdooAPI:
         orders['x_invoicing_state'] = 'populated'
         return orders.rename(columns={'order_id': 'id'}).to_dict(orient='records')
     
-    def prepare_order_line_updates(self, data:DataFrame)-> List[Dict[Hashable, Any]]:
+    def prepare_order_line_updates(self, data:DataFrame)-> list[dict[Hashable, Any]]:
         required_cols = ['HP', 'HC', 'Base', 'order_line_id_Abonnements', 'x_lisse']
         for c in required_cols:
             if c not in data.columns:
