@@ -9,7 +9,7 @@ from enedis_odoo_bridge.processes import BaseProcess
 from enedis_odoo_bridge.OdooAPI import OdooAPI
 from enedis_odoo_bridge.utils import gen_dates
 
-from enedis_odoo_bridge.enedis_flux_reader.services import get_consumptions_by_date
+from enedis_odoo_bridge.enedis_flux_reader.services import get_consumptions_by_date, get_r15_by_date
 
 class WorkInProgressProcess(BaseProcess):
     def __init__(self,
@@ -25,9 +25,11 @@ class WorkInProgressProcess(BaseProcess):
     def run(self):
         starting_date = date(2024, 6, 1)
         ending_date = date(2024, 6, 3)
-        data = get_consumptions_by_date(Path('~/data/flux_enedis'), starting_date, ending_date)
+        enedis_flux_path : Path = Path('~/data/flux_enedis')
+        data = get_consumptions_by_date(enedis_flux_path, starting_date, ending_date)
 
         print(data)
 
+        get_r15_by_date(enedis_flux_path, starting_date, ending_date)
 
 
