@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .flux_repository import BaseFluxRepository
+from .base_flux_repository import BaseFluxRepository
 from .r151_flux_repository import R151FluxRepository
 
 class FluxRepositoryFactory:
