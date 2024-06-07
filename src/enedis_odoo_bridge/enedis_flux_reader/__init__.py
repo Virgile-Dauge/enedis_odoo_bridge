@@ -1,0 +1,1 @@
+from .services import get_consumptions_by_date

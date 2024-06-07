@@ -30,7 +30,7 @@ from pathlib import Path
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
-from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess, AddEnedisServiceToDraftInvoiceProcess, ExtractMESFromR15Process, PopulateSubscriptionsInvoicesFromFileProcess
+from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess, AddEnedisServiceToDraftInvoiceProcess, ExtractMESFromR15Process, PopulateSubscriptionsInvoicesFromFileProcess, WorkInProgressProcess
 from enedis_odoo_bridge.utils import CustomLoggerAdapter, load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
 
 from rich import print, pretty, inspect
@@ -76,7 +76,7 @@ def parse_args(args):
     "command",
     help="The command to execute",
     type=str,
-    choices=['facturation', 'services', 'extractMES'],  # Example commands
+    choices=['facturation', 'services', 'extractMES', 'wip'],  # Example commands
     )
     parser.add_argument(
         "--version",
@@ -126,6 +126,12 @@ def parse_args(args):
         default=today.isoformat(),
         type=date.fromisoformat,
     )
+    parser.add_argument(
+        '-f',
+        '--filter',
+        default='EDN',
+        type=str,
+    )
     return parser.parse_args(args)
 
 def setup_logging(loglevel):
@@ -163,13 +169,11 @@ def main(args):
 
     if args.update_flux:
         print(f"Fetching new files from {env['FTP_ADDRESS']} ftp...")
-        files = download_new_files_with_progress(config=env, local=data_path, tasks=['R15', 'F15'])
+        files = download_new_files_with_progress(config=env, local=data_path, tasks=['R15', 'F15', 'R151'])
         decrypted_files = recursively_decrypt_zip_files_with_progress(directory=data_path, 
                                                                       key=bytes.fromhex(env['AES_KEY']),
                                                                       iv=bytes.fromhex(env['AES_IV']),
                                                                       prefix='decrypted_')
-    
-    enedis = EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'], logger=logger)
 
     if args.command == 'facturation':
         if not args.manual_data_path:
@@ -181,25 +185,26 @@ def main(args):
                     enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15'], logger=logger),
                     odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
                     logger=logger)
-        #process = UpdateValuesInDraftInvoicesProcess(config=env,
-        #            date=args.date,
-        #            enedis=enedis,
-        #            odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
-        #            logger=logger)
 
     elif args.command =='services':
         process = AddEnedisServiceToDraftInvoiceProcess(config=env,
                     date=args.date,
-                    enedis=enedis,
+                    enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'], logger=logger),
                     odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
                     logger=logger)
     elif args.command =='extractMES':
-        process = ExtractMESFromR15Process(filter='EDN-EL',
+        process = ExtractMESFromR15Process(filter=args.filter,
                     config=env,
                     date=args.date,
-                    enedis=enedis, 
+                    enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15'], logger=logger), 
                     logger=logger)
-        
+
+    elif args.command =='wip':
+        process = WorkInProgressProcess(
+                    config=env,
+                    date=args.date,
+                    odoo=OdooAPI(config=env, sim=args.sim, logger=logger),
+                    logger=logger)
     if not args.sim and process.will_update_production_db:
         confirm = Prompt.ask(f"This will update [red]{env['ODOO_DB']}[/red] Odoo Database from [red]{env['ODOO_URL']}[/red], are you sure you want to continue?", 
                                  choices=["y", "n"], default="n", console=console)
