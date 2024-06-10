@@ -149,7 +149,7 @@ def download_new_files(config: dict[str, str], tasks: list[str], local: Path) ->
 
     return completed_tasks
 
-def download_new_files_with_progress(config: dict[str, str], tasks: list[str], local: Path) -> list[Path]:
+def download_new_files_with_progress(config: dict[str, str], tasks: list[str], local: Path, prefix: str="decrypted_") -> list[Path]:
     """
     Downloads specified directories from the SFTP server using paramiko, skipping files that already exist locally.
     Now includes progress tracking with rich.
@@ -177,7 +177,7 @@ def download_new_files_with_progress(config: dict[str, str], tasks: list[str], l
         if not local_dir.exists():
             local_dir.mkdir(parents=True, exist_ok=True)
 
-        existing_files = {file.name for file in local_dir.rglob('*') if file.is_file()}
+        existing_files = {file.name.replace(prefix, '') if file.name.startswith(prefix) else file.name for file in local_dir.rglob('*') if file.is_file()}
 
         try:
             files_to_download = [f for f in sftp.listdir(distant) if f not in existing_files]
@@ -229,8 +229,9 @@ def is_valid_json(json_string: str) -> bool:
     return True
 
 def decrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="decrypted_") -> Path:
-    if prefix in file_path.stem:
+    if file_path.stem.startswith(prefix):
         return file_path
+    
     # Initialize the AES cipher with CBC mode
     cipher = AES.new(key, AES.MODE_CBC, iv)
     output_file = file_path.with_name(prefix + file_path.stem + ".zip")
@@ -253,7 +254,7 @@ def encrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="encrypted_
             if len(data) == 0:
                 break
             elif len(data) % 16!= 0:
-                data += b' ' (16 - len(data) % 16)
+                data += b' ' * (16 - len(data) % 16)
             encrypted_data = cipher.encrypt(data)
             f_out.write(encrypted_data)
     return output_file
@@ -271,7 +272,7 @@ def recursively_decrypt_zip_files(directory: Path, key: bytes, iv: bytes, prefix
         if not file.stem.startswith('decrypted_'):  # Check if the file is not already decrypted
             decrypted_file_path = decrypt_file(file, key, iv, prefix=prefix)
 
-def recursively_decrypt_zip_files_with_progress(directory: Path, key: bytes, iv: bytes, prefix:str)-> list[Path]:
+def recursively_decrypt_zip_files_with_progress(directory: Path, key: bytes, iv: bytes, prefix:str, remove_encrypted: bool=False)-> list[Path]:
     """
     Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
 
@@ -281,10 +282,13 @@ def recursively_decrypt_zip_files_with_progress(directory: Path, key: bytes, iv:
     iv (bytes): The AES initialization vector for decryption.
     """
     files_to_decrypt = [f for f in directory.rglob('*.zip') if not f.stem.startswith('decrypted_')]
+    
     decrypted_files = []
     with Progress() as progress:
         task = progress.add_task(f"[green]Decrypting {len(files_to_decrypt)} files...", total=len(files_to_decrypt))
         for f in files_to_decrypt:
             decrypted_files += [decrypt_file(f, key, iv, prefix=prefix)]
+            if remove_encrypted:
+                f.unlink()  # Remove the encrypted file after decryption
             progress.update(task, advance=1)
     return decrypted_files

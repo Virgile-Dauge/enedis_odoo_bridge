@@ -173,7 +173,8 @@ def main(args):
         decrypted_files = recursively_decrypt_zip_files_with_progress(directory=data_path, 
                                                                       key=bytes.fromhex(env['AES_KEY']),
                                                                       iv=bytes.fromhex(env['AES_IV']),
-                                                                      prefix='decrypted_')
+                                                                      prefix='decrypted_',
+                                                                      remove_encrypted=True)
 
     if args.command == 'facturation':
         if not args.manual_data_path:
