@@ -1,7 +1,7 @@
 import pytest
 from datetime import date
 from pathlib import Path
-from enedis_odoo_bridge.enedis_flux_reader.flux_repository.r151_flux_repository import select_zip_by_date
+from enedis_odoo_bridge.enedis_flux_engine.flux_repository.r151_flux_repository import select_zip_by_date
 
 @pytest.fixture
 def zip_files():
