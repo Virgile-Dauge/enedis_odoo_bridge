@@ -240,6 +240,24 @@ def decrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="decrypted_
         f_out.write(decrypted_data)
     return output_file
 
+def encrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="encrypted_") -> Path:
+    if prefix in file_path.stem:
+        return file_path
+    # Initialize the AES cipher with CBC mode
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    output_file = file_path.with_name(prefix + file_path.stem + ".enc")
+    # Encrypt the input file and write the encrypted content to the output file
+    with file_path.open("rb") as f_in, output_file.open("wb") as f_out:
+        while True:
+            data = f_in.read(16)
+            if len(data) == 0:
+                break
+            elif len(data) % 16!= 0:
+                data += b' ' (16 - len(data) % 16)
+            encrypted_data = cipher.encrypt(data)
+            f_out.write(encrypted_data)
+    return output_file
+
 def recursively_decrypt_zip_files(directory: Path, key: bytes, iv: bytes, prefix:str):
     """
     Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
