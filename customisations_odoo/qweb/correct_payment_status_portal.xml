@@ -1,0 +1,34 @@
+<!--Vue héritée : Sales Order Portal Content-->
+<xpath expr="//div[@id='sale_invoices']" position="replace">
+    <div id="sale_invoices" t-if="invoices and sale_order.state in ['sale', 'cancel']" class="col-12 col-lg-6 mb-4">
+        <h4 class="mb-1">Tes dernières factures</h4>
+        <hr class="mt-1 mb-2"/>
+        <t t-foreach="invoices" t-as="i">
+            <t t-set="report_url" t-value="i.get_portal_url()"/>
+            <t t-set="authorized_tx_ids" t-value="i.authorized_transaction_ids"/>
+            <div class="d-flex flex-column">
+                <div class="d-flex align-items-center justify-content-between">
+                    <a t-att-href="report_url">
+                        <span t-out="i.name"/>
+                    </a>
+                    <div t-if="i.payment_state == 'paid'" class="small badge text-bg-success orders_label_text_align">
+                        <i class="fa fa-fw fa-check"/> Payé
+                    </div>
+                    <div t-if="i.payment_state == 'in_payment'" class="small badge text-bg-warning orders_label_text_align">
+                        <i class="fa fa-fw fa-check"/> En paiement
+                    </div>
+                    <div t-elif="i.payment_state == 'reversed'" class="small badge text-bg-success orders_label_text_align">
+                        <i class="fa fa-fw fa-check"/> Reversed
+                    </div>
+                    <div t-elif="authorized_tx_ids" class="small badge text-bg-success orders_label_text_align">
+                        <i class="fa fa-fw fa-check"/> Authorized
+                    </div>
+                    <div t-else="" class="small badge text-bg-info orders_label_text_align">
+                        <i class="fa fa-fw fa-clock-o"/> Waiting Payment
+                    </div>
+                </div>
+                <div class="small d-lg-inline-block">Date: <span class="text-muted" t-field="i.invoice_date"/></div>
+            </div>
+        </t>
+    </div>
+</xpath>

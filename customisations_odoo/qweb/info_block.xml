@@ -1,0 +1,100 @@
+<div t-if="address" class="address row " title="This block is not always present depending on the printed document.">
+        <div name="information_block" class="col-6">
+          <h2>Dépannage</h2>
+          <p>Centre de dépannage du gestionnaire du réseau de distribution :<strong>
+              <span class="h5-fs">
+              </span>
+              <font style="color: rgb(239, 198, 49);">
+                <span class="h4-fs">09 72 67 50 44</span>
+              </font>
+              <span class="h5-fs">
+              </span>
+            </strong>
+          </p>
+          <table class="table table-bordered o_table">
+            <tbody>
+              <tr>
+                <td>
+                  <p>
+                    <strong>PDL </strong>
+                    <span class="o_small-fs">(Point de Livraison):</span>
+                    <br/>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    <span t-field="o.x_order_id.x_pdl"/>
+                    <br/>
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <strong>Modèle </strong>compteur<strong> :</strong>
+                    <br/>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    <span t-field="o.x_type_compteur"/>
+                    <br/>
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <strong>Ref. </strong>compteur<strong> :</strong>
+                    <br/>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    <span t-field="o.x_num_serie_compteur"/>
+                    <br/>
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <h2>Mix énergétique</h2>
+          <p>
+            <strong>
+              <span class="h5-fs">99%</span>
+            </strong> éolien, <strong>
+              <span class="h5-fs">1%</span>
+            </strong> hydro
+          </p>
+        </div>
+        <div name="droite" class="offset-col-6 col-6">
+          <h2>Vous</h2>
+          <span t-field="o.partner_id.complete_name"/>
+          <br/>
+          <div t-if="o.x_order_id">
+            <div t-if="o.x_order_id.x_cotitulaires">
+              <t>Et </t>
+              <span t-field="o.x_order_id.x_cotitulaires"/>
+              <br/>
+            </div>
+          </div>
+          <span t-field="o.partner_id.contact_address"/>
+          <br/>Réf usager·ère : <span t-field="o.partner_id.id" style="font-weight: bolder;" class="h5-fs"/>
+          <br/>
+          <span t-field="o.x_order_id.sale_order_template_id.display_name"/>
+          <br/>
+          <p/>
+          <div t-if="o.company_id">
+            <h2>Nous</h2>
+            <span t-field="o.company_id.company_details"/>
+            <span t-field="o.company_id.email"/>
+            <p>
+              SIRET <span t-field="o.company_id.siret"/>
+              <br/>
+              06 85 79 78 05
+              <br/>
+              Du lundi au samedi de 9h30 à 19h
+            </p>
+        </div>
+      </div>
+    </div>

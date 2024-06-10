@@ -1,0 +1,7 @@
+<!--Vue héritée : Sales Order Portal Content-->
+
+<data>
+    <xpath expr="//section[@id='details']" position="replace">
+        
+    </xpath>
+</data>

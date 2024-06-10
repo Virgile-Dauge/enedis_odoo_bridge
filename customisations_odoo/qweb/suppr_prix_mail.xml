@@ -1,0 +1,7 @@
+<!--Vues héritées : Mail: mail notification layout template -->
+<data>
+    <xpath expr="/t/html/body/div/div/table/tbody/tr[3]/td/table/tbody/tr/td[4]" position="replace">
+        <td t-if="False">
+        </td>
+    </xpath>
+</data>
