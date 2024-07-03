@@ -51,3 +51,5 @@ class BaseZipRepository(ABC):
             else:
                 return DataFrame()
 
+    def preprocess(self, data: DataFrame)-> DataFrame:
+        return data

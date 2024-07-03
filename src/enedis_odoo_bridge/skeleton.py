@@ -30,7 +30,7 @@ from pathlib import Path
 from enedis_odoo_bridge import __version__
 from enedis_odoo_bridge.EnedisFluxEngine import EnedisFluxEngine
 from enedis_odoo_bridge.OdooAPI import OdooAPI
-from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess, AddEnedisServiceToDraftInvoiceProcess, ExtractMESFromR15Process, PopulateSubscriptionsInvoicesFromFileProcess, WorkInProgressProcess
+from enedis_odoo_bridge.processes import UpdateValuesInDraftInvoicesProcess, AddEnedisServiceToDraftInvoiceProcess, ExtractMESFromR15Process, PopulateSubscriptionsInvoicesFromFileProcess, WorkInProgressProcess, ConsumptionsInvoicingProcess, ExtractServicesFromF15Process
 from enedis_odoo_bridge.utils import CustomLoggerAdapter, load_prefixed_dotenv, download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
 
 from rich import print, pretty, inspect
@@ -76,7 +76,7 @@ def parse_args(args):
     "command",
     help="The command to execute",
     type=str,
-    choices=['facturation', 'services', 'extractMES', 'wip'],  # Example commands
+    choices=['facturation', 'services', 'mes', 'wip'],  # Example commands
     )
     parser.add_argument(
         "--version",
@@ -132,6 +132,18 @@ def parse_args(args):
         default='EDN',
         type=str,
     )
+    parser.add_argument(
+        '--start-date',
+        dest="start_date",
+        help="Start date for the process",
+        type=date.fromisoformat,
+    )
+    parser.add_argument(
+        '--end-date',
+        dest="end_date",
+        help="End date for the process",
+        type=date.fromisoformat,
+    )
     return parser.parse_args(args)
 
 def setup_logging(loglevel):
@@ -177,28 +189,33 @@ def main(args):
                                                                       remove_encrypted=True)
 
     if args.command == 'facturation':
-        if not args.manual_data_path:
-            console.print("manual file required, use -m option to specify one")
-            exit(1)
+        # if not args.manual_data_path:
+        #     console.print("manual file required, use -m option to specify one")
+        #     exit(1)
         process = PopulateSubscriptionsInvoicesFromFileProcess(config=env,
                     data_path=args.manual_data_path,
                     date=args.date,
                     enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15'], logger=logger),
                     odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
                     logger=logger)
+        # #process = ConsumptionsInvoicingProcess(config=env,
+        #             #data_path=args.manual_data_path,
+        #             date=args.date,
+        #             #enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15'], logger=logger),
+        #             odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
+        #             logger=logger)
 
     elif args.command =='services':
-        process = AddEnedisServiceToDraftInvoiceProcess(config=env,
-                    date=args.date,
-                    enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15', 'F15'], logger=logger),
-                    odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
+        process = ExtractServicesFromF15Process(filter=args.filter,
+                    start_date=args.start_date,
+                    end_date=args.end_date,
                     logger=logger)
-    elif args.command =='extractMES':
+    elif args.command =='mes':
         process = ExtractMESFromR15Process(filter=args.filter,
-                    config=env,
-                    date=args.date,
-                    enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15'], logger=logger), 
+                    start_date=args.start_date,
+                    end_date=args.end_date,
                     logger=logger)
+
 
     elif args.command =='wip':
         process = WorkInProgressProcess(
@@ -234,3 +251,4 @@ if __name__ == "__main__":
     #     python -m enedis_odoo_bridge.skeleton 42
     #
     run()
+

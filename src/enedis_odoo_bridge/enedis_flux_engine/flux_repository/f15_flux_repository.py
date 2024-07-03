@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-from datetime import date
+from datetime import date, timedelta
 from typing import Union, Any
 from pandas import DataFrame
 
@@ -23,21 +23,38 @@ def select_zip_by_date(zip_files: list[Path], start_date: date, end_date: Union[
     Returns:
     list[Path]: A list of paths to the ZIP files that match the date criteria.
     """
-    return zip_files
-    horodate : list[date] = [pd.to_datetime(zip_file.stem.split('_')[-1], format='%Y%m%d%H%M%S').date() for zip_file in zip_files]
-    if end_date is None:
-        return [z for z, h in zip(zip_files, horodate) if (h-start_date).days == 2]
+    # Ajouter des marges
+    marge_passe = timedelta(days=60)
+    marge_futur = timedelta(days=30)
 
-    return [z for z, h in zip(zip_files, horodate) if (h-start_date).days >= 2 and (h-end_date).days <= 2]
+    # Calculer les dates avec marges
+    start_date_with_margin = start_date - marge_passe
+    end_date_with_margin = (end_date + marge_futur) if end_date else (start_date + marge_futur)
+
+    horodate = [pd.to_datetime(zip_file.stem.split('_')[-1], format='%Y%m%d%H%M%S').date() for zip_file in zip_files]
+
+    return [z for z, h in zip(zip_files, horodate) if start_date_with_margin <= h <= end_date_with_margin]
 
 class F15FluxRepository(BaseFluxRepository):
-    def get_flux_by_date(self, start_date: date, end_date: date=None) -> DataFrame:
+    def get_flux_by_date(self, start_date: date, end_date: date) -> DataFrame:
         zip_files = list(self.root_path.joinpath('F15').expanduser().glob('*.zip'))
-        to_read = select_zip_by_date(zip_files, start_date, end_date=end_date)
+        to_read = select_zip_by_date(zip_files, start_date, end_date)
 
         zip_repository = F15ZipRepository()
         dfs = [zip_repository.process_zip(z) for z in to_read]
         if dfs:
-            return pd.concat(dfs)
+            # Filtrer les résultats par les dates de début et de fin
+            result_df = pd.concat(dfs)
+            
+            # Convert 'Date_Debut' and 'Date_Fin' to datetime.date objects
+            result_df['Date_Debut'] = pd.to_datetime(result_df['Date_Debut']).dt.date
+            result_df['Date_Fin'] = pd.to_datetime(result_df['Date_Fin']).dt.date
+
+            # Now perform the filtering
+            filtered_df = result_df[
+                (result_df['Date_Debut'] <= end_date) & 
+                (result_df['Date_Fin'] >= start_date)
+            ]
+            return filtered_df
         
         return DataFrame()

@@ -5,3 +5,4 @@ from .extract_mes_from_r15_process import ExtractMESFromR15Process
 from .populate_subscriptions_invoices_from_file_process import PopulateSubscriptionsInvoicesFromFileProcess
 from .work_in_progress_process import WorkInProgressProcess
 from .consumptions_invoicing_process import ConsumptionsInvoicingProcess
+from .extract_services_from_f15_process import ExtractServicesFromF15Process
