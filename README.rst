@@ -120,6 +120,7 @@ Configurez le script en remplissant un fichier .env à la racine du module
     ENEDIS_ODOO_BRIDGE_FTP_R15_DIR = R15 ¿ R16
     ENEDIS_ODOO_BRIDGE_FTP_C15_DIR = C15
     ENEDIS_ODOO_BRIDGE_FTP_F15_DIR = F15
+    ENEDIS_ODOO_BRIDGE_FTP_R151_DIR = R151
     # Déchiffrage des archives des flux
     ENEDIS_ODOO_BRIDGE_AES_IV = iv
     ENEDIS_ODOO_BRIDGE_AES_KEY = clé
@@ -127,6 +128,39 @@ Configurez le script en remplissant un fichier .env à la racine du module
 
 Utilisation
 ^^^^^^^^^^^
+Utilisation des commandes
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Le module `enedis_odoo_bridge` propose plusieurs commandes pour interagir avec les données Enedis et Odoo. Voici comment utiliser les principales commandes :
+
+1. Commande `facturation`
+   Cette commande permet de remplir les factures odoo à partir des fichiers manuels fournis.
+
+   .. code-block:: bash
+
+       python -m enedis_odoo_bridge.skeleton facturation -m chemin/vers/fichier.csv -d 2023-01-01
+
+2. Commande `extract-services`
+   Cette commande permet d'extraire les services à partir des fichiers F15 pour une période donnée.
+
+   .. code-block:: bash
+
+       python -m enedis_odoo_bridge.skeleton extract-services --start-date 2023-01-01 --end-date 2023-01-31 
+
+3. Commande `extract-mes`
+   Cette commande permet d'extraire les MES à partir des fichiers R15 pour une période donnée.
+
+   .. code-block:: bash
+
+       python -m enedis_odoo_bridge.skeleton extract-mes --start-date 2023-01-01 --end-date 2023-01-31 --filter "REF DEMANDEUR"
+
+Pour chaque commande, vous pouvez ajouter l'option `-v` pour obtenir des informations de log supplémentaires ou `-vv` pour des informations de débogage détaillées.
+Ces commandes peuvent s'effectuent par défault avec les données locales dans `~/data/flux_enedis`. Pour récupére les données à jour sur le sFTP, il s'uffit d'ajouter l'option `-u`.
+
+.. code-block:: bash
+
+    python -m enedis_odoo_bridge.skeleton <commande> -v
+    python -m enedis_odoo_bridge.skeleton <commande> -vv
 
 
 
