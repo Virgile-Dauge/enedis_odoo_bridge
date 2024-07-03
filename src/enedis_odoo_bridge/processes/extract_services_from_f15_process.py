@@ -26,6 +26,8 @@ class ExtractServicesFromF15Process(BaseProcess):
         end_date = self.end_date
         
         f15 = get_f15_by_date(enedis_flux_path, start_date, end_date)
+        if f15.empty:
+            raise ValueError(f"Aucune donnée trouvée pour les dates spécifiées: {start_date} à {end_date}")
         # self.logger.info(f"{f15}")
         #filter =  (f15['Ref_Demandeur'] == self.filter)
         #f15 = f15[filter]

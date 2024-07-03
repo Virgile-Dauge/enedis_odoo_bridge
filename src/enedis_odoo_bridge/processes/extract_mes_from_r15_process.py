@@ -27,7 +27,8 @@ class ExtractMESFromR15Process(BaseProcess):
         end_date = self.end_date
         
         r15 = get_r15_by_date(enedis_flux_path, start_date, end_date)
-        
+        if r15.empty:
+            raise ValueError(f"Aucune donnée trouvée pour les dates spécifiées: {start_date} à {end_date}")
         filter =  ((r15['Motif_Releve'] == 'CFNE') | (r15['Motif_Releve'] == 'MES')) & (r15['Ref_Demandeur'] == self.filter) #& (r15['Date_Releve'] >= start) & (r15['Date_Releve'] <= end)
         r15 = r15[filter]
         self.logger.info(f"{r15}")
