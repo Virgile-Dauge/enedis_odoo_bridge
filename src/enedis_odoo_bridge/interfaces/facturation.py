@@ -138,7 +138,7 @@ def __(cfne, cfns, r151_end, r151_start):
 
 @app.cell
 def __(end_index, get_consumption_names, start_index):
-
+    import pandas as pd
     # Trouver les PDLs communs
     _pdls_communs = start_index.index.intersection(end_index.index)
 
@@ -146,8 +146,33 @@ def __(end_index, get_consumption_names, start_index):
     consos = end_index.loc[_pdls_communs, get_consumption_names()] - start_index.loc[_pdls_communs, get_consumption_names()]
     consos['start_date'] = start_index.loc[_pdls_communs, 'Date_Releve']
     consos['end_date'] = end_index.loc[_pdls_communs, 'Date_Releve']
+    # Convertir les colonnes de dates en objets datetime
+    consos['start_date'] = pd.to_datetime(consos['start_date'])
+    consos['end_date'] = pd.to_datetime(consos['end_date'])
+
+    # Calculer la différence en jours et ajouter 1 pour inclure les deux dates
+    consos['j'] = (consos['end_date'] - consos['start_date']).dt.days + 1
     consos.dropna(axis=1, how='all')
-    return consos,
+    return consos, pd
+
+
+@app.cell
+def __(mo):
+    mo.md(r"# ODOO")
+    return
+
+
+@app.cell
+def __():
+    from enedis_odoo_bridge.utils import load_prefixed_dotenv
+    from enedis_odoo_bridge.OdooAPI import OdooAPI
+
+    env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
+    odoo = OdooAPI(config=env, sim=True)
+    draft_orders = odoo.search_read('sale.order', filters=[[['state', '=', 'sale']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse'])
+    print(draft_orders)
+    draft_orders.sort_values(by='sale.order_id')
+    return OdooAPI, draft_orders, env, load_prefixed_dotenv, odoo
 
 
 if __name__ == "__main__":
