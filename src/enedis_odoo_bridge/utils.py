@@ -22,6 +22,15 @@ class CustomLoggerAdapter(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         return f'{self.extra["prefix"]}{msg}', kwargs
 
+def get_consumption_names() -> list[str]:
+    """
+    Retourne une liste des noms de consommation utilisés dans le système.
+
+    Returns:
+        list[str]: Liste des noms de consommation.
+    """
+    return ['HPH', 'HPB', 'HCH', 'HCB', 'HP', 'HC', 'BASE']
+
 def check_required(config: dict[str, str], required: list[str]):
     for r in required:
         if r not in config.keys():
@@ -37,7 +46,7 @@ def load_prefixed_dotenv(prefix: str='EOB_', required: list[str]=[]) -> dict[str
     
     return check_required({k.replace(prefix, ''): v for k, v in env_variables.items() if k.startswith(prefix)}, required)
 
-def gen_dates(current: Union[date, None]) -> tuple[date, date]:
+def gen_dates(current: Union[date, None]=None) -> tuple[date, date]:
     if not current:
         current = date.today()
     
@@ -121,9 +130,9 @@ def download_new_files(config: dict[str, str], tasks: list[str], local: Path) ->
     transport.connect(username=config['FTP_USER'], password=config['FTP_PASSWORD'])
     sftp = paramiko.SFTPClient.from_transport(transport)
 
-    for type in tasks:
-        distant = '/flux_enedis/' + str(config[f'FTP_{type}_DIR'])
-        local_dir = local.joinpath(type).expanduser()
+    for type_flux in tasks:
+        distant = '/flux_enedis/' + str(config[f'FTP_{type_flux}_DIR'])
+        local_dir = local.joinpath(type_flux).expanduser()
         if not local_dir.exists():
             local_dir.mkdir(parents=True, exist_ok=True)
 
@@ -142,7 +151,7 @@ def download_new_files(config: dict[str, str], tasks: list[str], local: Path) ->
         except Exception as e:
             _logger.error(f"Failed to download files from {distant}: {e}")
 
-        completed_tasks[type] = local_files
+        completed_tasks[type_flux] = local_files
 
     sftp.close()
     transport.close()
