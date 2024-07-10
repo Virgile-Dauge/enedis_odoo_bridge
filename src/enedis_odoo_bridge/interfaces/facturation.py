@@ -28,6 +28,12 @@ def __():
 
 
 @app.cell
+def __(mo):
+    mo.md(r"# Données d'entrée : Flux Enedis")
+    return
+
+
+@app.cell
 def __(end_date_picker, start_date_picker):
     from enedis_odoo_bridge.enedis_flux_engine import get_r15_by_date
     from pathlib import Path
@@ -60,31 +66,27 @@ def __(r15):
 
 
 @app.cell
-def __(cfne, mo):
-    mo.vstack([mo.md("""
-                     # Changements de fournisseur entrants sur la période
-                     Les valeurs affichées sont les index des compteurs en kWh
-                     """), cfne,])
+def __(mo):
+    mo.md(r"### R15")
     return
 
 
 @app.cell
-def __(cfns, mo):
-    mo.vstack([mo.md('# Changements de fournisseur sortants sur la période'), cfns,])
-    return
-
-
-@app.cell(hide_code=True)
-def __(mo, start_date_picker):
-    mo.md(f"""
-           # Récupération des index depuis le flux R151 :
-           ## Index du {start_date_picker.value} :
-           """)
+def __(cfne, cfns, mo):
+    mo.accordion({"Changements de fournisseur entrants": cfne,
+                  "Changements de fournisseur sortants": cfns
+                 })
     return
 
 
 @app.cell
-def __(end_date_picker, flux_path, start_date_picker):
+def __(mo):
+    mo.md(r"### R151")
+    return
+
+
+@app.cell
+def __(end_date_picker, flux_path, mo, start_date_picker):
     from enedis_odoo_bridge.enedis_flux_engine import get_r151_by_date
     from enedis_odoo_bridge.utils import get_consumption_names
 
@@ -97,34 +99,25 @@ def __(end_date_picker, flux_path, start_date_picker):
     _conso_cols = [c for c in get_consumption_names() if c in r151_start]
     r151_end[_conso_cols] = (r151_end[_conso_cols] / 1000).round()
 
-    r151_start
+    mo.accordion({f"Index du {start_date_picker.value}": r151_start,
+                  f"Index du {end_date_picker.value}": r151_end
+    })
     return get_consumption_names, get_r151_by_date, r151_end, r151_start
-
-
-@app.cell(hide_code=True)
-def __(end_date_picker, mo):
-    mo.md(f"""
-           ## Index du {end_date_picker.value} :
-           """)
-    return
-
-
-@app.cell
-def __(r151_end):
-    r151_end
-    return
 
 
 @app.cell
 def __(mo):
     mo.md(
-        r'''
+        r"""
+        ## Fusion des données 
         On va maintenant combiner les données issues du R15, `cfne` et `cfns`, avec les données issues du R151, `start_index` et `end_index`
 
         S'il y a eu un $CFNE$ pour un $PDL$, on va remplacer les index du R151 (`start_index`) par celles du relevé de `cfne`
 
         S'il y a eu un $CFNS$ pour un $PDL$, on va remplacer les index du R151 (`end_index`) par celles du relevé de `cfns`
-        '''
+
+        On obtient ainsi deux tableaux, l'un avec les index du début de la période, l'autre avec l'index de la fin, qu'ils proviennent du R15 ou du R151.
+        """
     )
     return
 
@@ -169,7 +162,11 @@ def __():
 
     env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
     odoo = OdooAPI(config=env, sim=True)
-    draft_orders = odoo.search_read('sale.order', filters=[[['state', '=', 'sale']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse'])
+    draft_orders = odoo.search_read('sale.order', filters=[[['state', '=', 'sale']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'access_url'])
+
+    draft_orders['url'] = draft_orders['sale.order_id'].apply(
+        lambda x: f'https://energie-de-nantes.odoo.com/web#id={x}&model=sale.order&view_type=form'
+    )
     print(draft_orders)
     draft_orders.sort_values(by='sale.order_id')
     return OdooAPI, draft_orders, env, load_prefixed_dotenv, odoo
