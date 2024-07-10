@@ -43,3 +43,11 @@ def get_r15_by_date(root_path: Path, start_date: date, end_date: Union[date, Non
 def get_f15_by_date(root_path: Path, start_date: date, end_date: Union[date, None]=None) -> DataFrame:
     flux_repository : BaseFluxRepository = FluxRepositoryFactory().get_flux_repository('F15', root_path)
     return flux_repository.get_flux_by_date(start_date, end_date)
+
+def get_r151_by_date(root_path: Path, date: date) -> DataFrame:
+    flux_repository : BaseFluxRepository = FluxRepositoryFactory().get_flux_repository('R151', root_path)
+    return flux_repository.get_flux_by_date(date)
+
+def get_f15G_by_date(root_path: Path, start_date: date, end_date: Union[date, None]=None) -> DataFrame:
+    flux_repository : BaseFluxRepository = FluxRepositoryFactory().get_flux_repository('F15', root_path)
+    return flux_repository.get_flux_by_date(start_date, end_date)
