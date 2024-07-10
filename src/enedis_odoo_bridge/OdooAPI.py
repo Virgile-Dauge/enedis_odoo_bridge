@@ -5,7 +5,7 @@ from typing import Any, Hashable
 import pandas as pd
 from pandas import DataFrame
 from datetime import date
-
+import time
 from enedis_odoo_bridge.utils import check_required
 
 import logging
@@ -82,6 +82,9 @@ class OdooAPI:
         if self.sim and method in ['create', 'write', 'unlink']:
             self.logger.info(f'Executing {method} on {model} with args {args} and kwargs {kwargs} [simulated]')
             return []
+        
+        if method in ['create', 'write', 'unlink']:
+            time.sleep(0.5)
         
         args = args if args is not None else []
         kwargs = kwargs if kwargs is not None else {}
