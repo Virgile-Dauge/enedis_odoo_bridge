@@ -9,27 +9,36 @@ def __():
     import marimo as mo
     from datetime import date
     from enedis_odoo_bridge.utils import gen_dates
+    from enedis_odoo_bridge.utils import load_prefixed_dotenv
 
+    env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
     default_start, default_end = gen_dates()
     start_date_picker = mo.ui.date(value=default_start)
     end_date_picker = mo.ui.date(value=default_end)
     mo.md(
-        f"Choisis la date de début {start_date_picker} et de fin {end_date_picker}"
+        f"""
+        Choisis la date de début {start_date_picker} et de fin {end_date_picker}
+        """
     )
     return (
         date,
         default_end,
         default_start,
         end_date_picker,
+        env,
         gen_dates,
+        load_prefixed_dotenv,
         mo,
         start_date_picker,
     )
 
 
 @app.cell
-def __(mo):
-    mo.md(r"# Données d'entrée : Flux Enedis")
+def __(env, mo):
+    mo.md(f"""
+          # Données d'entrée : Flux Enedis
+          Source ftp : {env['FTP_ADDRESS']} 
+          """)
     return
 
 
@@ -44,25 +53,17 @@ def __(end_date_picker, start_date_picker):
 
 @app.cell
 def __(r15):
-    from pandas import DataFrame, Series
-    def get_CF_from_r15(data : DataFrame) -> tuple(DataFrame):
-        start_date_condition = ((data['Motif_Releve'] == 'CFNE') | (data['Motif_Releve'] == 'MES'))
-        end_date_condition = (data['Motif_Releve'] == 'CFNS')
+    from enedis_odoo_bridge.enedis_flux_engine  import get_meta_from_r15
+    meta = get_meta_from_r15(r15)
+    return get_meta_from_r15, meta
 
-        start_dates = data.loc[start_date_condition].groupby('pdl')['Date_Releve'].min().reset_index(name='Date_Releve')
-        end_dates = data.loc[end_date_condition].groupby('pdl')['Date_Releve'].max().reset_index(name='Date_Releve')
 
-        # Ajout des colonnes qui commencent avec 'index.' et finissent avec '.Valeur'
-        index_columns = [col for col in data.columns if col.startswith('index.') and col.endswith('.Valeur')]
-        start_dates = start_dates.merge(data.loc[start_date_condition, ['pdl'] + index_columns].drop_duplicates(subset='pdl'), on='pdl', how='left')
-        end_dates = end_dates.merge(data.loc[end_date_condition, ['pdl'] + index_columns].drop_duplicates(subset='pdl'), on='pdl', how='left')
-        # Enlever 'index.' et '.Valeur' des noms des colonnes
-        start_dates.columns = [col.replace('index.', '').replace('.Valeur', '') for col in start_dates.columns]
-        end_dates.columns = [col.replace('index.', '').replace('.Valeur', '') for col in end_dates.columns]
-        return start_dates, end_dates
+@app.cell
+def __(r15):
+    from enedis_odoo_bridge.enedis_flux_engine import get_CF_from_r15
 
     cfne, cfns = get_CF_from_r15(r15)
-    return DataFrame, Series, cfne, cfns, get_CF_from_r15
+    return cfne, cfns, get_CF_from_r15
 
 
 @app.cell
@@ -71,9 +72,10 @@ def __(mo):
     return
 
 
-@app.cell
-def __(cfne, cfns, mo):
-    mo.accordion({"Changements de fournisseur entrants": cfne,
+@app.cell(hide_code=True)
+def __(cfne, cfns, meta, mo):
+    mo.accordion({"Metadonnées": meta,
+                  "Changements de fournisseur entrants": cfne,
                   "Changements de fournisseur sortants": cfns
                  })
     return
@@ -150,26 +152,84 @@ def __(end_index, get_consumption_names, start_index):
 
 
 @app.cell
-def __(mo):
-    mo.md(r"# ODOO")
+def __(env, mo):
+    mo.md(f"""
+          # ODOO
+
+          Site : [{env['ODOO_URL']}]({env['ODOO_URL']})
+          """)
     return
 
 
 @app.cell
-def __():
-    from enedis_odoo_bridge.utils import load_prefixed_dotenv
+def __(mo):
+    mo.md(r"## Lancer le cycle de facturation")
+    return
+
+
+@app.cell
+def __(env, mo):
+    mo.md(
+        f"""
+        ## Récupération des Abonnements à facturer
+
+        On va chercher tous les abonnements en cours, dont le statut de facturation est _Facture brouillon créée_ ([voir vue kanban]({env['ODOO_URL']}web#action=437&model=sale.order&view_type=kanban))
+        """
+    )
+    return
+
+
+@app.cell
+def __(env):
     from enedis_odoo_bridge.OdooAPI import OdooAPI
 
-    env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
     odoo = OdooAPI(config=env, sim=True)
-    draft_orders = odoo.search_read('sale.order', filters=[[['state', '=', 'sale']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'access_url'])
+    draft_orders = odoo.search_read('sale.order', filters=[[['state', '=', 'sale'], ['x_invoicing_state', '=', 'draft']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'x_puissance_souscrite']).set_index('x_pdl')
 
     draft_orders['url'] = draft_orders['sale.order_id'].apply(
         lambda x: f'https://energie-de-nantes.odoo.com/web#id={x}&model=sale.order&view_type=form'
     )
-    print(draft_orders)
     draft_orders.sort_values(by='sale.order_id')
-    return OdooAPI, draft_orders, env, load_prefixed_dotenv, odoo
+    return OdooAPI, draft_orders, odoo
+
+
+@app.cell
+def __(mo):
+    mo.md(r"## Récupération des factures brouillon des abonnements à facturer")
+    return
+
+
+@app.cell
+def __(draft_orders, odoo):
+    draft_orders['invoice_ids'] = draft_orders['invoice_ids'].apply(lambda x: max(x) if x else None)
+    draft_orders.rename(columns={'sale.order_id': 'order_id', 'invoice_ids': 'move_id'}, inplace=True)
+
+    draft_invoices = odoo.read('account.move', ids=draft_orders['move_id'].to_list(), fields=['invoice_line_ids',])
+    draft_orders['invoice_line_ids'] = draft_invoices['invoice_line_ids']
+
+    odoo_data = odoo.add_cat_fields(draft_orders, [])
+    return draft_invoices, odoo_data
+
+
+@app.cell
+def __(consos, draft_orders, meta):
+    # Fusionner draft_orders et meta en utilisant un left join
+    merged_df = draft_orders.merge(meta, how='left', left_index=True, right_index=True)
+
+    # Fusionner le résultat précédent avec consos en utilisant un left join
+    merged_df = merged_df.merge(consos, how='left', left_index=True, right_index=True)
+    merged_df
+    return merged_df,
+
+
+@app.cell
+def __(end_date_picker, merged_df, odoo, start_date_picker):
+    merged_df['not_enough_data'] = False
+    merged_df.rename(columns={'sale.order_id': 'order_id'}, inplace=True)
+    merged_df['move_id'] = False
+    print(merged_df)
+    odoo.update_draft_invoices(merged_df, start_date_picker.value, end_date_picker.value)
+    return
 
 
 if __name__ == "__main__":
