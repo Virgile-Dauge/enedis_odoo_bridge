@@ -5,7 +5,7 @@ app = marimo.App(width="medium")
 
 
 @app.cell
-def __():
+def delimitation_periode():
     import marimo as mo
     from datetime import date
     from enedis_odoo_bridge.utils import gen_dates
@@ -43,7 +43,7 @@ def __(env, mo):
 
 
 @app.cell
-def __(end_date_picker, start_date_picker):
+def lecture_flux_r15(end_date_picker, start_date_picker):
     from enedis_odoo_bridge.enedis_flux_engine import get_r15_by_date
     from pathlib import Path
     flux_path = Path('~/data/flux_enedis/')
@@ -52,14 +52,14 @@ def __(end_date_picker, start_date_picker):
 
 
 @app.cell
-def __(r15):
+def extraction_meta_r15(r15):
     from enedis_odoo_bridge.enedis_flux_engine  import get_meta_from_r15
     meta = get_meta_from_r15(r15)
     return get_meta_from_r15, meta
 
 
 @app.cell
-def __(r15):
+def extraction_cf_r15(r15):
     from enedis_odoo_bridge.enedis_flux_engine import get_CF_from_r15
 
     cfne, cfns = get_CF_from_r15(r15)
@@ -88,7 +88,12 @@ def __(mo):
 
 
 @app.cell
-def __(end_date_picker, flux_path, mo, start_date_picker):
+def recuperation_index_enedis(
+    end_date_picker,
+    flux_path,
+    mo,
+    start_date_picker,
+):
     from enedis_odoo_bridge.enedis_flux_engine import get_r151_by_date
     from enedis_odoo_bridge.utils import get_consumption_names
 
@@ -125,15 +130,18 @@ def __(mo):
 
 
 @app.cell
-def __(cfne, cfns, r151_end, r151_start):
+def fusion_donnees_enedis(
+    cfne,
+    cfns,
+    get_consumption_names,
+    r151_end,
+    r151_start,
+):
+    import pandas as pd
+    # Combinaison des dates de la période et des éventuels CFNE ou CFNS
     start_index = cfne.set_index('pdl').combine_first(r151_start.set_index('pdl'))
     end_index = cfns.set_index('pdl').combine_first(r151_end.set_index('pdl'))
-    return end_index, start_index
 
-
-@app.cell
-def __(end_index, get_consumption_names, start_index):
-    import pandas as pd
     # Trouver les PDLs communs
     _pdls_communs = start_index.index.intersection(end_index.index)
 
@@ -148,7 +156,7 @@ def __(end_index, get_consumption_names, start_index):
     # Calculer la différence en jours et ajouter 1 pour inclure les deux dates
     consos['j'] = (consos['end_date'] - consos['start_date']).dt.days + 1
     consos.dropna(axis=1, how='all')
-    return consos, pd
+    return consos, end_index, pd, start_index
 
 
 @app.cell
@@ -179,17 +187,40 @@ def __(env, mo):
     return
 
 
-@app.cell
-def __(env):
+@app.cell(hide_code=True)
+def recuperation_abonnements_odoo(env, mo):
     from enedis_odoo_bridge.OdooAPI import OdooAPI
 
     odoo = OdooAPI(config=env, sim=True)
-    draft_orders = odoo.search_read('sale.order', filters=[[['state', '=', 'sale'], ['x_invoicing_state', '=', 'draft']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'x_puissance_souscrite']).set_index('x_pdl')
+    _draft_orders_request = odoo.search_read('sale.order', filters=[[['state', '=', 'sale'], ['x_invoicing_state', '=', 'draft']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'x_puissance_souscrite'])
 
-    draft_orders['url'] = draft_orders['sale.order_id'].apply(
-        lambda x: f'https://energie-de-nantes.odoo.com/web#id={x}&model=sale.order&view_type=form'
-    )
-    draft_orders.sort_values(by='sale.order_id')
+    _stop_msg = mo.callout(mo.md(
+        f"""
+        ## ⚠ Aucun abonnement à facturer trouvé sur [Odoo]({env['ODOO_URL']}web#action=437&model=sale.order&view_type=kanban). ⚠ 
+        Ici ne sont prises en comptes que les cartes dans la colonne **Facture brouillon créée**, et le programme n'en trouve pas.
+        Le processus de facturation ne peut pas continuer en l'état. Plusieurs causes possibles : 
+        1. Le processus de facturation n'a pas été lancé dans Odoo. Go le lancer. 
+        2. Toutes les cartes abonnement ont déjà été déplacées dans une autre colonne. Si tu souhaite néanmoins re-mettre à jour un des abonnements, il suffit de redéplacer sa carte dans la colonne Facture brouillon créée. Attention, ça va écraser les valeurs de sa facture."""), kind='warn')
+
+    mo.stop(_draft_orders_request.empty, _stop_msg)
+
+    draft_orders = _draft_orders_request.set_index('x_pdl').sort_values(by='sale.order_id')
+    draft_orders.rename(columns={'sale.order_id': 'order_id', 'invoice_ids': 'move_id'}, inplace=True)
+    draft_orders['move_id'] = draft_orders['move_id'].apply(lambda x: max(x) if x else None)
+
+    # draft_orders['url'] = draft_orders['order_id'].apply(
+    #     lambda x: f'https://energie-de-nantes.odoo.com/web#id={x}&model=sale.order&view_type=form'
+    # )
+    #draft_orders.at['14265701793516', 'move_id'] = None
+    _to_display = [draft_orders]
+    _no_invoices = draft_orders[draft_orders['move_id'].isna()]
+
+    if not _no_invoices.empty:
+        draft_orders.dropna(subset=['move_id'], inplace=True)
+        _to_display.append(mo.callout("""Les abonnements suivants ont une facture et seront traités :""", kind='success'))
+        _to_display.append(_no_invoices)
+        _to_display.append(mo.callout("""Les abonnements suivants n'ont pas de facture et ne seront pas traités, il faudra le faire manuellement :""", kind='warn'))
+    mo.vstack(reversed(_to_display))
     return OdooAPI, draft_orders, odoo
 
 
@@ -200,25 +231,52 @@ def __(mo):
 
 
 @app.cell
-def __(draft_orders, odoo):
-    draft_orders['invoice_ids'] = draft_orders['invoice_ids'].apply(lambda x: max(x) if x else None)
-    draft_orders.rename(columns={'sale.order_id': 'order_id', 'invoice_ids': 'move_id'}, inplace=True)
+def recuperation_facture_odoo(draft_orders, env, mo, odoo):
 
-    draft_invoices = odoo.read('account.move', ids=draft_orders['move_id'].to_list(), fields=['invoice_line_ids',])
-    draft_orders['invoice_line_ids'] = draft_invoices['invoice_line_ids']
 
-    odoo_data = odoo.add_cat_fields(draft_orders, [])
+    draft_invoices = odoo.read('account.move', ids=draft_orders['move_id'].to_list(), fields=['invoice_line_ids', 'state'])
+
+    _stop_msg = mo.callout(mo.md(
+        f"""
+        ## ⚠ Aucune facture brouillon trouvée sur [Odoo]({env['ODOO_URL']}web#action=437&model=account.move&view_type=list). ⚠ 
+        Ici ne sont prises en comptes que les cartes dans la colonne **Facture brouillon créée**, et le programme n'en trouve pas.
+        Le processus de facturation ne peut pas continuer en l'état. Plusieurs causes possibles : 
+        1. Le processus de facturation n'a pas été lancé dans Odoo. Go le lancer. 
+        2. Toutes les cartes abonnement ont déjà été déplacées dans une autre colonne. Si tu souhaite néanmoins re-mettre à jour un des abonnements, il suffit de redéplacer sa carte dans la colonne Facture brouillon créée. Attention, ça va écraser les valeurs de sa facture."""), kind='warn')
+
+    mo.stop(draft_invoices.empty, _stop_msg)
+
+    #draft_orders['invoice_line_ids'] = draft_invoices['invoice_line_ids']
+
+    # Fusionner les DataFrames sur 'order_id' et assigner le résultat à draft_orders
+    # Réinitialiser l'index avant la fusion
+    draft_orders.reset_index(inplace=True)
+    draft_invoices.reset_index(inplace=True)
+
+    _merged = draft_orders.merge(draft_invoices[['account.move_id', 'invoice_line_ids']], left_on='move_id', right_on='account.move_id', how='left')
+    #odoo_data = odoo.add_cat_fields(draft_orders, [])
+    draft_orders, draft_invoices, _merged
+    _merged.set_index('x_pdl')
+    odoo_data = odoo.add_cat_fields(_merged, []).set_index('x_pdl', drop=True)
+    odoo_data
     return draft_invoices, odoo_data
 
 
 @app.cell
-def __(consos, draft_orders, meta):
+def __(mo):
+    mo.md(r"# Fusion des données Enedis et Odoo")
+    return
+
+
+@app.cell
+def fusion_enedis_odoo(consos, meta, odoo_data):
     # Fusionner draft_orders et meta en utilisant un left join
-    merged_df = draft_orders.merge(meta, how='left', left_index=True, right_index=True)
+    merged_df = odoo_data.merge(meta, how='left', left_index=True, right_index=True)
 
     # Fusionner le résultat précédent avec consos en utilisant un left join
     merged_df = merged_df.merge(consos, how='left', left_index=True, right_index=True)
-    merged_df
+
+    merged_df.dropna(axis=1, how='all')
     return merged_df,
 
 
@@ -227,6 +285,9 @@ def __(end_date_picker, merged_df, odoo, start_date_picker):
     merged_df['not_enough_data'] = False
     merged_df.rename(columns={'sale.order_id': 'order_id'}, inplace=True)
     merged_df['move_id'] = False
+
+    merged_df['turpe_fix'] = 0
+    merged_df['turpe_var'] = 0
     print(merged_df)
     odoo.update_draft_invoices(merged_df, start_date_picker.value, end_date_picker.value)
     return
