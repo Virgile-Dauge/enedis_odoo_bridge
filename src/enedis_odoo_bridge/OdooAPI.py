@@ -362,13 +362,13 @@ class OdooAPI:
         cat = [p['categ_id'][1].split(' ')[-1] for p in prods]
         
         df_exploded['cat'] = cat
-        print(cat)
+        
         is_pe = df_exploded['cat'] == 'Prestation-Enedis'
         # Pour les catégories autres que 'ALL', pivotons normalement
-        print(df_exploded)
+        
         df_pivoted_normal = df_exploded[~is_pe].pivot(index='move_id', columns='cat', values='invoice_line_ids').reset_index()
         df_pivoted_normal.columns = ['move_id'] + [f'line_id_{x}' for x in df_pivoted_normal.columns if x != 'move_id']
-        print(df_pivoted_normal)
+        
         # Pour 'ALL', agrégeons les valeurs dans une liste
         df_all = df_exploded[is_pe].groupby('move_id')['invoice_line_ids'].apply(list).reset_index()
         df_all.columns = ['move_id', 'line_id_Prestation-Enedis']
