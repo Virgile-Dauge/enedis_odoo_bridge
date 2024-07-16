@@ -159,7 +159,7 @@ def fusion_donnees_enedis(
     return consos, end_index, pd, start_index
 
 
-@app.cell(hide_code=True)
+@app.cell
 def parametrage_odoo(mo):
     # options={'Base dupliquée': 'https://edn-duplicate.odoo.com/', 
     #          'Base principale': 'https://energie-de-nantes.odoo.com/'},
@@ -171,27 +171,28 @@ def parametrage_odoo(mo):
         value='Base dupliquée',
         label='Choix de la base de donnée Odoo',
     )
-    switch = mo.ui.switch(label="")
+    switch = mo.ui.switch(label="", value=True)
     mo.md(f"""
           # ODOO
 
           {dropdown}
 
           ### Sécurité : 
-          Pour écrire dans la base Odoo, tu dois activer ce bouton. Par défaut, les écritures dans la base Odoo seront simulées _(Il est recommandé de le faire une première fois en simulation avant de le faire pour de vrai.)_
+          Pour écrire dans la base Odoo, tu dois désactiver ce bouton de sécurité. Par défaut, les écritures dans la base Odoo seront simulées _(Il est recommandé de le faire une première fois en simulation avant de le faire pour de vrai.)_
           ### {switch}
           """)
     return dropdown, switch
 
 
-@app.cell(hide_code=True)
+@app.cell
 def status_odoo(dropdown, env, mo, switch):
     from enedis_odoo_bridge.OdooAPI import OdooAPI
-    _sim = not switch.value
+    _sim = switch.value
     odoo = OdooAPI(config=env, sim=_sim, url=f'https://{dropdown.value}.odoo.com/', db=dropdown.value,)
 
     _secu_msg = 'mais mode simulation est actif, **aucune donnée ne sera écrite dans la base Odoo**' if _sim else '**sois vigilant·e !**'
-    if dropdown.selected_key == 'Base principale':
+    danger_zone = dropdown.selected_key == 'Base principale'
+    if danger_zone:
         _md = mo.md(f"""
                     Base de donnée : [{odoo.db}](https://{odoo.db}.odoo.com)
 
@@ -207,7 +208,7 @@ def status_odoo(dropdown, env, mo, switch):
 
     _callout = mo.callout(_md, kind='success' if _sim else 'danger')
     _callout
-    return OdooAPI, odoo
+    return OdooAPI, danger_zone, odoo
 
 
 @app.cell(hide_code=True)
@@ -320,6 +321,32 @@ def __(merged_df):
     merged_df['turpe_fix'] = 0
     merged_df['turpe_var'] = 0
     print(merged_df)
+    #
+    return
+
+
+@app.cell
+def __(danger_zone, mo, odoo):
+    _db_kind = 'success' if not danger_zone else 'danger'
+    _sim_kind = 'success' if odoo.sim else 'danger'
+    _red_button_kind = 'success' if odoo.sim or not danger_zone else 'danger'
+    _db = 'principale' if danger_zone else 'dupliquée/test'
+    _sécu = 'Activée' if odoo.sim else 'Désactivée'
+    _op = 'Simulation' if odoo.sim else 'Écriture'
+    #_callout = mo.callout(mo.md(f"""La sécurité est **{_sécu}**"""), kind=_kind)
+    red_button = mo.ui.run_button(kind=_red_button_kind, label=f'{_op} dans la base Odoo')
+    mo.vstack([mo.md(f"""# Mise à jour dans Odoo"""),
+               mo.hstack([
+                   mo.callout(mo.md(f"""La sécurité est **{_sécu}**"""), kind=_sim_kind),
+                   mo.callout(mo.md(f"""On utilise la base **{_db}**"""), kind=_db_kind),
+                   red_button], justify='center', align='center')
+               ])
+    return red_button,
+
+
+@app.cell
+def __(mo, red_button):
+    mo.stop(not red_button.value)
     #odoo.update_draft_invoices(merged_df, start_date_picker.value, end_date_picker.value)
     return
 
