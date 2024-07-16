@@ -72,11 +72,11 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(cfne, cfns, meta, mo):
-    mo.accordion({"Metadonnées": meta,
-                  "Changements de fournisseur entrants": cfne,
-                  "Changements de fournisseur sortants": cfns
+    mo.accordion({"Metadonnées": meta.dropna(axis=1, how='all'),
+                  "Changements de fournisseur entrants": cfne.dropna(axis=1, how='all'),
+                  "Changements de fournisseur sortants": cfns.dropna(axis=1, how='all')
                  })
     return
 
@@ -97,9 +97,9 @@ def recuperation_index_enedis(
     from enedis_odoo_bridge.enedis_flux_engine import get_r151_by_date
     from enedis_odoo_bridge.utils import get_consumption_names
 
-    _unused = ['zip_file', 'Id_Affaire']
-    r151_start = get_r151_by_date(flux_path, start_date_picker.value).drop(columns=_unused)
-    r151_end = get_r151_by_date(flux_path, end_date_picker.value).drop(columns=_unused)
+    #_unused = ['zip_file', 'Id_Affaire']
+    r151_start = get_r151_by_date(flux_path, start_date_picker.value)#.drop(columns=_unused)
+    r151_end = get_r151_by_date(flux_path, end_date_picker.value)#.drop(columns=_unused)
 
     _conso_cols = [c for c in get_consumption_names() if c in r151_start]
     r151_start[_conso_cols] = (r151_start[_conso_cols] / 1000).round()
@@ -139,7 +139,10 @@ def fusion_donnees_enedis(
 ):
     import pandas as pd
     # Combinaison des dates de la période et des éventuels CFNE ou CFNS
-    start_index = cfne.set_index('pdl').combine_first(r151_start.set_index('pdl'))
+    if not r151_start.empty:
+        start_index = cfne.set_index('pdl').combine_first(r151_start.set_index('pdl'))
+    else:
+        start_index = cfne.set_index('pdl')
     end_index = cfns.set_index('pdl').combine_first(r151_end.set_index('pdl'))
 
     # Trouver les PDLs communs
@@ -302,27 +305,125 @@ def __(mo):
 
 
 @app.cell
-def fusion_enedis_odoo(consos, meta, odoo_data):
+def fusion_enedis_odoo(DataFrame, consos, meta, odoo_data):
     # Fusionner draft_orders et meta en utilisant un left join
     merged_df = odoo_data.merge(meta, how='left', left_index=True, right_index=True)
 
     # Fusionner le résultat précédent avec consos en utilisant un left join
     merged_df = merged_df.merge(consos, how='left', left_index=True, right_index=True)
 
+    import numpy as np
+    def compute_missing_sums(df: DataFrame) -> DataFrame:
+
+        df['HP'] = df[['HPH', 'HPB', 'HP']].sum(axis=1)
+        df['HC'] = df[['HCH', 'HCB', 'HC']].sum(axis=1)
+        df['not_enough_data'] = df[['HPH', 'HPB', 'HCH', 
+                'HCB', 'BASE', 'HP',
+                'HC']].isna().all(axis=1)
+        df['BASE'] = np.where(
+                df['not_enough_data'],
+                np.nan,
+                df[['HPH', 'HPB', 'HCH', 
+                'HCB', 'BASE', 'HP', 
+                'HC']].sum(axis=1)
+            )
+        return df
+    merged_df = compute_missing_sums(merged_df)
+
     merged_df.dropna(axis=1, how='all')
-    return merged_df,
+    return compute_missing_sums, merged_df, np
+
+
+@app.cell
+def param_turpe(mo, pd):
+
+    # Création du DataFrame avec les données du tableau
+    _b = {
+        "b": ["CU 4", "CU", "MU 4", "MU DT", "LU", "CU 4 – autoproduction collective", "MU 4 – autoproduction collective"],
+        "€/kVA/an": [9.00, 9.96, 10.56, 12.24, 81.24, 9.00, 10.68]
+    }
+    b = pd.DataFrame(_b).set_index('b')
+    _c = {
+        "c": [
+            "CU 4", "CU", "MU 4", "MU DT", "LU",
+            "CU 4 - autoproduction collective, part autoproduite",
+            "CU 4 - autoproduction collective, part alloproduite",
+            "MU 4 - autoproduction collective, part autoproduite",
+            "MU 4 - autoproduction collective, part alloproduite"
+        ],
+        "HPH c€/kWh": [
+            6.67, 4.37, 6.12, 4.47, 1.10,
+            1.64, 7.23, 1.64, 6.60
+        ],
+        "HCH c€/kWh": [
+            4.56, 4.37, 4.24, 3.16, 1.10,
+            1.29, 4.42, 1.29, 4.23
+        ],
+        "HPB c€/kWh": [
+            1.43, 4.37, 1.39, 4.47, 1.10,
+            0.77, 2.29, 0.77, 2.22
+        ],
+        "HCB c€/kWh": [
+            0.88, 4.37, 0.87, 3.16, 1.10,
+            0.37, 0.86, 0.37, 0.86
+        ]
+    }
+    c = pd.DataFrame(_c).set_index('c')
+
+    cg = 15.48
+    cc = 19.9
+    mo.md(
+        f"""
+        ## Calcul du Turpe
+
+        Composante de Gestion annuelle $cg = {cg}$\n
+        Composante de Comptage annuelle $cc = {cc}$
+        
+        """   
+    )
+    return b, c, cc, cg
+
+
+@app.cell
+def aff_param_turpe(b, c, mo):
+    mo.vstack([
+        mo.md(r"""
+              ### Composante de soutirage
+              
+              \[
+              CS = b \times P + \sum_{i=1}^{n} c_i \cdot E_i
+              \]
+              
+              Dont part fixe $CSF = b \times P$
+              Avec P = Puissance souscrite
+              """),
+        mo.hstack([b, c]), 
+        mo.md(r"""
+          ### Turpe Fixe journalier
+          
+          \[
+          T_j = (cg + cc + b \times P)/365.25
+          \]
+          """),
+        ]
+    )
+    return
+
+
+@app.cell
+def __(b, cc, cg, merged_df):
+
+    # Calcul part fixe
+    merged_df['turpe_fix_j'] = (cg + cc + b.at['CU 4', '€/kVA/an'] * merged_df['x_puissance_souscrite'])/365.25
+    merged_df['turpe_fix'] = merged_df['turpe_fix_j'] * merged_df['j']
+    merged_df[['order_id', 'HPH', 'HPB', 'HCH', 'HCB', 'HP', 'HC', 'BASE', 'turpe_fix']]
+    return
 
 
 @app.cell
 def __(merged_df):
-    merged_df['not_enough_data'] = False
-    merged_df.rename(columns={'sale.order_id': 'order_id'}, inplace=True)
-    merged_df['move_id'] = False
-
-    merged_df['turpe_fix'] = 0
     merged_df['turpe_var'] = 0
-    print(merged_df)
-    #
+    merged_df
     return
 
 
