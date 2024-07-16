@@ -7,6 +7,7 @@ from pandas import DataFrame
 from datetime import date
 import time
 from enedis_odoo_bridge.utils import check_required
+from typing import Optional
 
 import logging
 
@@ -19,11 +20,11 @@ def ensure_connection(func):
     return wrapper
 
 class OdooAPI:
-    def __init__(self, config: dict[str, str], sim=False, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge')):
+    def __init__(self, config: dict[str, str], sim=False, logger: logging.Logger=logging.getLogger('enedis_odoo_bridge'), url: Optional[str]=None, db: Optional[str]=None):
 
         self.config = check_required(config, ['ODOO_URL', 'ODOO_DB', 'ODOO_USERNAME', 'ODOO_PASSWORD'])
-        self.url = config['ODOO_URL']
-        self.db = config['ODOO_DB']
+        self.url = config['ODOO_URL'] if url is None else url
+        self.db = config['ODOO_DB'] if db is None else db
         self.sim = sim
         self.username = config['ODOO_USERNAME']
         self.password = config['ODOO_PASSWORD']
@@ -131,21 +132,6 @@ class OdooAPI:
 
         self.logger.info(f'{len(entries)} {model} #{id} writen in Odoo db.' + ("[simulated]" if self.sim else ''))
       
-    def ask_for_approval(self, model: str, ids: list[int], msg: str, note: str)-> None:
-        model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
-
-        # TODO Filter id to only have invoices with no existing approuval ?
-        activities = DataFrame({'res_id': ids})
-        activities['res_model_id'] = model_id[0]
-        activities['activity_type_id'] = int(self.config['ODOO_ACTIVITY_APPROUVAL_ID'])
-        activities['user_id'] = int(self.config['ODOO_FACTURISTE_ID'])
-        activities['summary'] = msg
-        activities['automated'] = True
-        activities['note'] = note
-        # TODO Date adaptée : maj le 5 du mois de facturation
-        activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
-        self.create('mail.activity', activities.to_dict(orient='records'))
-        #self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
    
     def search_read(self, model: str, filters: list[list[tuple[str, str, str]]], fields: list[str]):
         """
@@ -172,7 +158,26 @@ class OdooAPI:
     def read(self, model: str, ids: list[int], fields: list[str]) -> DataFrame:
         resp = self.execute(model, 'read', [ids], {'fields': fields})
         return DataFrame(resp).rename(columns={'id': f'{model}_id'})
-    
+
+
+
+
+    def ask_for_approval(self, model: str, ids: list[int], msg: str, note: str)-> None:
+        model_id = self.execute('ir.model', 'search', [[['model', '=', model]]])
+
+        # TODO Filter id to only have invoices with no existing approuval ?
+        activities = DataFrame({'res_id': ids})
+        activities['res_model_id'] = model_id[0]
+        activities['activity_type_id'] = int(self.config['ODOO_ACTIVITY_APPROUVAL_ID'])
+        activities['user_id'] = int(self.config['ODOO_FACTURISTE_ID'])
+        activities['summary'] = msg
+        activities['automated'] = True
+        activities['note'] = note
+        # TODO Date adaptée : maj le 5 du mois de facturation
+        activities['date_deadline'] = date.today().replace(day=5).strftime('%Y-%m-%d')
+        self.create('mail.activity', activities.to_dict(orient='records'))
+        #self.execute('mail.activity', 'create', [activities.to_dict(orient='records')])
+            
     # fetch processes
     def fetch_drafts(self) -> DataFrame:
         """
