@@ -173,7 +173,7 @@ def parametrage_odoo(mo):
     )
     switch = mo.ui.switch(label="", value=True)
     mo.md(f"""
-          # ODOO
+          # Données d'entrée : ODOO
 
           {dropdown}
 
@@ -184,7 +184,7 @@ def parametrage_odoo(mo):
     return dropdown, switch
 
 
-@app.cell
+@app.cell(hide_code=True)
 def status_odoo(dropdown, env, mo, switch):
     from enedis_odoo_bridge.OdooAPI import OdooAPI
     _sim = switch.value
@@ -224,7 +224,7 @@ def __(mo, odoo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def recuperation_abonnements_odoo(mo, odoo):
     _draft_orders_request = odoo.search_read('sale.order', filters=[[['state', '=', 'sale'], ['x_invoicing_state', '=', 'draft']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'x_puissance_souscrite'])
 
@@ -242,43 +242,35 @@ def recuperation_abonnements_odoo(mo, odoo):
     draft_orders.rename(columns={'sale.order_id': 'order_id', 'invoice_ids': 'move_id'}, inplace=True)
     draft_orders['move_id'] = draft_orders['move_id'].apply(lambda x: max(x) if x else None)
 
-    # draft_orders['url'] = draft_orders['order_id'].apply(
-    #     lambda x: f'https://energie-de-nantes.odoo.com/web#id={x}&model=sale.order&view_type=form'
-    # )
-    #draft_orders.at['14265701793516', 'move_id'] = None
-    _to_display = [draft_orders]
+    subs_to_display = [draft_orders]
     _no_invoices = draft_orders[draft_orders['move_id'].isna()]
 
     if not _no_invoices.empty:
         draft_orders.dropna(subset=['move_id'], inplace=True)
-        _to_display.append(mo.callout("""Les abonnements suivants ont une facture et seront traités :""", kind='success'))
-        _to_display.append(_no_invoices)
-        _to_display.append(mo.callout("""Les abonnements suivants n'ont pas de facture et ne seront pas traités, il faudra le faire manuellement :""", kind='warn'))
-    mo.vstack(reversed(_to_display))
-    return draft_orders,
+        subs_to_display.append(mo.callout("""Les abonnements suivants ont une facture et seront traités :""", kind='success'))
+        subs_to_display.append(_no_invoices)
+        subs_to_display.append(mo.callout("""Les abonnements suivants n'ont pas de facture et ne seront pas traités, il faudra le faire manuellement :""", kind='warn'))
+    return draft_orders, subs_to_display
 
 
 @app.cell
-def __(mo):
-    mo.md(r"## Récupération des factures brouillon des abonnements à facturer")
-    return
+def recuperation_facture_odoo(draft_orders, mo, odoo, pd):
+    _draft_invoices = odoo.read('account.move', ids=draft_orders['move_id'].to_list(), fields=['invoice_line_ids', 'state'])
 
-
-@app.cell(hide_code=True)
-def recuperation_facture_odoo(draft_orders, mo, odoo):
-    draft_invoices = odoo.read('account.move', ids=draft_orders['move_id'].to_list(), fields=['invoice_line_ids', 'state'])
+    if not _draft_invoices.empty:
+        draft_invoices = _draft_invoices[_draft_invoices['state'] == 'draft']
+    else:
+        draft_invoices = pd.DataFrame()
 
     _stop_msg = mo.callout(mo.md(
         f"""
-        ## ⚠ Aucune facture brouillon trouvée sur [Odoo]({odoo.url}web#action=437&model=account.move&view_type=list). ⚠ 
+        ## ⚠ Aucune facture brouillon trouvée sur [{odoo.url}]({odoo.url}web#action=437&model=account.move&view_type=list). ⚠ 
         Ici ne sont prises en comptes que les cartes dans la colonne **Facture brouillon créée**, et le programme n'en trouve pas.
         Le processus de facturation ne peut pas continuer en l'état. Plusieurs causes possibles : 
         1. Le processus de facturation n'a pas été lancé dans Odoo. Go le lancer. 
         2. Toutes les cartes abonnement ont déjà été déplacées dans une autre colonne. Si tu souhaite néanmoins re-mettre à jour un des abonnements, il suffit de redéplacer sa carte dans la colonne Facture brouillon créée. Attention, ça va écraser les valeurs de sa facture."""), kind='warn')
 
     mo.stop(draft_invoices.empty, _stop_msg)
-
-    #draft_orders['invoice_line_ids'] = draft_invoices['invoice_line_ids']
 
     # Fusionner les DataFrames sur 'order_id' et assigner le résultat à draft_orders
     # Réinitialiser l'index avant la fusion
@@ -287,11 +279,20 @@ def recuperation_facture_odoo(draft_orders, mo, odoo):
 
     _merged = draft_orders.merge(draft_invoices[['account.move_id', 'invoice_line_ids']], left_on='move_id', right_on='account.move_id', how='left')
     #odoo_data = odoo.add_cat_fields(draft_orders, [])
-    draft_orders, draft_invoices, _merged
+    #draft_orders, draft_invoices, _merged
     _merged.set_index('x_pdl')
     odoo_data = odoo.add_cat_fields(_merged, []).set_index('x_pdl', drop=True)
-    odoo_data
+    #odoo_data
     return draft_invoices, odoo_data
+
+
+@app.cell(hide_code=True)
+def __(draft_invoices, mo, odoo_data, subs_to_display):
+    mo.accordion({f"Abonnements": mo.vstack(reversed(subs_to_display)),
+                  f"Factures brouillon": draft_invoices,
+                  f"Abonnements et factures": odoo_data
+    })
+    return
 
 
 @app.cell
