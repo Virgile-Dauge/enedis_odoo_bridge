@@ -5,7 +5,7 @@ app = marimo.App(width="medium")
 
 
 @app.cell(hide_code=True)
-def __():
+def download_trigger():
     import marimo as mo
     from pathlib import Path
     from enedis_odoo_bridge.utils import load_prefixed_dotenv
@@ -24,7 +24,7 @@ def __():
 
 
 @app.cell(hide_code=True)
-def __(Path, mo):
+def download_util(Path, mo):
     import os
     import paramiko
     from enedis_odoo_bridge.utils import check_required
@@ -77,22 +77,17 @@ def __(Path, mo):
 
 
 @app.cell
-def __(button, data_path, download_new_files, env, mo):
-    from enedis_odoo_bridge.utils import download_new_files_with_progress, recursively_decrypt_zip_files_with_progress
+def download_status(button, data_path, download_new_files, env, mo):
+    from enedis_odoo_bridge.utils import recursively_decrypt_zip_files
     mo.stop(not button.value)
 
     files = download_new_files(config=env, local=data_path, tasks=['R15', 'F15', 'R151', 'C15'])
-    decrypted_files = recursively_decrypt_zip_files_with_progress(directory=data_path, 
-                                                                  key=bytes.fromhex(env['AES_KEY']),
-                                                                  iv=bytes.fromhex(env['AES_IV']),
-                                                                  prefix='decrypted_',
-                                                                  remove_encrypted=True)
-    return (
-        decrypted_files,
-        download_new_files_with_progress,
-        files,
-        recursively_decrypt_zip_files_with_progress,
-    )
+    decrypted_files = recursively_decrypt_zip_files(directory=data_path, 
+                                                      key=bytes.fromhex(env['AES_KEY']),
+                                                      iv=bytes.fromhex(env['AES_IV']),
+                                                      prefix='decrypted_',
+                                                      remove_encrypted=True)
+    return decrypted_files, files, recursively_decrypt_zip_files
 
 
 if __name__ == "__main__":
