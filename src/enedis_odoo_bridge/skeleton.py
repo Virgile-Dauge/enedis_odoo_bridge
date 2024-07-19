@@ -73,10 +73,10 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description="Pont entre les données de l'Enedis et Odoo")
     parser.add_argument(
-    "command",
-    help="The command to execute",
-    type=str,
-    choices=['facturation', 'services', 'mes', 'wip'],  # Example commands
+        "command",
+        help="The command to execute",
+        type=str,
+        choices=['facturation', 'extract-services', 'extract-mes', 'wip', 'services'],  # Example commands
     )
     parser.add_argument(
         "--version",
@@ -205,24 +205,33 @@ def main(args):
         #             odoo=OdooAPI(config=env, sim=args.sim, logger=logger), 
         #             logger=logger)
 
-    elif args.command =='services':
+    elif args.command == 'extract-services':
         process = ExtractServicesFromF15Process(filter=args.filter,
                     start_date=args.start_date,
                     end_date=args.end_date,
                     logger=logger)
-    elif args.command =='mes':
+        
+    elif args.command == 'extract-mes':
         process = ExtractMESFromR15Process(filter=args.filter,
                     start_date=args.start_date,
                     end_date=args.end_date,
                     logger=logger)
 
-
-    elif args.command =='wip':
+    elif args.command == 'wip':
         process = WorkInProgressProcess(
                     config=env,
                     date=args.date,
                     odoo=OdooAPI(config=env, sim=args.sim, logger=logger),
                     logger=logger)
+
+    elif args.command == 'services':
+        process = AddEnedisServiceToDraftInvoiceProcess(
+                    start_date=args.start_date,
+                    end_date=args.end_date,
+                    odoo=OdooAPI(config=env, sim=args.sim, logger=logger),
+                    enedis=EnedisFluxEngine(config=env, path=data_path, flux=['R15'], logger=logger),
+                    logger=logger)
+
     if not args.sim and process.will_update_production_db:
         confirm = Prompt.ask(f"This will update [red]{env['ODOO_DB']}[/red] Odoo Database from [red]{env['ODOO_URL']}[/red], are you sure you want to continue?", 
                                  choices=["y", "n"], default="n", console=console)
@@ -251,4 +260,3 @@ if __name__ == "__main__":
     #     python -m enedis_odoo_bridge.skeleton 42
     #
     run()
-

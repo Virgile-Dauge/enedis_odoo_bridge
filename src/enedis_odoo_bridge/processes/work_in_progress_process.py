@@ -33,23 +33,23 @@ class WorkInProgressProcess(BaseProcess):
 
         print(data)
         """
-        r15 : DataFrame = get_r15_by_date(enedis_flux_path, starting_date, ending_date)
+        # r15 : DataFrame = get_r15_by_date(enedis_flux_path, starting_date, ending_date)
         
-        #print(r15.columns)
-        r15['Date_Releve'] = pd.to_datetime(r15['Date_Releve']).apply(lambda x: x.date())
-        r15['horodate'] = pd.to_datetime(r15['zip_file'].apply(lambda x: Path(x).stem.split('_')[-1]))
-        r15['horodate'] = r15['horodate'].apply(lambda x: x.date())
+        # #print(r15.columns)
+        # r15['Date_Releve'] = pd.to_datetime(r15['Date_Releve']).apply(lambda x: x.date())
+        # r15['horodate'] = pd.to_datetime(r15['zip_file'].apply(lambda x: Path(x).stem.split('_')[-1]))
+        # r15['horodate'] = r15['horodate'].apply(lambda x: x.date())
 
 
         
-        print([c for c in r15.columns if c.startswith('conso')])
+        # print([c for c in r15.columns if c.startswith('conso')])
         
-        r15.to_csv(Path(f'./output/releves_{starting_date}_to_{ending_date}.csv'))
+        # r15.to_csv(Path(f'./output/releves_{starting_date}_to_{ending_date}.csv'))
 
-        unique_dates_by_zip = r15.groupby('horodate')['Date_Releve'].unique()
-        #unique_dates_by_zip = r15.groupby('zip_file')['Date_Releve'].unique()
-        print(unique_dates_by_zip)
-        unique_dates_by_zip.to_csv(Path('./output/dates_par_zip.csv'))
+        # unique_dates_by_zip = r15.groupby('horodate')['Date_Releve'].unique()
+        # #unique_dates_by_zip = r15.groupby('zip_file')['Date_Releve'].unique()
+        # print(unique_dates_by_zip)
+        # unique_dates_by_zip.to_csv(Path('./output/dates_par_zip.csv'))
 
         #f15 : DataFrame = get_f15_by_date(enedis_flux_path, starting_date, ending_date)
         #f15.to_csv(Path('./output/facturations.csv'))

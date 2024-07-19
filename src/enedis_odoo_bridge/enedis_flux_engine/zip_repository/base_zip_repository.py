@@ -5,7 +5,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from pandas import DataFrame
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 class BaseZipRepository(ABC):

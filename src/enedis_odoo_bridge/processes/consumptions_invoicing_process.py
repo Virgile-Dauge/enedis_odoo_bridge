@@ -26,11 +26,11 @@ class ConsumptionsInvoicingProcess(BaseProcess):
     def run(self):
         enedis_flux_path : Path = Path('~/data/flux_enedis')
         starting_date = date(2024, 6, 1)
-        ending_date = date(2024, 6, 22)
+        ending_date = date(2024, 6, 29)
         
         consumptions = get_consumptions_by_date(enedis_flux_path, starting_date, ending_date)
         print(consumptions)
-
+        
         consumptions.to_excel('coucou.xlsx')
         # Récup données Odoo
         draft_orders = self.odoo.search_read('sale.order', filters=[[['x_invoicing_state', '=', 'draft']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse'])

@@ -32,6 +32,7 @@ class ExtractServicesFromF15Process(BaseProcess):
         #filter =  (f15['Ref_Demandeur'] == self.filter)
         #f15 = f15[filter]
         self.logger.info(f"{f15}")
-
+        print(f15)
         f15.to_csv(Path('./output') /
             f'Extract_Services_for_{self.filter}_{start_date}_{end_date}.csv')
+        return f15
