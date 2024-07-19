@@ -83,12 +83,16 @@ Installation et Configuration
 Installation
 ^^^^^^^^^^^^
 a. Installer depuis le repo
+.. code-block:: bash
+    git clone https://github.com/Virgile-Dauge/enedis_odoo_bridge.git && cd enedis_odoo_bridge
 
+.. code-block:: bash
+    pip install -e .
 
 Configuration
 ^^^^^^^^^^^^^
 
-Configurez le script en complétant un fichier .env à la racine du module comme suit :
+Configurez le script en créant et complétant un fichier .env à la racine du module comme suit :
 
 .. code-block:: bash
     
