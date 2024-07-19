@@ -116,7 +116,7 @@ def __(mo):
 @app.cell
 def param_taxes(pd):
     cg = 15.48
-    cc = 19.9
+    cc = 19.92
     tcta = 0.2193
     _b = {
         "b": ["CU4", "CUST", "MU4", "MUDT", "LU", "CU4 – autoproduction collective", "MU4 – autoproduction collective"],
@@ -126,7 +126,7 @@ def param_taxes(pd):
     return b, cc, cg, tcta
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(b, cc, cg, mo):
 
     mo.vstack([
@@ -143,7 +143,7 @@ def __(b, cc, cg, mo):
               ## Turpe Fixe journalier
               
               \[
-              turpe fixe_j = \frac{cg + cc + b \times P}{365.25}
+              turpe fixe_j = \frac{cg + cc + b \times P}{366}
               \]
               """),
         mo.hstack([mo.md(f"""
@@ -190,7 +190,7 @@ def __(b, cc, cg, influx, tcta):
     # On récupére les valeurs de b en fonction de la FTA
     taxes['b'] = taxes.apply(get_tarif, axis=1)
 
-    taxes['turpe_fix_j'] = (cg + cc + taxes['b'] * taxes['Puissance_Souscrite'])/365.25
+    taxes['turpe_fix_j'] = (cg + cc + taxes['b'] * taxes['Puissance_Souscrite'])/366
     taxes['turpe_fix'] = taxes['turpe_fix_j'] * taxes['j']
     taxes['cta'] = tcta * taxes['turpe_fix']
     taxes
