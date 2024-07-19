@@ -28,7 +28,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def delimitation_periode():
     import marimo as mo
     from datetime import date
@@ -69,75 +69,139 @@ def param_flux(env, mo):
     return Path, flux_path
 
 
-@app.cell(hide_code=True)
-def __(end_date_picker, flux_path, mo, start_date_picker):
+@app.cell
+def flux_c15(end_date_picker, flux_path, start_date_picker):
+    import pandas as pd
+    from datetime import datetime
     from enedis_odoo_bridge.enedis_flux_engine import get_c15_by_date
     c15 = get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
+    c15['Date_Evenement'] = pd.to_datetime(c15['Date_Evenement']).dt.date
+
+    c15['end_date'] = end_date_picker.value
+    c15['end_date'] = pd.to_datetime(c15['end_date']).dt.date
+    c15 = c15[c15['Date_Evenement'] <= c15['end_date']]
+    return c15, datetime, get_c15_by_date, pd
+
+
+@app.cell
+def tri_flux_c15(c15, mo):
 
     duplicates = c15[c15.duplicated(subset=['Id_PRM'], keep=False)]
 
-    c15_latest = c15.sort_values(by='Date', ascending=False).drop_duplicates(subset=['Id_PRM'], keep='first').rename(columns={'Id_PRM':'pdl'}).set_index('pdl')
+    influx = c15[c15['Nature_Evenement'].isin(['CFNE', 'MES'])]
+    outflux = c15[c15['Nature_Evenement'].isin(['CFNS', 'RES'])]
+    c15_latest = c15.sort_values(by='Date_Evenement', ascending=False).drop_duplicates(subset=['Id_PRM'], keep='first').rename(columns={'Id_PRM':'pdl'}).set_index('pdl')
 
     mo.accordion({"C15": c15.dropna(axis=1, how='all'),
-                  "Modifications": duplicates.dropna(axis=1, how='all'),
+                  "Doublons": duplicates.sort_values(by=['Id_PRM', 'Date_Evenement']),
+                  "MES et CFNE": influx,
+                  "RES et CFNS": outflux,
                   "Situation actuelle": c15_latest.dropna(axis=1, how='all')
                  })
-    return c15, c15_latest, duplicates, get_c15_by_date
+    return c15_latest, duplicates, influx, outflux
 
 
 @app.cell
 def __(mo):
-    mo.md(r"### R15")
+    mo.md(
+        r"""
+        ## Nb jours à facturer. 
+
+        Cette fois-ci comme c'est la première fois on ne va faire qu'à partir des CFNE ou MES, sinon il faudra aussi prendre en compte le reste comme une période complète.  
+        """
+    )
     return
 
 
 @app.cell
-def flux_r15(end_date_picker, flux_path, mo, start_date_picker):
-    from enedis_odoo_bridge.enedis_flux_engine import get_r15_by_date, get_meta_from_r15, get_CF_from_r15
-    r15 = get_r15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
-    meta = get_meta_from_r15(r15)
-    cfne, cfns = get_CF_from_r15(r15)
-
-    mo.accordion({"Metadonnées": meta.dropna(axis=1, how='all'),
-                  "Changements de fournisseur entrants": cfne.dropna(axis=1, how='all'),
-                  "Changements de fournisseur sortants": cfns.dropna(axis=1, how='all')
-                 })
-    return (
-        cfne,
-        cfns,
-        get_CF_from_r15,
-        get_meta_from_r15,
-        get_r15_by_date,
-        meta,
-        r15,
-    )
-
-
-@app.cell
-def __(cfne, end_date_picker):
-    import pandas as pd
-    from datetime import datetime
-    cfne['end_date'] = pd.to_datetime(end_date_picker.value)
-    cfne['j'] = (cfne['end_date'] - cfne['Date_Releve']).dt.days + 1
-    cfne
-    return datetime, pd
-
-
-@app.cell
-def __(cfne, merged_df, pd):
+def param_taxes(pd):
     cg = 15.48
     cc = 19.9
     tcta = 0.2193
     _b = {
-        "b": ["CU 4", "CU", "MU 4", "MU DT", "LU", "CU 4 – autoproduction collective", "MU 4 – autoproduction collective"],
+        "b": ["CU4", "CUST", "MU4", "MUDT", "LU", "CU4 – autoproduction collective", "MU4 – autoproduction collective"],
         "€/kVA/an": [9.00, 9.96, 10.56, 12.24, 81.24, 9.00, 10.68]
     }
     b = pd.DataFrame(_b).set_index('b')
-
-    cfne['turpe_fix_j'] = (cg + cc + b.at['CU 4', '€/kVA/an'] * cfne['x_puissance_souscrite'])/365.25
-    cfne['turpe_fix'] = cfne['turpe_fix_j'] * cfne['j']
-    cfne['cta'] = tcta * merged_df['turpe_fix']
     return b, cc, cg, tcta
+
+
+@app.cell(hide_code=True)
+def __(b, cc, cg, mo):
+
+    mo.vstack([
+        mo.md(r"""
+              ## Nombre de jours 
+              \[
+              j =   end date - Date Evenement + 1
+              \]
+
+              Avec `Date_Evenement` = `Date cfne` puisqu'on a pris que les CFNE
+              """),
+        
+        mo.md(r"""
+              ## Turpe Fixe journalier
+              
+              \[
+              turpe fixe_j = \frac{cg + cc + b \times P}{365.25}
+              \]
+              """),
+        mo.hstack([mo.md(f"""
+                          Avec :\n
+                          Composante annuelle de Gestion cg = {cg}\n
+                          Composante annuelle de Comptage cc = {cc}\n
+                          Partie fixe de la composante annuelle de soutirage b =
+                          """),
+                   b]),
+        mo.md(r"""
+              ## Turpe Fixe
+              
+              \[
+              turpe fixe = turpe fixe_j \times j
+              \]
+              """),
+        mo.md(r"""
+              ## CTA
+              
+              \[
+              CTA = taux_{cta} \times turpe fixe
+              \]
+              """),
+        ])
+    return
+
+
+@app.cell
+def __(b, cc, cg, influx, tcta):
+    import numpy as np
+    taxes = influx[['Date_Evenement', 'Id_PRM', 'Formule_Tarifaire_Acheminement', 'Puissance_Souscrite', 'end_date']].copy().set_index('Id_PRM')
+
+    taxes['Puissance_Souscrite'] = taxes['Puissance_Souscrite'].astype(float)
+    taxes['j'] = (taxes['end_date'] - taxes['Date_Evenement']).dt.days + 1
+    taxes
+
+    def get_tarif(row):
+        key = row['Formule_Tarifaire_Acheminement'].replace('BTINF', '')
+        if key in b.index:
+            return b.at[key, '€/kVA/an']
+        else:
+            return np.nan
+
+    # On récupére les valeurs de b en fonction de la FTA
+    taxes['b'] = taxes.apply(get_tarif, axis=1)
+
+    taxes['turpe_fix_j'] = (cg + cc + taxes['b'] * taxes['Puissance_Souscrite'])/365.25
+    taxes['turpe_fix'] = taxes['turpe_fix_j'] * taxes['j']
+    taxes['cta'] = tcta * taxes['turpe_fix']
+    taxes
+    return get_tarif, np, taxes
+
+
+@app.cell
+def __(taxes):
+    taxes['cta'].sum()
+
+    return
 
 
 @app.cell

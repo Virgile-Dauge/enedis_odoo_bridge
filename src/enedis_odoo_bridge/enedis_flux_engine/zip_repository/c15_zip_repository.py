@@ -31,9 +31,11 @@ class C15ZipRepository(BaseZipRepository):
         rows : list[dict[str, Any]] = []
         creation_date = data_dict['En_Tete_Flux']['Date_Creation']
         for prm in data_dict['PRM']:
+            evnt = prm.get('Evenement_Declencheur', {})
             row = {
                 'Id_PRM': prm.get('Id_PRM'),
-                'Date': creation_date,
+                'Date_Evenement': evnt.get('Date_Evenement', {}),
+                'Nature_Evenement': evnt.get('Nature_Evenement', {}),
                 'Num_Depannage': prm.get('Num_Depannage'),
                 'Jour_Fixe_Releve': prm.get('Jour_Fixe_Releve'),
                 'Periodicite_Releve': prm.get('Periodicite_Releve'),
@@ -51,7 +53,7 @@ class C15ZipRepository(BaseZipRepository):
                 # Convert columns where the last level of the index starts with "Date_" to datetime
         for col in self.data.columns:
             if col.startswith("Date_"):
-                self.data[col] = pd.to_datetime(self.data[col]).dt.tz_localize('Etc/GMT-2')
+                self.data[col] = pd.to_datetime(self.data[col])#.dt.tz_localize('Etc/GMT-2')
         self.data = self.data.rename(columns={'Id_PRM': 'pdl'})
         return self.data.reset_index(drop=True).sort_values(['pdl'])#.set_index(['pdl', 'Id_EV'])
     
