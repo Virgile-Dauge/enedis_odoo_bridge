@@ -34,66 +34,52 @@ def delimitation_periode():
 
 
 @app.cell
-def __(env, mo):
+def param_flux(env, mo):
+    from pathlib import Path
+    flux_path = Path('~/data/flux_enedis/')
     mo.md(f"""
           # Données d'entrée : Flux Enedis
           Source ftp : {env['FTP_ADDRESS']} 
           """)
-    return
-
-
-@app.cell
-def lecture_flux_r15(end_date_picker, start_date_picker):
-    from enedis_odoo_bridge.enedis_flux_engine import get_r15_by_date
-    from pathlib import Path
-    flux_path = Path('~/data/flux_enedis/')
-    r15 = get_r15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
-    return Path, flux_path, get_r15_by_date, r15
-
-
-@app.cell
-def extraction_meta_r15(r15):
-    from enedis_odoo_bridge.enedis_flux_engine  import get_meta_from_r15
-    meta = get_meta_from_r15(r15)
-    return get_meta_from_r15, meta
-
-
-@app.cell
-def extraction_cf_r15(r15):
-    from enedis_odoo_bridge.enedis_flux_engine import get_CF_from_r15
-
-    cfne, cfns = get_CF_from_r15(r15)
-    return cfne, cfns, get_CF_from_r15
+    return Path, flux_path
 
 
 @app.cell
 def __(mo):
-    mo.md(r"### R15")
+    mo.md("### R15")
     return
 
 
 @app.cell
-def __(cfne, cfns, meta, mo):
+def flux_r15(end_date_picker, flux_path, mo, start_date_picker):
+    from enedis_odoo_bridge.enedis_flux_engine import get_r15_by_date, get_meta_from_r15, get_CF_from_r15
+    r15 = get_r15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
+    meta = get_meta_from_r15(r15)
+    cfne, cfns = get_CF_from_r15(r15)
+
     mo.accordion({"Metadonnées": meta.dropna(axis=1, how='all'),
                   "Changements de fournisseur entrants": cfne.dropna(axis=1, how='all'),
                   "Changements de fournisseur sortants": cfns.dropna(axis=1, how='all')
                  })
-    return
+    return (
+        cfne,
+        cfns,
+        get_CF_from_r15,
+        get_meta_from_r15,
+        get_r15_by_date,
+        meta,
+        r15,
+    )
 
 
 @app.cell
 def __(mo):
-    mo.md(r"### R151")
+    mo.md("### R151")
     return
 
 
 @app.cell
-def recuperation_index_enedis(
-    end_date_picker,
-    flux_path,
-    mo,
-    start_date_picker,
-):
+def flux_r151(end_date_picker, flux_path, mo, start_date_picker):
     from enedis_odoo_bridge.enedis_flux_engine import get_r151_by_date
     from enedis_odoo_bridge.utils import get_consumption_names
 
@@ -114,18 +100,16 @@ def recuperation_index_enedis(
 
 @app.cell
 def __(mo):
-    mo.md(
-        r"""
-        ## Fusion des données 
-        On va maintenant combiner les données issues du R15, `cfne` et `cfns`, avec les données issues du R151, `start_index` et `end_index`
+    mo.md("""
+    ## Fusion des données 
+    On va maintenant combiner les données issues du R15, `cfne` et `cfns`, avec les données issues du R151, `start_index` et `end_index`
 
-        S'il y a eu un $CFNE$ pour un $PDL$, on va remplacer les index du R151 (`start_index`) par celles du relevé de `cfne`
+    S'il y a eu un $CFNE$ pour un $PDL$, on va remplacer les index du R151 (`start_index`) par celles du relevé de `cfne`
 
-        S'il y a eu un $CFNS$ pour un $PDL$, on va remplacer les index du R151 (`end_index`) par celles du relevé de `cfns`
+    S'il y a eu un $CFNS$ pour un $PDL$, on va remplacer les index du R151 (`end_index`) par celles du relevé de `cfns`
 
-        On obtient ainsi deux tableaux, l'un avec les index du début de la période, l'autre avec l'index de la fin, qu'ils proviennent du R15 ou du R151.
-        """
-    )
+    On obtient ainsi deux tableaux, l'un avec les index du début de la période, l'autre avec l'index de la fin, qu'ils proviennent du R15 ou du R151.
+    """)
     return
 
 
@@ -187,7 +171,7 @@ def parametrage_odoo(mo):
     return dropdown, switch
 
 
-@app.cell(hide_code=True)
+@app.cell
 def status_odoo(dropdown, env, mo, switch):
     from enedis_odoo_bridge.OdooAPI import OdooAPI
     _sim = switch.value
@@ -214,7 +198,7 @@ def status_odoo(dropdown, env, mo, switch):
     return OdooAPI, danger_zone, odoo
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(mo, odoo):
     mo.md(
         f"""
@@ -289,7 +273,7 @@ def recuperation_facture_odoo(draft_orders, mo, odoo, pd):
     return draft_invoices, odoo_data
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(draft_invoices, mo, odoo_data, subs_to_display):
     mo.accordion({f"Abonnements": mo.vstack(reversed(subs_to_display)),
                   f"Factures brouillon": draft_invoices,
@@ -300,7 +284,7 @@ def __(draft_invoices, mo, odoo_data, subs_to_display):
 
 @app.cell
 def __(mo):
-    mo.md(r"# Fusion des données Enedis et Odoo")
+    mo.md("# Fusion des données Enedis et Odoo")
     return
 
 
@@ -336,7 +320,6 @@ def fusion_enedis_odoo(DataFrame, consos, meta, odoo_data):
 
 @app.cell
 def param_turpe(mo, pd):
-
     # Création du DataFrame avec les données du tableau
     _b = {
         "b": ["CU 4", "CU", "MU 4", "MU DT", "LU", "CU 4 – autoproduction collective", "MU 4 – autoproduction collective"],
@@ -372,16 +355,17 @@ def param_turpe(mo, pd):
 
     cg = 15.48
     cc = 19.9
+    tcta = 0.2193
     mo.md(
         f"""
         ## Calcul du Turpe
 
         Composante de Gestion annuelle $cg = {cg}$\n
-        Composante de Comptage annuelle $cc = {cc}$
-        
+        Composante de Comptage annuelle $cc = {cc}$\n
+        Cta $cta = {tcta} * turpe fixe$
         """   
     )
-    return b, c, cc, cg
+    return b, c, cc, cg, tcta
 
 
 @app.cell
@@ -389,18 +373,18 @@ def aff_param_turpe(b, c, mo):
     mo.vstack([
         mo.md(r"""
               ### Composante de soutirage
-              
+
               \[
               CS = b \times P + \sum_{i=1}^{n} c_i \cdot E_i
               \]
-              
+
               Dont part fixe $CSF = b \times P$
               Avec P = Puissance souscrite
               """),
         mo.hstack([b, c]), 
         mo.md(r"""
           ### Turpe Fixe journalier
-          
+
           \[
           T_j = (cg + cc + b \times P)/365.25
           \]
@@ -411,11 +395,11 @@ def aff_param_turpe(b, c, mo):
 
 
 @app.cell
-def __(b, cc, cg, merged_df):
-
+def __(b, cc, cg, merged_df, tcta):
     # Calcul part fixe
     merged_df['turpe_fix_j'] = (cg + cc + b.at['CU 4', '€/kVA/an'] * merged_df['x_puissance_souscrite'])/365.25
     merged_df['turpe_fix'] = merged_df['turpe_fix_j'] * merged_df['j']
+    merged_df['cta'] = tcta * merged_df['turpe_fix']
     merged_df[['order_id', 'HPH', 'HPB', 'HCH', 'HCB', 'HP', 'HC', 'BASE', 'turpe_fix']]
     return
 
