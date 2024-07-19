@@ -49,16 +49,18 @@ Classes et Responsabilités
 1. **OdooAPI** :
    - *Responsabilité* : Gère la communication avec l'API d'Odoo pour récupérer et mettre à jour les données.
 
-2. **EnedisFluxEngine** :
+2. **enedis_flux_engine** :
    - *Responsabilité* : Interagit avec les flux de données d'Enedis pour récupérer les données contractuelles, de consommation énergétique, de facturation... 
    
-   a. **Flux Transformers** :
-      - *Responsabilité* : Transforme les données des flux en une matrice exploitable, et propose des méthodes spécifiques à chaque type de flux Enedis. Flux actuellement supportés : [R15, F15] Bientôt R151.
-      - *Prérequis*: Les transformers utilisent les xsd fournis par Enedis pour lire les XML des flux. La confidentialité de ces flux n'étant pas claire, ils ne sont pas inclus dans la repo. (dispos dans SGE, avec le kit d'implémentation des flux)
+   a. **FluxRepository** :
+      - *Responsabilité* : Choisi les archives zip à lire, et propose des méthodes spécifiques à chaque type de flux Enedis. Flux actuellement supportés : [C15, R15, R151, F15].
+      - *Prérequis*: Archives présentes dans le dossier de travail local
 
-   b. **Consumption Estimators** :
-      - *Responsabilité* : Chaque estimateur implémente une heuristique permettant d'estimer la consommation à partir des données du Flux R15. Bientôt d'autres à partir du R151.
-      - *pourquoi une estimation ?* : Les flux ne sont pas toujours complets ou publiés à temps.
+   b. **ZipRepository** :
+      - *Responsabilité* : Chaque Zip repository sait comment traiter les archives zip d'un flux en particulier
+
+   c. **services** : 
+      - *Responsabilité* : Met a disposition des fonction simples de récupération des données
 
 3. **Processes** :
     L'idée des process est d'implémenter divers process métiers, qui traitent et mettent à jour des données différentes. On pourrait dire en gros que le reste c'est la lib, et ici on l'utilise en fonction de nos besoins spécifiques.
@@ -71,7 +73,9 @@ Classes et Responsabilités
 
 
 4. **Utils** :
-   - *Responsabilité* : Fournit des fonctions utilitaires pour la génération de dates et la vérification des configurations.
+   - *Responsabilité* : Fournit des fonctions utilitaires divers.
+
+5. **Interfaces** : Fournit des interfaces marimo, l'idée étant de remplacer les processes par des notebook marimo, accessible à distance. L'avantage sera d'avoir un outil présentable, mélangeant documentation ET process, permettant de visualiser en direct les données et de réagir en fonction, sans besoin de connaissances en prog.
 
 Installation et Configuration
 -----------------------------
@@ -80,18 +84,11 @@ Installation
 ^^^^^^^^^^^^
 a. Installer depuis le repo
 
-b. Installer le module en utilisant pip :
-Sera valable une fois un poil stabilisé, pour l'instant le package n'est pas publié. 
-Pour commencer, installe simplement le module `enedis_odoo_bridge` en utilisant pip :
-
-.. code-block:: bash
-
-    pip install enedis-odoo-bridge
 
 Configuration
 ^^^^^^^^^^^^^
 
-Configurez le script en remplissant un fichier .env à la racine du module
+Configurez le script en complétant un fichier .env à la racine du module comme suit :
 
 .. code-block:: bash
     
@@ -100,18 +97,6 @@ Configurez le script en remplissant un fichier .env à la racine du module
     ENEDIS_ODOO_BRIDGE_ODOO_DB = "ma-db"
     ENEDIS_ODOO_BRIDGE_ODOO_USERNAME = "admin"
     ENEDIS_ODOO_BRIDGE_ODOO_PASSWORD = "sooooseccuuure"
-    # Pour la maj des activités
-    ENEDIS_ODOO_BRIDGE_ODOO_FACTURISTE_ID = 13 
-    ENEDIS_ODOO_BRIDGE_ODOO_ACTIVITY_APPROUVAL_ID = 17
-
-    # Constantes calculs des Taxes
-    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HPH_CU4 = 6.67
-    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HCH_CU4 = 4.56
-    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HPB_CU4 = 1.43
-    ENEDIS_ODOO_BRIDGE_TURPE_TAUX_HCB_CU4 = 0.88
-    ENEDIS_ODOO_BRIDGE_TURPE_B_CU4 = 9.00
-    ENEDIS_ODOO_BRIDGE_TURPE_CG = 15.48
-    ENEDIS_ODOO_BRIDGE_TURPE_CC = 19.92
 
     # Connexion au FTP contenant les Flux
     ENEDIS_ODOO_BRIDGE_FTP_ADDRESS = xxx.xxx.xxx.xxx
@@ -128,6 +113,12 @@ Configurez le script en remplissant un fichier .env à la racine du module
 
 Utilisation
 ^^^^^^^^^^^
+Utilisation des interfaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+   .. code-block:: bash
+
+       marimo run src/enedis_odoo_bridge/interfaces/nom_interface.py
+
 Utilisation des commandes
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
