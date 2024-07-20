@@ -310,7 +310,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(
     c15_latest,
     compute_missing_sums,
@@ -374,14 +374,13 @@ def __(
     return conso_col, end_col, merged_data, start_col
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(DataFrame):
     import numpy as np
     def compute_missing_sums(df: DataFrame) -> DataFrame:
         if 'BASE' not in df.columns:
             df['BASE'] = np.nan  
-        df['HP'] = df[['HPH', 'HPB', 'HP']].sum(axis=1)
-        df['HC'] = df[['HCH', 'HCB', 'HC']].sum(axis=1)
+
         df['not_enough_data'] = df[['HPH', 'HPB', 'HCH', 
                 'HCB', 'BASE', 'HP',
                 'HC']].isna().all(axis=1)
@@ -392,8 +391,9 @@ def __(DataFrame):
                 'HCB', 'BASE', 'HP', 
                 'HC']].sum(axis=1)
             )
+        df['HP'] = df[['HPH', 'HPB', 'HP']].sum(axis=1)
+        df['HC'] = df[['HCH', 'HCB', 'HC']].sum(axis=1)
         return df
-
     return compute_missing_sums, np
 
 
