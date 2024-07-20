@@ -78,4 +78,4 @@ def get_CF_from_r15(df : DataFrame) -> tuple[DataFrame]:
     # Enlever 'index.' et '.Valeur' des noms des colonnes
     start_dates.columns = [col.replace('index.', '').replace('.Valeur', '') for col in start_dates.columns]
     end_dates.columns = [col.replace('index.', '').replace('.Valeur', '') for col in end_dates.columns]
-    return start_dates, end_dates
+    return start_dates.set_index('pdl'), end_dates.set_index('pdl')
