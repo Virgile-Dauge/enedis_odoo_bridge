@@ -464,8 +464,8 @@ class OdooAPI:
         do_update_qty = ~((data['x_lisse'] == True) & (data['update_dates'] == False))
         subscription_lines = data[do_update_qty][['line_id_Abonnements','subscription_days']].copy()
 
-        subscription_lines['start_date'] = data[do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
-        subscription_lines['end_date'] = data[do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['start_date'] = pd.to_datetime(data[do_update_qty]['start_date']).dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['end_date'] = pd.to_datetime(data[do_update_qty]['end_date']).dt.strftime('%Y-%m-%dT%H:%M:%S')
 
         names = self.execute('account.move.line', 'read', [data[do_update_qty]['line_id_Abonnements'].to_list()],
                              {'fields': ['name']})
@@ -476,8 +476,8 @@ class OdooAPI:
                                                                 'start_date': 'deferred_start_date',
                                                                 'end_date': 'deferred_end_date',}).to_dict(orient='records')
         subscription_lines = data[~do_update_qty][['line_id_Abonnements']].copy()
-        subscription_lines['start_date'] = data[~do_update_qty]['start_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
-        subscription_lines['end_date'] = data[~do_update_qty]['end_date'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['start_date'] = pd.to_datetime(data[~do_update_qty]['start_date']).dt.strftime('%Y-%m-%dT%H:%M:%S')
+        subscription_lines['end_date'] = pd.to_datetime(data[~do_update_qty]['end_date']).dt.strftime('%Y-%m-%dT%H:%M:%S')
         names = self.execute('account.move.line', 'read', [data[~do_update_qty]['line_id_Abonnements'].to_list()],
                         {'fields': ['name']})
         subscription_lines['name'] = [n['name'].split('-')[0] for n in names]
@@ -494,8 +494,8 @@ class OdooAPI:
         if not 'x_turpe' in data.columns:
             moves['x_turpe'] = data['turpe_fix'] + data['turpe_var']
             
-        moves['x_start_invoice_period'] = data['start_date'].dt.strftime('%Y-%m-%d')
-        moves['x_end_invoice_period'] = data['end_date'].dt.strftime('%Y-%m-%d')
+        moves['x_start_invoice_period'] = pd.to_datetime(data['start_date']).dt.strftime('%Y-%m-%d')
+        moves['x_end_invoice_period'] = pd.to_datetime(data['end_date']).dt.strftime('%Y-%m-%d')
         # Deprecated : Maintenant on a les activités
         #moves['x_scripted'] = True
         #additionnal_fields = ['x_type_compteur', 'x_num_serie_compteur']
@@ -568,7 +568,7 @@ class OdooAPI:
         return consumption_lines + subscription_lines_dict #+ subscription_lines_without_qty_dict
     
     # Update processes
-    def update_draft_invoices(self, data: DataFrame, start: date, end: date)-> None:
+    def update_draft_invoices(self, data: DataFrame)-> None:
         """
         Updates the draft invoices in the Odoo database.
 
