@@ -1,7 +1,7 @@
 import marimo
 
-__generated_with = "0.7.5"
-app = marimo.App(width="medium", app_title="Facturation")
+__generated_with = "0.7.8"
+app = marimo.App(width="medium", app_title="Taxes")
 
 
 @app.cell
@@ -85,7 +85,6 @@ def flux_c15(end_date_picker, flux_path, start_date_picker):
 
 @app.cell
 def tri_flux_c15(c15, mo):
-
     duplicates = c15[c15.duplicated(subset=['Id_PRM'], keep=False)]
 
     influx = c15[c15['Nature_Evenement'].isin(['CFNE', 'MES'])]
@@ -94,8 +93,8 @@ def tri_flux_c15(c15, mo):
 
     mo.accordion({"C15": c15.dropna(axis=1, how='all'),
                   "Doublons": duplicates.sort_values(by=['Id_PRM', 'Date_Evenement']),
-                  "MES et CFNE": influx,
-                  "RES et CFNS": outflux,
+                  "MES et CFNE": influx.dropna(axis=1, how='all'),
+                  "RES et CFNS": outflux.dropna(axis=1, how='all'),
                   "Situation actuelle": c15_latest.dropna(axis=1, how='all')
                  })
     return c15_latest, duplicates, influx, outflux
@@ -107,7 +106,7 @@ def __(mo):
         r"""
         ## Nb jours à facturer. 
 
-        Cette fois-ci comme c'est la première fois on ne va faire qu'à partir des CFNE ou MES, sinon il faudra aussi prendre en compte le reste comme une période complète.  
+        Cette fois-ci comme c'est la première fois on ne va faire qu'à partir des CFNE ou MES, sinon il faudra aussi prendre en compte le reste comme une période complète.
         """
     )
     return
@@ -128,7 +127,6 @@ def param_taxes(pd):
 
 @app.cell
 def __(b, cc, cg, mo):
-
     mo.vstack([
         mo.md(r"""
               ## Nombre de jours 
@@ -138,10 +136,10 @@ def __(b, cc, cg, mo):
 
               Avec `Date_Evenement` = `Date cfne` puisqu'on a pris que les CFNE
               """),
-        
+
         mo.md(r"""
               ## Turpe Fixe journalier
-              
+
               \[
               turpe fixe_j = \frac{cg + cc + b \times P}{366}
               \]
@@ -155,14 +153,14 @@ def __(b, cc, cg, mo):
                    b]),
         mo.md(r"""
               ## Turpe Fixe
-              
+
               \[
               turpe fixe = turpe fixe_j \times j
               \]
               """),
         mo.md(r"""
               ## CTA
-              
+
               \[
               CTA = taux_{cta} \times turpe fixe
               \]
@@ -200,7 +198,6 @@ def __(b, cc, cg, influx, tcta):
 @app.cell
 def __(taxes):
     taxes['cta'].sum()
-
     return
 
 
