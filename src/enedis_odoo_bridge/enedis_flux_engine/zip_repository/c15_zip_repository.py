@@ -37,7 +37,8 @@ class C15ZipRepository(BaseZipRepository):
             row = {
                 'Id_PRM': prm.get('Id_PRM'),
                 'Date_Evenement': evnt.get('Date_Evenement', {}),
-                'Ref_demandeur': evnt.get('Ref_Demandeur', {}),
+                'Ref_demandeur': evnt.get('Ref_Demandeur', ''),
+                'Id_Affaire': evnt.get('Id_Affaire', ''),
                 'Nature_Evenement': evnt.get('Nature_Evenement', {}),
                 'Num_Depannage': prm.get('Num_Depannage'),
                 'Jour_Fixe_Releve': prm.get('Jour_Fixe_Releve'),
