@@ -32,9 +32,12 @@ class C15ZipRepository(BaseZipRepository):
         creation_date = data_dict['En_Tete_Flux']['Date_Creation']
         for prm in data_dict['PRM']:
             evnt = prm.get('Evenement_Declencheur', {})
+            #print(evnt)
+
             row = {
                 'Id_PRM': prm.get('Id_PRM'),
                 'Date_Evenement': evnt.get('Date_Evenement', {}),
+                'Ref_demandeur': evnt.get('Ref_Demandeur', {}),
                 'Nature_Evenement': evnt.get('Nature_Evenement', {}),
                 'Num_Depannage': prm.get('Num_Depannage'),
                 'Jour_Fixe_Releve': prm.get('Jour_Fixe_Releve'),
@@ -44,6 +47,14 @@ class C15ZipRepository(BaseZipRepository):
                 'Formule_Tarifaire_Acheminement': prm.get('Situation_Contractuelle', {}).get('Structure_Tarifaire', {}).get('Formule_Tarifaire_Acheminement'),
                 'Puissance_Souscrite': prm.get('Situation_Contractuelle', {}).get('Structure_Tarifaire', {}).get('Puissance_Souscrite')
             }
+            releve = evnt.get('Releves', {}).get('Donnees_Releve', {})
+            releve = releve[0] if releve else {}
+
+            # Flatten 'Classe_Temporelle_Distributeur' into columns
+            if 'Classe_Temporelle_Distributeur' in releve:
+                for ctd in releve['Classe_Temporelle_Distributeur']:
+                    # Assuming 'Id_Classe_Temporelle' is unique within each 'Donnees_Releve'
+                    row[ctd['Id_Classe_Temporelle']] = ctd['Valeur']
             rows.append(row)
         
 
