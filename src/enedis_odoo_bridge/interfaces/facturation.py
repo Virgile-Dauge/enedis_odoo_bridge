@@ -172,7 +172,7 @@ def __():
     import matplotlib.font_manager as font_manager
     import matplotlib.cm as cm
 
-    def plot_matrix_construction_with_reference_v16(sources_list, reference_name):
+    def plot_data_merge(sources_list, reference_name):
         """
         Cette fonction crée un graphique illustrant la construction d'une matrice à partir de plusieurs sources,
         avec une colonne de référence commune, en utilisant la colormap 'Set3' et affichant les noms de colonnes en vertical.
@@ -180,11 +180,11 @@ def __():
         :param sources_list: Une liste de tuples où le premier élément est le nom de la source et le second est la liste des noms de colonnes.
         :param reference_name: Le nom de la référence commune utilisée pour la fusion des sources.
         """
-        fig, ax = plt.subplots(figsize=(12, 8), dpi=300)
+        fig, ax = plt.subplots(figsize=(12, 5), dpi=300)
 
         # Paramètres pour l'affichage
-        rect_width = 0.05
-        rect_height = 0.2  # Augmentation de la hauteur des rectangles pour ressembler plus à des colonnes
+        rect_width = 0.03
+        rect_height = 0.3  # Augmentation de la hauteur des rectangles pour ressembler plus à des colonnes
         y_start = 0.85
         spacing = rect_width * 2  # Espace entre les matrices équivalent à deux colonnes
         reference_width = 0.03  # Largeur de la colonne de référence
@@ -274,13 +274,13 @@ def __():
         ('F15', ['data1_C', 'data2_C', 'data3_C', 'data4_C']),
     ]
 
-    plot_matrix_construction_with_reference_v16(sources_example_with_reference_varied_spacing_v16, 'ID_PDL')
+    plot_data_merge(sources_example_with_reference_varied_spacing_v16, 'ID_PDL')
     return (
         Polygon,
         Rectangle,
         cm,
         font_manager,
-        plot_matrix_construction_with_reference_v16,
+        plot_data_merge,
         plt,
         sources_example_with_reference_varied_spacing_v16,
     )
