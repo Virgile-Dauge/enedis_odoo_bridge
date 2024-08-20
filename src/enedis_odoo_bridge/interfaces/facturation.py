@@ -67,7 +67,7 @@ def get_pdl(env, mo):
     return get_valid_subscriptions_pdl, pdl_actifs
 
 
-@app.cell(hide_code=True)
+@app.cell
 def flux_c15(
     end_date_picker,
     flux_path,
@@ -77,7 +77,7 @@ def flux_c15(
     switch_edn_only,
 ):
     from enedis_odoo_bridge.enedis_flux_engine import get_c15_by_date
-    c15 = get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value).rename(columns={'Id_PRM':'pdl'})
+    c15 = get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value).rename(columns={'Id_PRM':'pdl', 'Formule_Tarifaire_Acheminement': 'FTA', 'Puissance_Souscrite' : 'puissance'})
     if switch_edn_only.value:
         c15 = c15[c15['pdl'].isin(pdl_actifs)]
     c15['Date_Evenement'] = pd.to_datetime(c15['Date_Evenement']).dt.date
@@ -99,15 +99,9 @@ def flux_c15(
     return c15, c15_latest, get_c15_by_date, influx, outflux
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(mo):
-    mo.md(
-        r"""
-        ### Données contractuelles issues du C15
-
-        A Vérifier : PK le filtrage ne donne que 73 sitations actuelles alors qu'Odoo renvoie 76 abonnements ?
-        """
-    )
+    mo.md(r"""### Données contractuelles issues du C15""")
     return
 
 
@@ -319,7 +313,7 @@ def __():
     return Polygon, Rectangle, cm, font_manager, plot_data_merge, plt
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __(end_date_picker, plot_data_merge, start_date_picker):
     _graphique_data = [
         ('C15 (actuel)', ['FTA', 'Puissance', 'Num_Depannage']),
@@ -336,9 +330,10 @@ def __(end_date_picker, plot_data_merge, start_date_picker):
 
 @app.cell
 def __(c15_latest, conso_cols, influx):
-    merged_enedis_data = c15_latest[['Formule_Tarifaire_Acheminement', 'Puissance_Souscrite', 'Num_Depannage']].merge(
-        influx[['Date_Evenement']+conso_cols], how='left', left_index=True, right_index=True,)
-    merged_enedis_data
+    merged_enedis_data = c15_latest[['FTA', 'puissance', 'Num_Depannage']].merge(
+        influx[['Date_Evenement']+conso_cols].rename(columns={'Date_Evenement': 'date_in'}), 
+        how='left', left_index=True, right_index=True,)
+    merged_enedis_data.dropna(axis=1, how='all')
     return merged_enedis_data,
 
 
