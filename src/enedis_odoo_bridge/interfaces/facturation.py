@@ -40,17 +40,46 @@ def delimitation_periode():
 def param_flux(env, mo):
     from pathlib import Path
     flux_path = Path('~/data/flux_enedis/')
+
+    switch_edn_only = mo.ui.switch(label="Filtrage pdl EDN", value=True)
     mo.md(f"""
           # Données d'entrée : Flux Enedis
-          Source ftp : {env['FTP_ADDRESS']} 
+
+          ## Paramètres
+          Source ftp : {env['FTP_ADDRESS']}
+          
+          Dossier source : {flux_path}
+          ## Filtrage
+          Les flux Enedis contiennement toutes les données du périmètre, donc à la fois des pdl que nous gérons nous et des pdl       gérès parcelleux qui utilisent notre agrément. Il est possible de filtrer pour n'avoir que les notres en allant             chercher sur odoo la liste des abonnements actifs.  
+          {switch_edn_only}
           """)
-    return Path, flux_path
+    return Path, flux_path, switch_edn_only
 
 
 @app.cell(hide_code=True)
-def flux_c15(end_date_picker, flux_path, pd, start_date_picker):
+def get_pdl(env, mo):
+    from enedis_odoo_bridge.odoo import get_valid_subscriptions_pdl
+    pdl_actifs = get_valid_subscriptions_pdl(env)
+
+    mo.md(f'''## Abonnements en cours
+              {len(pdl_actifs)} abonnements en cours d'après Odoo
+           ''')
+    return get_valid_subscriptions_pdl, pdl_actifs
+
+
+@app.cell(hide_code=True)
+def flux_c15(
+    end_date_picker,
+    flux_path,
+    pd,
+    pdl_actifs,
+    start_date_picker,
+    switch_edn_only,
+):
     from enedis_odoo_bridge.enedis_flux_engine import get_c15_by_date
-    c15 = get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
+    c15 = get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value).rename(columns={'Id_PRM':'pdl'})
+    if switch_edn_only.value:
+        c15 = c15[c15['pdl'].isin(pdl_actifs)]
     c15['Date_Evenement'] = pd.to_datetime(c15['Date_Evenement']).dt.date
 
     c15['start_date'] = start_date_picker.value
@@ -59,29 +88,35 @@ def flux_c15(end_date_picker, flux_path, pd, start_date_picker):
     c15['end_date'] = end_date_picker.value
     c15['end_date'] = pd.to_datetime(c15['end_date']).dt.date
 
-    c15_latest = c15.sort_values(by='Date_Evenement', ascending=False).drop_duplicates(subset=['Id_PRM'], keep='first').rename(columns={'Id_PRM':'pdl'}).set_index('pdl')
+    c15_latest = c15.sort_values(by='Date_Evenement', ascending=False).drop_duplicates(subset=['pdl'], keep='first').set_index('pdl')
 
     c15 = c15[c15['Date_Evenement'] >= c15['start_date']]
     c15 = c15[c15['Date_Evenement'] <= c15['end_date']]
     c15 = c15.drop(columns=['start_date', 'end_date'])
 
-    influx = c15[c15['Nature_Evenement'].isin(['CFNE', 'MES'])].rename(columns={'Id_PRM': 'pdl'}).set_index('pdl')
-    outflux = c15[c15['Nature_Evenement'].isin(['CFNS', 'RES'])].rename(columns={'Id_PRM': 'pdl'}).set_index('pdl')
+    influx = c15[c15['Nature_Evenement'].isin(['CFNE', 'MES'])].set_index('pdl')
+    outflux = c15[c15['Nature_Evenement'].isin(['CFNS', 'RES'])].set_index('pdl')
     return c15, c15_latest, get_c15_by_date, influx, outflux
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __(mo):
-    mo.md(r"""### Données contractuelles issues du C15""")
+    mo.md(
+        r"""
+        ### Données contractuelles issues du C15
+
+        A Vérifier : PK le filtrage ne donne que 73 sitations actuelles alors qu'Odoo renvoie 76 abonnements ?
+        """
+    )
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def aff_c15(c15, c15_latest, influx, mo, outflux):
-    _duplicates = c15[c15.duplicated(subset=['Id_PRM'], keep=False)]
+    _duplicates = c15[c15.duplicated(subset=['pdl'], keep=False)]
 
-    mo.accordion({"C15": c15.dropna(axis=1, how='all'),
-                  "Doublons": _duplicates.sort_values(by=['Id_PRM', 'Date_Evenement']),
+    mo.accordion({"Variations C15 dans la période": c15.dropna(axis=1, how='all'),
+                  "Doublons": _duplicates.sort_values(by=['pdl', 'Date_Evenement']).dropna(axis=1, how='all').reset_index(),
                   "MES et CFNE": influx.dropna(axis=1, how='all').reset_index(),
                   "RES et CFNS": outflux.dropna(axis=1, how='all').reset_index(),
                   "Situation actuelle": c15_latest.dropna(axis=1, how='all').reset_index()
@@ -96,25 +131,27 @@ def __(mo):
 
 
 @app.cell(hide_code=True)
-def flux_r15(end_date_picker, flux_path, mo, start_date_picker):
+def flux_r15(
+    end_date_picker,
+    flux_path,
+    mo,
+    pdl_actifs,
+    start_date_picker,
+    switch_edn_only,
+):
     from enedis_odoo_bridge.enedis_flux_engine import get_r15_by_date, get_meta_from_r15, get_CF_from_r15
     r15 = get_r15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
+
+    if switch_edn_only.value:
+        r15 = r15[r15.index.isin(pdl_actifs)]
     meta = get_meta_from_r15(r15)
-    cfne, cfns = get_CF_from_r15(r15)
+    #cfne, cfns = get_CF_from_r15(r15)
 
     mo.accordion({"Metadonnées": meta.dropna(axis=1, how='all'),
-                  "Changements de fournisseur entrants": cfne.dropna(axis=1, how='all'),
-                  "Changements de fournisseur sortants": cfns.dropna(axis=1, how='all')
+                  #"Changements de fournisseur entrants": cfne.dropna(axis=1, how='all'),
+                  #"Changements de fournisseur sortants": cfns.dropna(axis=1, how='all')
                  })
-    return (
-        cfne,
-        cfns,
-        get_CF_from_r15,
-        get_meta_from_r15,
-        get_r15_by_date,
-        meta,
-        r15,
-    )
+    return get_CF_from_r15, get_meta_from_r15, get_r15_by_date, meta, r15
 
 
 @app.cell
@@ -124,15 +161,28 @@ def __(mo):
 
 
 @app.cell(hide_code=True)
-def flux_r151(end_date_picker, flux_path, mo, start_date_picker):
+def flux_r151(
+    end_date_picker,
+    flux_path,
+    mo,
+    pdl_actifs,
+    start_date_picker,
+    switch_edn_only,
+):
     from enedis_odoo_bridge.enedis_flux_engine import get_r151_by_date
     from enedis_odoo_bridge.utils import get_consumption_names
 
     _unused = ['zip_file', 'Id_Affaire']
     start_index = get_r151_by_date(flux_path, start_date_picker.value).set_index('pdl').drop(columns=_unused)
-    end_index = get_r151_by_date(flux_path, end_date_picker.value).set_index('pdl').drop(columns=_unused)
+    end_index = get_r151_by_date(flux_path, end_date_picker.value)
 
     mo.stop(end_index.empty, mo.callout(mo.md(f'Pas de données du {end_date_picker.value} dans le R151 !'),kind='warn'))
+    end_index = end_index.set_index('pdl').drop(columns=_unused)
+
+    # On filtre avec juste nos PDL si nécessaire
+    if switch_edn_only.value:
+        start_index = start_index[start_index.index.isin(pdl_actifs)]
+        end_index = end_index[end_index.index.isin(pdl_actifs)]
 
     # On converti en kWh
     conso_cols = [c for c in get_consumption_names() if c in start_index]
@@ -161,11 +211,11 @@ def flux_r151(end_date_picker, flux_path, mo, start_date_picker):
 
 @app.cell
 def __(mo):
-    mo.md(r"""# Fusion """)
+    mo.md(r"""# Fusion""")
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __():
     import matplotlib.pyplot as plt
     from matplotlib.patches import Rectangle, Polygon
@@ -180,14 +230,14 @@ def __():
         :param sources_list: Une liste de tuples où le premier élément est le nom de la source et le second est la liste des noms de colonnes.
         :param reference_name: Le nom de la référence commune utilisée pour la fusion des sources.
         """
-        fig, ax = plt.subplots(figsize=(12, 5), dpi=300)
+        fig, ax = plt.subplots(figsize=(12, 6), dpi=300)
 
         # Paramètres pour l'affichage
         rect_width = 0.03
         rect_height = 0.3  # Augmentation de la hauteur des rectangles pour ressembler plus à des colonnes
         y_start = 0.85
         spacing = rect_width * 2  # Espace entre les matrices équivalent à deux colonnes
-        reference_width = 0.03  # Largeur de la colonne de référence
+        reference_width = 0.015  # Largeur de la colonne de référence
         edge_color = '#4d4d4d'  # Gris foncé pour les traits
         edge_linewidth = 1.5  # Épaisseur des traits réduite
 
@@ -266,24 +316,30 @@ def __():
 
         # Afficher la figure
         plt.show()
+    return Polygon, Rectangle, cm, font_manager, plot_data_merge, plt
 
-    # Test avec des sources de tailles différentes et aligner la matrice finale sous les sources
-    sources_example_with_reference_varied_spacing_v16 = [
-        ('C15', ['data1_A', 'data2_A', 'data3_A']),
-        ('R151', ['data1_B']),
-        ('F15', ['data1_C', 'data2_C', 'data3_C', 'data4_C']),
+
+@app.cell
+def __(end_date_picker, plot_data_merge, start_date_picker):
+    _graphique_data = [
+        ('C15 (actuel)', ['FTA', 'Puissance', 'Num_Depannage']),
+        ('C15 (IN)', ['date IN', 'index IN']),
+        ('C15 (OUT)', ['date OUT', 'index OUT']),
+        ('R15', ['Type_Compteur', 'Num_Serie']),
+        ('R151', [f'index {start_date_picker.value}', f'index {end_date_picker.value}']),
+        #('F15', ['data1_C', 'data2_C', 'data3_C', 'data4_C']),
     ]
 
-    plot_data_merge(sources_example_with_reference_varied_spacing_v16, 'ID_PDL')
-    return (
-        Polygon,
-        Rectangle,
-        cm,
-        font_manager,
-        plot_data_merge,
-        plt,
-        sources_example_with_reference_varied_spacing_v16,
-    )
+    plot_data_merge(_graphique_data, 'pdl')
+    return
+
+
+@app.cell
+def __(c15_latest, conso_cols, influx):
+    merged_enedis_data = c15_latest[['Formule_Tarifaire_Acheminement', 'Puissance_Souscrite', 'Num_Depannage']].merge(
+        influx[['Date_Evenement']+conso_cols], how='left', left_index=True, right_index=True,)
+    merged_enedis_data
+    return merged_enedis_data,
 
 
 @app.cell
