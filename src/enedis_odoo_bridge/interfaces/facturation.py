@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.7.17"
+__generated_with = "0.8.0"
 app = marimo.App(width="medium", app_title="Facturation")
 
 
@@ -8,6 +8,7 @@ app = marimo.App(width="medium", app_title="Facturation")
 def delimitation_periode():
     import marimo as mo
     import pandas as pd
+    import numpy as np
     from datetime import date
 
     from enedis_odoo_bridge.utils import gen_dates
@@ -31,13 +32,14 @@ def delimitation_periode():
         gen_dates,
         load_prefixed_dotenv,
         mo,
+        np,
         pd,
         start_date_picker,
     )
 
 
 @app.cell(hide_code=True)
-def param_flux(env, mo):
+def param_flux(mo):
     from pathlib import Path
     flux_path = Path('~/data/flux_enedis/')
 
@@ -46,8 +48,6 @@ def param_flux(env, mo):
           # Données d'entrée : Flux Enedis
 
           ## Paramètres
-          Source ftp : {env['FTP_ADDRESS']}
-          
           Dossier source : {flux_path}
           ## Filtrage
           Les flux Enedis contiennement toutes les données du périmètre, donc à la fois des pdl que nous gérons nous et des pdl       gérès parcelleux qui utilisent notre agrément. Il est possible de filtrer pour n'avoir que les notres en allant             chercher sur odoo la liste des abonnements actifs.  
@@ -68,6 +68,12 @@ def get_pdl(env, mo):
 
 
 @app.cell
+def __(end_date_picker, flux_path, get_c15_by_date, start_date_picker):
+    get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
+    return
+
+
+@app.cell
 def flux_c15(
     end_date_picker,
     flux_path,
@@ -77,26 +83,26 @@ def flux_c15(
     switch_edn_only,
 ):
     from enedis_odoo_bridge.enedis_flux_engine import get_c15_by_date
-    c15 = get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value).rename(columns={'Id_PRM':'pdl', 'Formule_Tarifaire_Acheminement': 'FTA', 'Puissance_Souscrite' : 'puissance'})
+    _c15 = get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
     if switch_edn_only.value:
-        c15 = c15[c15['pdl'].isin(pdl_actifs)]
-    c15['Date_Evenement'] = pd.to_datetime(c15['Date_Evenement']).dt.date
+        _c15 = _c15[_c15['pdl'].isin(pdl_actifs)]
+    _c15['date'] = pd.to_datetime(_c15['date']).dt.date
 
-    c15['start_date'] = start_date_picker.value
-    c15['start_date'] = pd.to_datetime(c15['start_date']).dt.date
+    _c15['start_date'] = start_date_picker.value
+    _c15['start_date'] = pd.to_datetime(_c15['start_date']).dt.date
 
-    c15['end_date'] = end_date_picker.value
-    c15['end_date'] = pd.to_datetime(c15['end_date']).dt.date
+    _c15['end_date'] = end_date_picker.value
+    _c15['end_date'] = pd.to_datetime(_c15['end_date']).dt.date
 
-    c15_latest = c15.sort_values(by='Date_Evenement', ascending=False).drop_duplicates(subset=['pdl'], keep='first').set_index('pdl')
+    c15_latest = _c15.sort_values(by='date', ascending=False).drop_duplicates(subset=['pdl'], keep='first')
 
-    c15 = c15[c15['Date_Evenement'] >= c15['start_date']]
-    c15 = c15[c15['Date_Evenement'] <= c15['end_date']]
-    c15 = c15.drop(columns=['start_date', 'end_date'])
+    _c15 = _c15[_c15['date'] >= _c15['start_date']]
+    _c15 = _c15[_c15['date'] <= _c15['end_date']]
+    #c15 = c15.drop(columns=['start_date', 'end_date'])
 
-    influx = c15[c15['Nature_Evenement'].isin(['CFNE', 'MES'])].set_index('pdl')
-    outflux = c15[c15['Nature_Evenement'].isin(['CFNS', 'RES'])].set_index('pdl')
-    return c15, c15_latest, get_c15_by_date, influx, outflux
+    influx = _c15[_c15['Nature_Evenement'].isin(['CFNE', 'MES'])]
+    outflux = _c15[_c15['Nature_Evenement'].isin(['CFNS', 'RES'])]
+    return c15_latest, get_c15_by_date, influx, outflux
 
 
 @app.cell
@@ -105,15 +111,15 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
-def aff_c15(c15, c15_latest, influx, mo, outflux):
-    _duplicates = c15[c15.duplicated(subset=['pdl'], keep=False)]
+@app.cell
+def aff_c15(c15_latest, influx, mo, outflux):
+    #_duplicates = _c15[c15.duplicated(subset=['pdl'], keep=False)]
 
-    mo.accordion({"Variations C15 dans la période": c15.dropna(axis=1, how='all'),
-                  "Doublons": _duplicates.sort_values(by=['pdl', 'Date_Evenement']).dropna(axis=1, how='all').reset_index(),
-                  "MES et CFNE": influx.dropna(axis=1, how='all').reset_index(),
-                  "RES et CFNS": outflux.dropna(axis=1, how='all').reset_index(),
-                  "Situation actuelle": c15_latest.dropna(axis=1, how='all').reset_index()
+    mo.accordion({#"Variations C15 dans la période": c15.dropna(axis=1, how='all'),
+                  #"Doublons": _duplicates.sort_values(by=['pdl', 'Date_Evenement']).dropna(axis=1, how='all').reset_index(),
+                  "IN (MES et CFNE)": influx.dropna(axis=1, how='all'),
+                  "OUT (RES et CFNS)": outflux.dropna(axis=1, how='all'),
+                  "Situation actuelle": c15_latest.dropna(axis=1, how='all')
                  })
     return
 
@@ -134,18 +140,16 @@ def flux_r15(
     switch_edn_only,
 ):
     from enedis_odoo_bridge.enedis_flux_engine import get_r15_by_date, get_meta_from_r15, get_CF_from_r15
-    r15 = get_r15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
+    _r15 = get_r15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
 
     if switch_edn_only.value:
-        r15 = r15[r15.index.isin(pdl_actifs)]
-    meta = get_meta_from_r15(r15)
-    #cfne, cfns = get_CF_from_r15(r15)
+        _r15 = _r15[_r15['pdl'].isin(pdl_actifs)]
+    meta = get_meta_from_r15(_r15)
 
-    mo.accordion({"Metadonnées": meta.dropna(axis=1, how='all'),
-                  #"Changements de fournisseur entrants": cfne.dropna(axis=1, how='all'),
-                  #"Changements de fournisseur sortants": cfns.dropna(axis=1, how='all')
+    mo.accordion({"R15": _r15.dropna(axis=1, how='all'),
+                  "Metadonnées": meta.dropna(axis=1, how='all'),
                  })
-    return get_CF_from_r15, get_meta_from_r15, get_r15_by_date, meta, r15
+    return get_CF_from_r15, get_meta_from_r15, get_r15_by_date, meta
 
 
 @app.cell
@@ -154,11 +158,12 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def flux_r151(
     end_date_picker,
     flux_path,
     mo,
+    np,
     pdl_actifs,
     start_date_picker,
     switch_edn_only,
@@ -166,18 +171,21 @@ def flux_r151(
     from enedis_odoo_bridge.enedis_flux_engine import get_r151_by_date
     from enedis_odoo_bridge.utils import get_consumption_names
 
-    _unused = ['zip_file', 'Id_Affaire']
-    start_index = get_r151_by_date(flux_path, start_date_picker.value).set_index('pdl').drop(columns=_unused)
+    _unused = ['Id_Affaire']
+    start_index = get_r151_by_date(flux_path, start_date_picker.value).drop(columns=_unused)
     end_index = get_r151_by_date(flux_path, end_date_picker.value)
 
     mo.stop(end_index.empty, mo.callout(mo.md(f'Pas de données du {end_date_picker.value} dans le R151 !'),kind='warn'))
-    end_index = end_index.set_index('pdl').drop(columns=_unused)
+    end_index = end_index.drop(columns=_unused)
 
     # On filtre avec juste nos PDL si nécessaire
     if switch_edn_only.value:
-        start_index = start_index[start_index.index.isin(pdl_actifs)]
-        end_index = end_index[end_index.index.isin(pdl_actifs)]
+        start_index = start_index[start_index['pdl'].isin(pdl_actifs)]
+        end_index = end_index[end_index['pdl'].isin(pdl_actifs)]
 
+    # On ajoute 
+    start_index['BASE'] = np.nan
+    end_index['BASE'] = np.nan
     # On converti en kWh
     conso_cols = [c for c in get_consumption_names() if c in start_index]
     start_index[conso_cols] = (start_index[conso_cols] / 1000).round()
@@ -220,7 +228,7 @@ def __():
         """
         Cette fonction crée un graphique illustrant la construction d'une matrice à partir de plusieurs sources,
         avec une colonne de référence commune, en utilisant la colormap 'Set3' et affichant les noms de colonnes en vertical.
-        
+
         :param sources_list: Une liste de tuples où le premier élément est le nom de la source et le second est la liste des noms de colonnes.
         :param reference_name: Le nom de la référence commune utilisée pour la fusion des sources.
         """
@@ -329,12 +337,270 @@ def __(end_date_picker, plot_data_merge, start_date_picker):
 
 
 @app.cell
-def __(c15_latest, conso_cols, influx):
-    merged_enedis_data = c15_latest[['FTA', 'puissance', 'Num_Depannage']].merge(
-        influx[['Date_Evenement']+conso_cols].rename(columns={'Date_Evenement': 'date_in'}), 
-        how='left', left_index=True, right_index=True,)
+def __(
+    c15_latest,
+    conso_cols,
+    end_index,
+    influx,
+    meta,
+    outflux,
+    start_index,
+):
+    # Base : C15 Actuel
+    merged_enedis_data = c15_latest[['pdl', 'FTA', 'P', 'depannage']]
+
+    def _merge_with_prefix(A, B, prefix):
+        return A.merge(B.add_prefix(prefix),
+                       how='left', left_on='pdl', right_on=f'{prefix}pdl').drop(columns=[f'{prefix}pdl'])
+    # Fusion C15 IN
+    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+                                            influx[['pdl', 'date']+conso_cols],
+                                            'in_')
+
+    # Fusion + C15 OUT
+    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+                                            outflux[['pdl', 'date']+conso_cols],
+                                            'out_')
+
+    # Fusion + R15 (meta)
+    merged_enedis_data = merged_enedis_data.merge(
+        meta[['pdl', 'Type_Compteur', 'Num_Serie']], 
+        how='left', on='pdl',)
+
+    # Fusion + R151 (start)
+    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+                                            start_index[['pdl']+conso_cols],
+                                            'start_')
+    # Fusion + R151 (end)
+    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+                                            end_index[['pdl']+conso_cols],
+                                            'end_')
+
     merged_enedis_data.dropna(axis=1, how='all')
     return merged_enedis_data,
+
+
+@app.cell
+def __(mo):
+    mo.md(
+        r"""
+        # Calculs des consos
+        ## Choix des index
+
+        Principe : A partir des données d'Enedis, on choisit les index à utiliser : 
+
+        Pour l'index de début de période, on choisit une entrée (CFNE ou MES) si elle existe, sinon on utilise l'index donné par le flux d'index quotidiens (R151) du premier jour de la période.
+
+        Pour l'index de fin de période, on choisit une sortie (CFNs ou RES) si elle existe, sinon on utilise l'index donné par le flux d'index quotidiens (R151) du dernier jour de la période.
+        """
+    )
+    return
+
+
+@app.cell
+def __(
+    end_date_picker,
+    get_consumption_names,
+    merged_enedis_data,
+    np,
+    pd,
+    start_date_picker,
+):
+    _cols = get_consumption_names()
+    for _col in _cols:
+        merged_enedis_data[f'd_{_col}'] = np.where(merged_enedis_data['in_date'].notna(),
+                                                  merged_enedis_data[f'in_{_col}'],
+                                                  merged_enedis_data[f'start_{_col}'])
+
+    for _col in _cols:
+        merged_enedis_data[f'f_{_col}'] = np.where(merged_enedis_data['out_date'].notna(),
+                                                  merged_enedis_data[f'out_{_col}'],
+                                                  merged_enedis_data[f'end_{_col}'])
+
+    merged_enedis_data['start_date'] = start_date_picker.value
+    merged_enedis_data['start_date'] = pd.to_datetime(merged_enedis_data['start_date']).dt.date
+
+    merged_enedis_data['end_date'] = end_date_picker.value
+    merged_enedis_data['end_date'] = pd.to_datetime(merged_enedis_data['end_date']).dt.date
+
+    merged_enedis_data[f'd_date'] = np.where(merged_enedis_data['in_date'].notna(),
+                                         merged_enedis_data[f'in_date'],
+                                         merged_enedis_data[f'start_date'])
+    merged_enedis_data[f'f_date'] = np.where(merged_enedis_data['out_date'].notna(),
+                                         merged_enedis_data[f'out_date'],
+                                         merged_enedis_data[f'end_date'])
+    return
+
+
+@app.cell
+def __(mo):
+    mo.md(
+        r"""
+        ## Soustraction des index
+
+        On prend l'index de fin sélectionné précédemment, et on y soustrait l'index de début
+
+
+        """
+    )
+    return
+
+
+@app.cell
+def __(DataFrame, get_consumption_names, merged_enedis_data, np, pd):
+    _cols = get_consumption_names()
+    for _col in _cols:
+        merged_enedis_data[f'{_col}'] = merged_enedis_data[f'f_{_col}'] - merged_enedis_data[f'd_{_col}']
+    merged_enedis_data.dropna(axis=1, how='all')
+
+    def _compute_missing_sums(df: DataFrame) -> DataFrame:
+        if 'BASE' not in df.columns:
+            df['BASE'] = np.nan  
+
+        df['missing_data'] = df[['HPH', 'HPB', 'HCH', 
+                'HCB', 'BASE', 'HP',
+                'HC']].isna().all(axis=1)
+        df['BASE'] = np.where(
+                df['missing_data'],
+                np.nan,
+                df[['HPH', 'HPB', 'HCH', 
+                'HCB', 'BASE', 'HP', 
+                'HC']].sum(axis=1)
+            )
+        df['HP'] = df[['HPH', 'HPB', 'HP']].sum(axis=1)
+        df['HC'] = df[['HCH', 'HCB', 'HC']].sum(axis=1)
+        return df
+    consos = _compute_missing_sums(merged_enedis_data)[['pdl', 'FTA', 'P', 'depannage', 'Type_Compteur', 'Num_Serie', 'missing_data', 'd_date', 'f_date']+_cols]
+
+    consos['j'] = (pd.to_datetime(consos['f_date']) - pd.to_datetime(consos['d_date'])).dt.days + 1
+    consos
+    return consos,
+
+
+@app.cell(hide_code=True)
+def param_taxes(mo, pd):
+    # Création du DataFrame avec les données du tableau
+    _b = {
+        "b": ["CU4", "CUST", "MU4", "MUDT", "LU", "CU4 – autoproduction collective", "MU4 – autoproduction collective"],
+        "€/kVA/an": [9.00, 9.96, 10.56, 12.24, 81.24, 9.00, 10.68]
+    }
+    b = pd.DataFrame(_b).set_index('b')
+    _c = {
+        "c": [
+            "CU4", "CUST", "MU4", "MUDT", "LU",
+            "CU 4 - autoproduction collective, part autoproduite",
+            "CU 4 - autoproduction collective, part alloproduite",
+            "MU 4 - autoproduction collective, part autoproduite",
+            "MU 4 - autoproduction collective, part alloproduite"
+        ],
+        "HPH": [
+            6.67, 0, 6.12, 0, 0,
+            1.64, 7.23, 1.64, 6.60
+        ],
+        "HCH": [
+            4.56, 0, 4.24, 0, 0,
+            1.29, 4.42, 1.29, 4.23
+        ],
+        "HPB": [
+            1.43, 0, 1.39, 0, 0,
+            0.77, 2.29, 0.77, 2.22
+        ],
+        "HCB": [
+            0.88, 0, 0.87, 0, 0,
+            0.37, 0.86, 0.37, 0.86
+        ],
+        "HP": [
+            0, 0, 0, 4.47, 0,
+            0, 0, 0, 0
+        ],
+        "HC": [
+            0, 0, 0, 3.16, 0,
+            0, 0, 0, 0
+        ],
+        "BASE": [
+            0, 4.37, 0, 0, 1.10,
+            0, 0, 0, 0
+        ]
+    }
+    c = pd.DataFrame(_c).set_index('c')
+
+    cg = 15.48
+    cc = 19.9
+    tcta = 0.2193
+    mo.md(
+        f"""
+        ## Calcul du Turpe
+
+        Composante de Gestion annuelle $cg = {cg}$\n
+        Composante de Comptage annuelle $cc = {cc}$\n
+        Cta $cta = {tcta} * turpe fixe$
+        """   
+    )
+    return b, c, cc, cg, tcta
+
+
+@app.cell(hide_code=True)
+def aff_param_taxes(b, c, mo):
+    mo.vstack([
+        mo.md(r"""
+              ### Composante de soutirage
+
+              \[
+              CS = b \times P + \sum_{i=1}^{n} c_i \cdot E_i
+              \]
+
+              Dont part fixe $CSF = b \times P$
+              Avec P = Puissance souscrite
+              """),
+        mo.hstack([b, c]), 
+        mo.md(r"""
+          ### Turpe Fixe journalier
+
+          \[
+          T_j = (cg + cc + b \times P)/366
+          \]
+          """),
+        ]
+    )
+    return
+
+
+@app.cell
+def taxes_fixes(b, cc, cg, consos, np, tcta):
+    # Calcul part fixe
+    def _get_tarif(row):
+        key = row['FTA'].replace('BTINF', '')
+        if key in b.index:
+            return b.at[key, '€/kVA/an']
+        else:
+            return np.nan
+
+    # On récupére les valeurs de b en fonction de la FTA
+    consos['b'] = consos.apply(_get_tarif, axis=1)
+    consos['P'] = consos['P'].astype(float)
+
+    consos['turpe_fix_j'] = (cg + cc + consos['b'] * consos['P'])/366
+    consos['turpe_fix'] = consos['turpe_fix_j'] * consos['j']
+    consos['cta'] = tcta * consos['turpe_fix']
+    consos
+    return
+
+
+@app.cell(hide_code=True)
+def taxes_variables(c, consos):
+    def _calc_sum_ponderated(row):
+        key = row['FTA'].replace('BTINF', '')
+        if key in c.index:
+            coef = c.loc[key]
+            conso_cols = ['HPH', 'HCH', 'HPB', 'HCB', 'HP', 'HC', 'BASE']
+            return sum(row[col] * coef[col] for col in conso_cols)/100
+        else:
+            print(key)
+            return 0
+    consos['turpe_var'] = consos.apply(_calc_sum_ponderated, axis=1)
+    consos['turpe'] = consos['turpe_fix'] + consos['turpe_var']
+    consos
+    return
 
 
 @app.cell
@@ -477,224 +743,9 @@ def __(mo):
         """
         # Fusion des données Enedis et Odoo
 
-        On part des contracts et factures Odoo (`odoo_data`), puis :
-
-        - On y ajoute lorsque connus les index de début et de fin issus du R151 (`start_index` et `end_index`)
-        - Si lieu, on remplace les index et les dates de début/fin par les données de changements contractuelles issues du C15 (`influx` et `outflux`)
-        - On ajoute les métadonnées Type compteur et Num Compteur depuis le R15
-        - On récupère les données de puissance et FTA depuis le C15 `c15_latest`
-        - On peut ensuite calculer la différence entre les index de début et de fin, ainsi que le nb de jours
+        TOUTACHANGÉ
         """
     )
-    return
-
-
-@app.cell
-def calculs_consos(
-    DataFrame,
-    c15_latest,
-    conso_cols,
-    end_date_picker,
-    end_index,
-    influx,
-    meta,
-    odoo_data,
-    outflux,
-    pd,
-    start_date_picker,
-    start_index,
-):
-    import numpy as np
-
-    # Fusionner les données Odoo avec les index de début et de fin issus du R151
-    _start_conso_cols = {c: 'start_'+ c for c in conso_cols}
-    _end_conso_cols = {c: 'end_'+ c for c in conso_cols}
-
-    merged_data = odoo_data.merge(start_index[conso_cols].rename(columns=_start_conso_cols), 
-                                  how='left', 
-                                  left_index=True, right_index=True,)# suffixes=('', '_start'))
-    merged_data = merged_data.merge(end_index[conso_cols].rename(columns=_end_conso_cols),
-                                    how='left',
-                                    left_index=True, right_index=True)#, suffixes=('', '_end'))
-
-    merged_data['start_date'] = start_date_picker.value
-    merged_data['start_date'] = pd.to_datetime(merged_data['start_date']).dt.date
-
-    merged_data['end_date'] = end_date_picker.value
-    merged_data['end_date'] = pd.to_datetime(merged_data['end_date']).dt.date
-
-    # Remplacer les index et les dates de début/fin par les données de changements contractuelles issues du C15
-    _start_conso_cols = {c: 'start_'+ c for c in conso_cols} | {'Date_Evenement': 'start_date'}
-    _end_conso_cols = {c: 'end_'+ c for c in conso_cols} | {'Date_Evenement': 'end_date'}
-    merged_data.update(influx.rename(columns=_start_conso_cols)[_start_conso_cols.values()])
-    merged_data.update(outflux.rename(columns=_end_conso_cols)[_end_conso_cols.values()])
-
-    # Calculer la différence entre les index de début et de fin, ainsi que le nombre de jours
-    # Calcul de la différence et assignation aux colonnes correspondantes
-    _start_cols = ['start_'+c for c in conso_cols]
-    _end_cols = ['end_'+c for c in conso_cols]
-    for start_col, end_col, conso_col in zip(_start_cols, _end_cols, conso_cols):
-        merged_data[conso_col] = merged_data[end_col] - merged_data[start_col]
-
-    merged_data['j'] = (pd.to_datetime(merged_data['end_date']) - pd.to_datetime(merged_data['start_date'])).dt.days + 1
-
-    # On ajoute les métadonnées Type compteur et Num Compteur depuis le R15
-    merged_data = merged_data.merge(meta, 
-                                    how='left', 
-                                    left_index=True, 
-                                    right_index=True)
-
-    # On récupère les données de puissance et FTA depuis le C15 `c15_latest`
-    merged_data = merged_data.merge(c15_latest[['Formule_Tarifaire_Acheminement', 'Puissance_Souscrite']], 
-                                    how='left', 
-                                    left_index=True, 
-                                    right_index=True)
-
-    def _compute_missing_sums(df: DataFrame) -> DataFrame:
-        if 'BASE' not in df.columns:
-            df['BASE'] = np.nan  
-
-        df['not_enough_data'] = df[['HPH', 'HPB', 'HCH', 
-                'HCB', 'BASE', 'HP',
-                'HC']].isna().all(axis=1)
-        df['BASE'] = np.where(
-                df['not_enough_data'],
-                np.nan,
-                df[['HPH', 'HPB', 'HCH', 
-                'HCB', 'BASE', 'HP', 
-                'HC']].sum(axis=1)
-            )
-        df['HP'] = df[['HPH', 'HPB', 'HP']].sum(axis=1)
-        df['HC'] = df[['HCH', 'HCB', 'HC']].sum(axis=1)
-        return df
-    merged_data = _compute_missing_sums(merged_data)
-    merged_data
-    return conso_col, end_col, merged_data, np, start_col
-
-
-@app.cell(hide_code=True)
-def param_taxes(mo, pd):
-    # Création du DataFrame avec les données du tableau
-    _b = {
-        "b": ["CU4", "CUST", "MU4", "MUDT", "LU", "CU4 – autoproduction collective", "MU4 – autoproduction collective"],
-        "€/kVA/an": [9.00, 9.96, 10.56, 12.24, 81.24, 9.00, 10.68]
-    }
-    b = pd.DataFrame(_b).set_index('b')
-    _c = {
-        "c": [
-            "CU4", "CUST", "MU4", "MUDT", "LU",
-            "CU 4 - autoproduction collective, part autoproduite",
-            "CU 4 - autoproduction collective, part alloproduite",
-            "MU 4 - autoproduction collective, part autoproduite",
-            "MU 4 - autoproduction collective, part alloproduite"
-        ],
-        "HPH": [
-            6.67, 0, 6.12, 0, 0,
-            1.64, 7.23, 1.64, 6.60
-        ],
-        "HCH": [
-            4.56, 0, 4.24, 0, 0,
-            1.29, 4.42, 1.29, 4.23
-        ],
-        "HPB": [
-            1.43, 0, 1.39, 0, 0,
-            0.77, 2.29, 0.77, 2.22
-        ],
-        "HCB": [
-            0.88, 0, 0.87, 0, 0,
-            0.37, 0.86, 0.37, 0.86
-        ],
-        "HP": [
-            0, 0, 0, 4.47, 0,
-            0, 0, 0, 0
-        ],
-        "HC": [
-            0, 0, 0, 3.16, 0,
-            0, 0, 0, 0
-        ],
-        "BASE": [
-            0, 4.37, 0, 0, 1.10,
-            0, 0, 0, 0
-        ]
-    }
-    c = pd.DataFrame(_c).set_index('c')
-
-    cg = 15.48
-    cc = 19.9
-    tcta = 0.2193
-    mo.md(
-        f"""
-        ## Calcul du Turpe
-
-        Composante de Gestion annuelle $cg = {cg}$\n
-        Composante de Comptage annuelle $cc = {cc}$\n
-        Cta $cta = {tcta} * turpe fixe$
-        """   
-    )
-    return b, c, cc, cg, tcta
-
-
-@app.cell(hide_code=True)
-def aff_param_taxes(b, c, mo):
-    mo.vstack([
-        mo.md(r"""
-              ### Composante de soutirage
-
-              \[
-              CS = b \times P + \sum_{i=1}^{n} c_i \cdot E_i
-              \]
-
-              Dont part fixe $CSF = b \times P$
-              Avec P = Puissance souscrite
-              """),
-        mo.hstack([b, c]), 
-        mo.md(r"""
-          ### Turpe Fixe journalier
-
-          \[
-          T_j = (cg + cc + b \times P)/366
-          \]
-          """),
-        ]
-    )
-    return
-
-
-@app.cell
-def taxes_fixes(b, cc, cg, merged_data, np, tcta):
-    # Calcul part fixe
-    def _get_tarif(row):
-        key = row['Formule_Tarifaire_Acheminement'].replace('BTINF', '')
-        if key in b.index:
-            return b.at[key, '€/kVA/an']
-        else:
-            return np.nan
-
-    # On récupére les valeurs de b en fonction de la FTA
-    merged_data['b'] = merged_data.apply(_get_tarif, axis=1)
-    merged_data['Puissance_Souscrite'] = merged_data['Puissance_Souscrite'].astype(float)
-
-    merged_data['turpe_fix_j'] = (cg + cc + merged_data['b'] * merged_data['Puissance_Souscrite'])/366
-    merged_data['turpe_fix'] = merged_data['turpe_fix_j'] * merged_data['j']
-    merged_data['cta'] = tcta * merged_data['turpe_fix']
-    merged_data
-    return
-
-
-@app.cell
-def taxes_variables(c, merged_data):
-    def _calc_sum_ponderated(row):
-        key = row['Formule_Tarifaire_Acheminement'].replace('BTINF', '')
-        if key in c.index:
-            coef = c.loc[key]
-            conso_cols = ['HPH', 'HCH', 'HPB', 'HCB', 'HP', 'HC', 'BASE']
-            return sum(row[col] * coef[col] for col in conso_cols)/100
-        else:
-            print(key)
-            return 0
-    merged_data['turpe_var'] = merged_data.apply(_calc_sum_ponderated, axis=1)
-    merged_data['turpe'] = merged_data['turpe_fix'] + merged_data['turpe_var']
-    merged_data
     return
 
 
