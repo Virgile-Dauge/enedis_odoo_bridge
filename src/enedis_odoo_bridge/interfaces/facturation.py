@@ -337,7 +337,7 @@ def __(end_date_picker, plot_data_merge, start_date_picker):
 
 
 @app.cell
-def __(
+def fusion_enedis(
     c15_latest,
     conso_cols,
     end_index,
@@ -398,7 +398,7 @@ def __(mo):
 
 
 @app.cell
-def __(
+def choix_index(
     end_date_picker,
     get_consumption_names,
     merged_enedis_data,
@@ -447,7 +447,13 @@ def __(mo):
 
 
 @app.cell
-def __(DataFrame, get_consumption_names, merged_enedis_data, np, pd):
+def consommations(
+    DataFrame,
+    get_consumption_names,
+    merged_enedis_data,
+    np,
+    pd,
+):
     _cols = get_consumption_names()
     for _col in _cols:
         merged_enedis_data[f'{_col}'] = merged_enedis_data[f'f_{_col}'] - merged_enedis_data[f'd_{_col}']
@@ -529,7 +535,7 @@ def param_taxes(mo, pd):
     tcta = 0.2193
     mo.md(
         f"""
-        ## Calcul du Turpe
+        # Calcul des taxes
 
         Composante de Gestion annuelle $cg = {cg}$\n
         Composante de Comptage annuelle $cc = {cc}$\n
@@ -566,7 +572,7 @@ def aff_param_taxes(b, c, mo):
 
 
 @app.cell
-def taxes_fixes(b, cc, cg, consos, np, tcta):
+def taxes(b, c, cc, cg, consos, np, tcta):
     # Calcul part fixe
     def _get_tarif(row):
         key = row['FTA'].replace('BTINF', '')
@@ -582,12 +588,7 @@ def taxes_fixes(b, cc, cg, consos, np, tcta):
     consos['turpe_fix_j'] = (cg + cc + consos['b'] * consos['P'])/366
     consos['turpe_fix'] = consos['turpe_fix_j'] * consos['j']
     consos['cta'] = tcta * consos['turpe_fix']
-    consos
-    return
 
-
-@app.cell(hide_code=True)
-def taxes_variables(c, consos):
     def _calc_sum_ponderated(row):
         key = row['FTA'].replace('BTINF', '')
         if key in c.index:
