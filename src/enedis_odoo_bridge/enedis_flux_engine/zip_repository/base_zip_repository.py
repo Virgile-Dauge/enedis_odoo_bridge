@@ -40,7 +40,7 @@ class BaseZipRepository(ABC):
                     xml_dict = self.xml_to_dict(full_path)
                     if xml_dict:
                         df = self.dict_to_dataframe(xml_dict)
-                        df['zip_file'] = zip_path.name
+                        #df['zip_file'] = zip_path.name
                         dfs.append(df)
                     # Optionnel : Supprimer le fichier temporaire si désiré
                     os.remove(full_path)
