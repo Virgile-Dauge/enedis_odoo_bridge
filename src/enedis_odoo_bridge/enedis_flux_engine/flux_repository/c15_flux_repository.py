@@ -34,9 +34,22 @@ class C15FluxRepository(BaseFluxRepository):
         dfs = [zip_repository.process_zip(z) for z in to_read]
         if dfs:
             # Filtrer les résultats par les dates de début et de fin
-            result_df = pd.concat(dfs)
+            result_df = pd.concat(dfs).reset_index(drop=True)
 
             filtered_df = result_df
-            return filtered_df
+            return self.preprocess(filtered_df)
         
         return DataFrame()
+
+    def preprocess(self, data : DataFrame) -> DataFrame:
+        # Convert columns where the last level of the index starts with "Date_" to datetime
+        for col in data.columns:
+            if col.startswith("Date_"):
+                data[col] = pd.to_datetime(data[col])#.dt.tz_localize('Etc/GMT-2')
+        data = data.rename(columns={'Id_PRM': 'pdl', 
+                            'Date_Evenement': 'date',
+                            'Formule_Tarifaire_Acheminement': 'FTA',
+                            'Puissance_Souscrite' : 'P',
+                            'Num_Depannage': 'depannage'})
+        data['P'] = data['P'].astype(int)
+        return data.sort_values(['pdl', 'date'])

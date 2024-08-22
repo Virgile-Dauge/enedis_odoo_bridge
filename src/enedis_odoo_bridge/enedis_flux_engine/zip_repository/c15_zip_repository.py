@@ -61,11 +61,3 @@ class C15ZipRepository(BaseZipRepository):
 
         return pd.DataFrame(rows)  # Créez et retournez le DataFrame à partir de la liste des lignes
     
-    def preprocess(self) -> DataFrame:
-                # Convert columns where the last level of the index starts with "Date_" to datetime
-        for col in self.data.columns:
-            if col.startswith("Date_"):
-                self.data[col] = pd.to_datetime(self.data[col])#.dt.tz_localize('Etc/GMT-2')
-        self.data = self.data.rename(columns={'Id_PRM': 'pdl'})
-        return self.data.reset_index(drop=True).sort_values(['pdl'])#.set_index(['pdl', 'Id_EV'])
-    

@@ -62,7 +62,7 @@ def get_meta_from_r15(df : DataFrame) -> DataFrame:
     idx = df.groupby('pdl')['Date_Releve'].idxmax()
     
     # Sélectionner les lignes correspondant aux indices trouvés
-    return df.loc[idx, ['pdl', 'Type_Compteur', 'Num_Serie']].set_index('pdl')
+    return df.loc[idx, ['pdl', 'Type_Compteur', 'Num_Serie']].copy()
 
 def get_CF_from_r15(df : DataFrame) -> tuple[DataFrame]:
     start_date_condition = ((df['Motif_Releve'] == 'CFNE') | (df['Motif_Releve'] == 'MES'))
