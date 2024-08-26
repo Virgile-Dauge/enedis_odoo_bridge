@@ -68,12 +68,6 @@ def get_pdl(env, mo):
 
 
 @app.cell
-def __(end_date_picker, flux_path, get_c15_by_date, start_date_picker):
-    get_c15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
-    return
-
-
-@app.cell
 def flux_c15(
     end_date_picker,
     flux_path,
@@ -380,7 +374,7 @@ def fusion_enedis(
     return merged_enedis_data,
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __(mo):
     mo.md(
         r"""
@@ -439,8 +433,6 @@ def __(mo):
         ## Soustraction des index
 
         On prend l'index de fin sélectionné précédemment, et on y soustrait l'index de début
-
-
         """
     )
     return
@@ -568,6 +560,12 @@ def aff_param_taxes(b, c, mo):
           """),
         ]
     )
+    return
+
+
+@app.cell
+def __(mo):
+    mo.md(r"""## Données Enedis agregées et conso""")
     return
 
 
