@@ -24,50 +24,40 @@ def delimitation_periode():
     import pandas as pd
     import numpy as np
     from datetime import date
+    from pathlib import Path
 
     from enedis_odoo_bridge.utils import gen_dates
     from enedis_odoo_bridge.utils import load_prefixed_dotenv
 
     env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
+    flux_path = Path('~/data/flux_enedis/')
     default_start, default_end = gen_dates()
     start_date_picker = mo.ui.date(value=default_start)
     end_date_picker = mo.ui.date(value=default_end)
+    switch_edn_only = mo.ui.switch(label="Filtrage pdl EDN", value=True)
     mo.md(
         f"""
-        Choisis la date de début {start_date_picker} et de fin {end_date_picker}
+        ## Paramétrage des flux
+        Choisis la date de début {start_date_picker} et de fin {end_date_picker}\n
+        Laisse cette option activée si tu ne veux que les PDL d'EDN {switch_edn_only}
         """
     )
     return (
+        Path,
         date,
         default_end,
         default_start,
         end_date_picker,
         env,
+        flux_path,
         gen_dates,
         load_prefixed_dotenv,
         mo,
         np,
         pd,
         start_date_picker,
+        switch_edn_only,
     )
-
-
-@app.cell(hide_code=True)
-def param_flux(mo):
-    from pathlib import Path
-    flux_path = Path('~/data/flux_enedis/')
-
-    switch_edn_only = mo.ui.switch(label="Filtrage pdl EDN", value=True)
-    mo.md(f"""
-          # Données d'entrée : Flux Enedis
-
-          ## Paramètres
-          Dossier source : {flux_path}
-          ## Filtrage
-          Les flux Enedis contiennement toutes les données du périmètre, donc à la fois des pdl que nous gérons nous et des pdl       gérès parcelleux qui utilisent notre agrément. Il est possible de filtrer pour n'avoir que les notres en allant             chercher sur odoo la liste des abonnements actifs.  
-          {switch_edn_only}
-          """)
-    return Path, flux_path, switch_edn_only
 
 
 @app.cell(hide_code=True)
