@@ -18,7 +18,7 @@ def __(result):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def delimitation_periode():
     import marimo as mo
     import pandas as pd
@@ -71,7 +71,7 @@ def get_pdl(env, mo):
     return get_valid_subscriptions_pdl, pdl_actifs
 
 
-@app.cell
+@app.cell(hide_code=True)
 def flux_c15(
     end_date_picker,
     flux_path,
@@ -156,7 +156,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def flux_r151(
     end_date_picker,
     flux_path,
@@ -215,7 +215,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __():
     #selection = mo.ui.table(data=c15_latest, label='Sélectione les pdl à prendre en compte')
     #selection
@@ -341,7 +341,7 @@ def __(end_date_picker, plot_data_merge, start_date_picker):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def fusion_enedis(
     c15_latest,
     conso_cols,
@@ -597,7 +597,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def taxes(b, c, cc, cg, consos, np, tcta):
     # Calcul part fixe
     def _get_tarif(row):
