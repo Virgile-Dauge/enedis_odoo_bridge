@@ -1,29 +1,29 @@
 import marimo
 
-__generated_with = "0.7.5"
+__generated_with = "0.8.0"
 app = marimo.App(width="medium")
 
 
-@app.cell(hide_code=True)
+@app.cell
 def download_trigger():
     import marimo as mo
     from pathlib import Path
     from enedis_odoo_bridge.utils import load_prefixed_dotenv
 
     env = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
-    button = mo.ui.run_button(label="Mise à jour des flux Enedis")
+    #button = mo.ui.run_button(label="Mise à jour des flux Enedis")
     data_path = Path("~/data/flux_enedis/").expanduser()
     mo.md(f"""
           # Téléchargement des Flux Enedis :
           **Serveur sFTP distant :** {env['FTP_ADDRESS']}\n
           **Dossier local :** {data_path}\n
 
-          {button}
+          
           """)
-    return Path, button, data_path, env, load_prefixed_dotenv, mo
+    return Path, data_path, env, load_prefixed_dotenv, mo
 
 
-@app.cell(hide_code=True)
+@app.cell
 def download_util(Path, mo):
     import os
     import paramiko
@@ -77,9 +77,9 @@ def download_util(Path, mo):
 
 
 @app.cell
-def download_status(button, data_path, download_new_files, env, mo):
+def download_status(data_path, download_new_files, env):
     from enedis_odoo_bridge.utils import recursively_decrypt_zip_files
-    mo.stop(not button.value)
+    #mo.stop(not button.value)
 
     files = download_new_files(config=env, local=data_path, tasks=['R15', 'F15', 'R151', 'C15'])
     decrypted_files = recursively_decrypt_zip_files(directory=data_path, 
