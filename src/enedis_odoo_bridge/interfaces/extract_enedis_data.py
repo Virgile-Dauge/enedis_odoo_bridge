@@ -119,7 +119,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def aff_c15(c15_latest, influx, mo, outflux):
     #_duplicates = _c15[c15.duplicated(subset=['pdl'], keep=False)]
 
@@ -223,6 +223,13 @@ def flux_r151(
 def __(mo):
     mo.md(r"""# Fusion""")
     return
+
+
+@app.cell
+def __(c15_latest, mo):
+    selection = mo.ui.table(data=c15_latest, label='Sélectione les pdl à prendre en compte')
+    selection
+    return selection,
 
 
 @app.cell(hide_code=True)
@@ -344,48 +351,71 @@ def __(end_date_picker, plot_data_merge, start_date_picker):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def fusion_enedis(
-    c15_latest,
     conso_cols,
     end_index,
     influx,
     meta,
+    mo,
     outflux,
+    selection,
     start_index,
 ):
     # Base : C15 Actuel
-    merged_enedis_data = c15_latest[['pdl', 'FTA', 'P', 'depannage']]
-
+    #merged_enedis_data = c15_latest[['pdl', 'FTA', 'P', 'depannage']]
+    _merged_enedis_data = selection.value[['pdl', 'FTA', 'P', 'depannage']]
     def _merge_with_prefix(A, B, prefix):
         return A.merge(B.add_prefix(prefix),
                        how='left', left_on='pdl', right_on=f'{prefix}pdl').drop(columns=[f'{prefix}pdl'])
     # Fusion C15 IN
-    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+    _merged_enedis_data = _merge_with_prefix(_merged_enedis_data,
                                             influx[['pdl', 'date']+conso_cols],
                                             'in_')
 
     # Fusion + C15 OUT
-    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+    _merged_enedis_data = _merge_with_prefix(_merged_enedis_data,
                                             outflux[['pdl', 'date']+conso_cols],
                                             'out_')
 
     # Fusion + R15 (meta)
-    merged_enedis_data = merged_enedis_data.merge(
+    _merged_enedis_data = _merged_enedis_data.merge(
         meta[['pdl', 'Type_Compteur', 'Num_Serie']], 
         how='left', on='pdl',)
 
     # Fusion + R151 (start)
-    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+    _merged_enedis_data = _merge_with_prefix(_merged_enedis_data,
                                             start_index[['pdl']+conso_cols],
                                             'start_')
     # Fusion + R151 (end)
-    merged_enedis_data = _merge_with_prefix(merged_enedis_data,
+    _merged_enedis_data = _merge_with_prefix(_merged_enedis_data,
                                             end_index[['pdl']+conso_cols],
                                             'end_')
+    # Specify the column to check for duplicates
+    _duplicate_column_name = 'pdl'
 
-    merged_enedis_data.dropna(axis=1, how='all')
-    return merged_enedis_data,
+    # Identify duplicates
+    _duplicates_df = _merged_enedis_data[_merged_enedis_data.duplicated(subset=[_duplicate_column_name], keep=False)]
+
+    # Drop duplicates from the original DataFrame
+    enedis_data = _merged_enedis_data.drop_duplicates(subset=[_duplicate_column_name]).copy()
+
+    if not _duplicates_df.empty:
+        _to_ouput = mo.vstack([mo.callout(mo.md(f"""
+                                                **Attention: Il y a {len(_duplicates_df)} entrées dupliquées dans les données !**
+                                                Pour la suite, le pdl problématique sera écarté, les duplicatas sont affichés ci-dessous."""), kind='warn'),
+                               _duplicates_df.dropna(axis=1, how='all')])
+    else:
+        _to_ouput = mo.callout(mo.md(f'Fusion réussie'), kind='success')
+        
+    _to_ouput
+    return enedis_data,
+
+
+@app.cell
+def __(enedis_data, mo):
+    mo.vstack([mo.md("# Résultat de l'extraction des données Enedis :"), enedis_data.dropna(axis=1, how='all')])
+    return
 
 
 @app.cell(hide_code=True)
@@ -405,38 +435,38 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def choix_index(
     end_date_picker,
+    enedis_data,
     get_consumption_names,
-    merged_enedis_data,
     np,
     pd,
     start_date_picker,
 ):
     _cols = get_consumption_names()
     for _col in _cols:
-        merged_enedis_data[f'd_{_col}'] = np.where(merged_enedis_data['in_date'].notna(),
-                                                  merged_enedis_data[f'in_{_col}'],
-                                                  merged_enedis_data[f'start_{_col}'])
+        enedis_data[f'd_{_col}'] = np.where(enedis_data['in_date'].notna(),
+                                                  enedis_data[f'in_{_col}'],
+                                                  enedis_data[f'start_{_col}'])
 
     for _col in _cols:
-        merged_enedis_data[f'f_{_col}'] = np.where(merged_enedis_data['out_date'].notna(),
-                                                  merged_enedis_data[f'out_{_col}'],
-                                                  merged_enedis_data[f'end_{_col}'])
+        enedis_data[f'f_{_col}'] = np.where(enedis_data['out_date'].notna(),
+                                                  enedis_data[f'out_{_col}'],
+                                                  enedis_data[f'end_{_col}'])
 
-    merged_enedis_data['start_date'] = start_date_picker.value
-    merged_enedis_data['start_date'] = pd.to_datetime(merged_enedis_data['start_date']).dt.date
+    enedis_data['start_date'] = start_date_picker.value
+    enedis_data['start_date'] = pd.to_datetime(enedis_data['start_date']).dt.date
 
-    merged_enedis_data['end_date'] = end_date_picker.value
-    merged_enedis_data['end_date'] = pd.to_datetime(merged_enedis_data['end_date']).dt.date
+    enedis_data['end_date'] = end_date_picker.value
+    enedis_data['end_date'] = pd.to_datetime(enedis_data['end_date']).dt.date
 
-    merged_enedis_data[f'd_date'] = np.where(merged_enedis_data['in_date'].notna(),
-                                         merged_enedis_data[f'in_date'],
-                                         merged_enedis_data[f'start_date'])
-    merged_enedis_data[f'f_date'] = np.where(merged_enedis_data['out_date'].notna(),
-                                         merged_enedis_data[f'out_date'],
-                                         merged_enedis_data[f'end_date'])
+    enedis_data[f'd_date'] = np.where(enedis_data['in_date'].notna(),
+                                         enedis_data[f'in_date'],
+                                         enedis_data[f'start_date'])
+    enedis_data[f'f_date'] = np.where(enedis_data['out_date'].notna(),
+                                         enedis_data[f'out_date'],
+                                         enedis_data[f'end_date'])
     return
 
 
@@ -452,18 +482,12 @@ def __(mo):
     return
 
 
-@app.cell
-def consommations(
-    DataFrame,
-    get_consumption_names,
-    merged_enedis_data,
-    np,
-    pd,
-):
+@app.cell(hide_code=True)
+def consommations(DataFrame, enedis_data, get_consumption_names, np, pd):
     _cols = get_consumption_names()
     for _col in _cols:
-        merged_enedis_data[f'{_col}'] = merged_enedis_data[f'f_{_col}'] - merged_enedis_data[f'd_{_col}']
-    merged_enedis_data.dropna(axis=1, how='all')
+        enedis_data[f'{_col}'] = enedis_data[f'f_{_col}'] - enedis_data[f'd_{_col}']
+    enedis_data.dropna(axis=1, how='all')
 
     def _compute_missing_sums(df: DataFrame) -> DataFrame:
         if 'BASE' not in df.columns:
@@ -481,8 +505,8 @@ def consommations(
             )
         df['HP'] = df[['HPH', 'HPB', 'HP']].sum(axis=1)
         df['HC'] = df[['HCH', 'HCB', 'HC']].sum(axis=1)
-        return df
-    consos = _compute_missing_sums(merged_enedis_data)[['pdl', 'FTA', 'P', 'depannage', 'Type_Compteur', 'Num_Serie', 'missing_data', 'd_date', 'f_date']+_cols]
+        return df.copy()
+    consos = _compute_missing_sums(enedis_data)[['pdl', 'FTA', 'P', 'depannage', 'Type_Compteur', 'Num_Serie', 'missing_data', 'd_date', 'f_date']+_cols]
 
     consos['j'] = (pd.to_datetime(consos['f_date']) - pd.to_datetime(consos['d_date'])).dt.days + 1
     consos
@@ -583,7 +607,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def taxes(b, c, cc, cg, consos, np, tcta):
     # Calcul part fixe
     def _get_tarif(row):
