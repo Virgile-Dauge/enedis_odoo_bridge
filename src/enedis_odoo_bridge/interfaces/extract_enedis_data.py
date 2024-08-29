@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.8.0"
+__generated_with = "0.8.4"
 app = marimo.App(width="medium", app_title="extract_enedis_data")
 
 
@@ -9,16 +9,11 @@ async def __():
     from download import app
     # execute the notebook
     result = await app.embed()
+    result.output
     return app, result
 
 
 @app.cell
-def __(result):
-    result.output
-    return
-
-
-@app.cell(hide_code=True)
 def delimitation_periode():
     import marimo as mo
     import pandas as pd
@@ -60,7 +55,7 @@ def delimitation_periode():
     )
 
 
-@app.cell(hide_code=True)
+@app.cell
 def get_pdl(env, mo):
     from enedis_odoo_bridge.odoo import get_valid_subscriptions_pdl
     pdl_actifs = get_valid_subscriptions_pdl(env)
@@ -71,7 +66,7 @@ def get_pdl(env, mo):
     return get_valid_subscriptions_pdl, pdl_actifs
 
 
-@app.cell(hide_code=True)
+@app.cell
 def flux_c15(
     end_date_picker,
     flux_path,
@@ -128,7 +123,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def flux_r15(
     end_date_picker,
     flux_path,
@@ -397,7 +392,7 @@ def fusion_enedis(
                                _duplicates_df.dropna(axis=1, how='all')])
     else:
         _to_ouput = mo.callout(mo.md(f'Fusion réussie'), kind='success')
-        
+
     _to_ouput
     return enedis_data,
 
@@ -425,7 +420,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def choix_index(
     end_date_picker,
     enedis_data,
@@ -472,7 +467,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def consommations(DataFrame, enedis_data, get_consumption_names, np, pd):
     _cols = get_consumption_names()
     for _col in _cols:
@@ -597,7 +592,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def taxes(b, c, cc, cg, consos, np, tcta):
     # Calcul part fixe
     def _get_tarif(row):
