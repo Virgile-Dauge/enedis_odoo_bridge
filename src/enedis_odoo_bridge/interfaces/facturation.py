@@ -142,11 +142,6 @@ def recuperation_abonnements_odoo(mo, odoo):
     return ProtocolError, draft_orders, subs_to_display
 
 
-@app.cell
-def __():
-    return
-
-
 @app.cell(hide_code=True)
 def recuperation_facture_odoo(draft_orders, mo, odoo, pd):
     _draft_invoices = odoo.read('account.move', ids=draft_orders['move_id'].to_list(), fields=['invoice_line_ids', 'state'])
@@ -169,16 +164,16 @@ def recuperation_facture_odoo(draft_orders, mo, odoo, pd):
     # Fusionner les DataFrames sur 'order_id' et assigner le résultat à draft_orders
     # Réinitialiser l'index avant la fusion
     draft_orders.reset_index(inplace=True)
-    draft_invoices.reset_index(inplace=True)
+    #draft_invoices.reset_index(inplace=True)
 
     _merged = draft_orders.merge(draft_invoices[['account.move_id', 'invoice_line_ids']], left_on='move_id', right_on='account.move_id', how='left')
 
-    _merged.set_index('x_pdl')
-    odoo_data = odoo.add_cat_fields(_merged, []).set_index('x_pdl', drop=True)
+    #_merged.set_index('x_pdl')
+    odoo_data = odoo.add_cat_fields(_merged, [])#.drop(columns=['level_0', 'index'])#.set_index('x_pdl', drop=True)
     return draft_invoices, odoo_data
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(draft_invoices, mo, odoo_data, subs_to_display):
     mo.accordion({f"Abonnements": mo.vstack(reversed(subs_to_display)),
                   f"Factures brouillon": draft_invoices,
@@ -193,10 +188,20 @@ def __(mo):
         """
         # Fusion des données Enedis et Odoo
 
-        TOUTACHANGÉ
+        Il faut ajouter aux données Odoo les données suivantes, issues d'Enedis : 
+
+        `['HP', 'HC', 'BASE', 'j', 'missing_data', 'd_date', 'f_date', 'Type_Compteur', 'Num_Serie', 'depannage', 'pdl', 'turpe_fix', 'turpe_var']`
         """
     )
     return
+
+
+@app.cell(hide_code=True)
+def __(consos, odoo_data):
+    _required_cols = ['HP', 'HC', 'BASE', 'j', 'missing_data', 'd_date', 'f_date', 'Type_Compteur', 'Num_Serie', 'depannage', 'pdl', 'turpe_fix', 'turpe_var']
+    merged_data = odoo_data.merge(consos[_required_cols], left_on='x_pdl', right_on='pdl', how='left')
+    merged_data
+    return merged_data,
 
 
 @app.cell(hide_code=True)
@@ -218,21 +223,18 @@ def confirm_maj_odoo(danger_zone, mo, odoo):
     return red_button,
 
 
-@app.cell
-def maj_odoo(
-    end_date_picker,
-    merged_data,
-    mo,
-    odoo,
-    red_button,
-    start_date_picker,
-):
+@app.cell(hide_code=True)
+def maj_odoo(eed, merged_data, mo, odoo, red_button):
     mo.stop(not red_button.value)
 
     # Préparation des données 
-    merged_data['update_dates'] = merged_data['j'] != (end_date_picker.value - start_date_picker.value).days + 1
+    merged_data['update_dates'] = merged_data['j'] != (eed.defs['end_date_picker'].value - eed.defs['start_date_picker'].value).days + 1
 
-    odoo.update_draft_invoices(merged_data.rename(columns={'BASE': 'Base', 'j': 'subscription_days'}))
+    odoo.update_draft_invoices(merged_data.rename(columns={'BASE': 'Base',
+                                                           'j': 'subscription_days',
+                                                           'missing_data': 'not_enough_data',
+                                                           'd_date': 'start_date',
+                                                           'f_date': 'end_date'}))
     return
 
 
