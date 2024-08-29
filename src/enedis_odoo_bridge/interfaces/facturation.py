@@ -1,25 +1,20 @@
 import marimo
 
-__generated_with = "0.8.0"
+__generated_with = "0.8.4"
 app = marimo.App(width="medium", app_title="Facturation")
 
 
-@app.cell
-async def __():
+@app.cell(hide_code=True)
+async def enedis_embeding():
     import marimo as mo
 
     from extract_enedis_data import app
     # execute the notebook
     eed = await app.embed()
-    return app, eed, mo
-
-
-@app.cell(hide_code=True)
-def __(eed, mo):
     mo.accordion(
         {"Détails de l'extraction des données enedis": eed.output}
     )
-    return
+    return app, eed, mo
 
 
 @app.cell
@@ -95,9 +90,22 @@ def __(mo, odoo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def recuperation_abonnements_odoo(mo, odoo):
-    _draft_orders_request = odoo.search_read('sale.order', filters=[[['state', '=', 'sale'], ['x_invoicing_state', '=', 'draft']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'x_puissance_souscrite'])
+    from xmlrpc.client import ProtocolError
+
+    try:
+        _draft_orders_request = odoo.search_read('sale.order', filters=[[['state', '=', 'sale'], ['x_invoicing_state', '=', 'draft']]], fields=['id', 'x_pdl', 'invoice_ids', 'x_lisse', 'x_puissance_souscrite'])
+    except ProtocolError as e:
+        if e.errcode == 302:
+            _stop_msg = mo.callout(mo.md(
+                f"""
+                ## ⚠ Problème de redirection (302) lors de la connexion à [{odoo.url}]({odoo.url}web#action=437&model=sale.order&view_type=kanban). ⚠ 
+                S'il s'agit de la base de test, elle n'est probablement plus en ligne.
+                """), kind='warn')
+            mo.stop(True, _stop_msg)
+        else:
+            raise
 
     _stop_msg = mo.callout(mo.md(
         f"""
@@ -121,7 +129,12 @@ def recuperation_abonnements_odoo(mo, odoo):
         subs_to_display.append(mo.callout("""Les abonnements suivants ont une facture et seront traités :""", kind='success'))
         subs_to_display.append(_no_invoices)
         subs_to_display.append(mo.callout("""Les abonnements suivants n'ont pas de facture et ne seront pas traités, il faudra le faire manuellement :""", kind='warn'))
-    return draft_orders, subs_to_display
+    return ProtocolError, draft_orders, subs_to_display
+
+
+@app.cell
+def __():
+    return
 
 
 @app.cell(hide_code=True)
