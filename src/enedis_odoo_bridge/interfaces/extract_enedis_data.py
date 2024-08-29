@@ -58,12 +58,13 @@ def delimitation_periode():
 @app.cell
 def get_pdl(env, mo):
     from enedis_odoo_bridge.odoo import get_valid_subscriptions_pdl
-    pdl_actifs = get_valid_subscriptions_pdl(env)
-
-    mo.md(f'''## Abonnements en cours
-              {len(pdl_actifs)} abonnements en cours d'après Odoo
-           ''')
-    return get_valid_subscriptions_pdl, pdl_actifs
+    abonnements = get_valid_subscriptions_pdl(env)
+    pdl_actifs = set(abonnements['pdl'])
+    mo.vstack([
+        mo.md('## Abonnements en cours :'),
+        abonnements
+    ])
+    return abonnements, get_valid_subscriptions_pdl, pdl_actifs
 
 
 @app.cell
@@ -336,8 +337,9 @@ def __(end_date_picker, plot_data_merge, start_date_picker):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def fusion_enedis(
+    abonnements,
     c15_latest,
     conso_cols,
     end_index,
@@ -376,6 +378,12 @@ def fusion_enedis(
     _merged_enedis_data = _merge_with_prefix(_merged_enedis_data,
                                             end_index[['pdl']+conso_cols],
                                             'end_')
+
+    # Fusion odoo data
+    _merged_enedis_data = _merged_enedis_data.merge(
+         abonnements, 
+         how='left', on='pdl',)
+
     # Specify the column to check for duplicates
     _duplicate_column_name = 'pdl'
 
@@ -384,6 +392,7 @@ def fusion_enedis(
 
     # Drop duplicates from the original DataFrame
     enedis_data = _merged_enedis_data.drop_duplicates(subset=[_duplicate_column_name]).copy()
+
 
     if not _duplicates_df.empty:
         _to_ouput = mo.vstack([mo.callout(mo.md(f"""
@@ -430,29 +439,30 @@ def choix_index(
     start_date_picker,
 ):
     _cols = get_consumption_names()
+    indexes = enedis_data.copy()
     for _col in _cols:
-        enedis_data[f'd_{_col}'] = np.where(enedis_data['in_date'].notna(),
-                                                  enedis_data[f'in_{_col}'],
-                                                  enedis_data[f'start_{_col}'])
+        indexes[f'd_{_col}'] = np.where(indexes['in_date'].notna(),
+                                                  indexes[f'in_{_col}'],
+                                                  indexes[f'start_{_col}'])
 
     for _col in _cols:
-        enedis_data[f'f_{_col}'] = np.where(enedis_data['out_date'].notna(),
-                                                  enedis_data[f'out_{_col}'],
-                                                  enedis_data[f'end_{_col}'])
+        indexes[f'f_{_col}'] = np.where(indexes['out_date'].notna(),
+                                                  indexes[f'out_{_col}'],
+                                                  indexes[f'end_{_col}'])
 
-    enedis_data['start_date'] = start_date_picker.value
-    enedis_data['start_date'] = pd.to_datetime(enedis_data['start_date']).dt.date
+    indexes['start_date'] = start_date_picker.value
+    indexes['start_date'] = pd.to_datetime(indexes['start_date']).dt.date
 
-    enedis_data['end_date'] = end_date_picker.value
-    enedis_data['end_date'] = pd.to_datetime(enedis_data['end_date']).dt.date
+    indexes['end_date'] = end_date_picker.value
+    indexes['end_date'] = pd.to_datetime(indexes['end_date']).dt.date
 
-    enedis_data[f'd_date'] = np.where(enedis_data['in_date'].notna(),
-                                         enedis_data[f'in_date'],
-                                         enedis_data[f'start_date'])
-    enedis_data[f'f_date'] = np.where(enedis_data['out_date'].notna(),
-                                         enedis_data[f'out_date'],
-                                         enedis_data[f'end_date'])
-    return
+    indexes[f'd_date'] = np.where(indexes['in_date'].notna(),
+                                         indexes[f'in_date'],
+                                         indexes[f'start_date'])
+    indexes[f'f_date'] = np.where(indexes['out_date'].notna(),
+                                         indexes[f'out_date'],
+                                         indexes[f'end_date'])
+    return indexes,
 
 
 @app.cell
@@ -468,11 +478,13 @@ def __(mo):
 
 
 @app.cell
-def consommations(DataFrame, enedis_data, get_consumption_names, np, pd):
+def consommations(DataFrame, get_consumption_names, indexes, np, pd):
     _cols = get_consumption_names()
+    consos = indexes.copy()
+
+    # Calcul des consommations
     for _col in _cols:
-        enedis_data[f'{_col}'] = enedis_data[f'f_{_col}'] - enedis_data[f'd_{_col}']
-    enedis_data.dropna(axis=1, how='all')
+        consos[f'{_col}'] = consos[f'f_{_col}'] - consos[f'd_{_col}']
 
     def _compute_missing_sums(df: DataFrame) -> DataFrame:
         if 'BASE' not in df.columns:
@@ -491,7 +503,7 @@ def consommations(DataFrame, enedis_data, get_consumption_names, np, pd):
         df['HP'] = df[['HPH', 'HPB', 'HP']].sum(axis=1)
         df['HC'] = df[['HCH', 'HCB', 'HC']].sum(axis=1)
         return df.copy()
-    consos = _compute_missing_sums(enedis_data)[['pdl', 'FTA', 'P', 'depannage', 'Type_Compteur', 'Num_Serie', 'missing_data', 'd_date', 'f_date']+_cols]
+    consos = _compute_missing_sums(consos)[['pdl', 'FTA', 'P', 'depannage', 'Type_Compteur', 'Num_Serie', 'missing_data', 'd_date', 'f_date', 'lisse', 'sale.order_id']+_cols]
 
     consos['j'] = (pd.to_datetime(consos['f_date']) - pd.to_datetime(consos['d_date'])).dt.days + 1
     consos
@@ -594,6 +606,7 @@ def __(mo):
 
 @app.cell
 def taxes(b, c, cc, cg, consos, np, tcta):
+    taxes = consos.copy()
     # Calcul part fixe
     def _get_tarif(row):
         key = row['FTA'].replace('BTINF', '')
@@ -603,12 +616,12 @@ def taxes(b, c, cc, cg, consos, np, tcta):
             return np.nan
 
     # On récupére les valeurs de b en fonction de la FTA
-    consos['b'] = consos.apply(_get_tarif, axis=1)
-    consos['P'] = consos['P'].astype(float)
+    taxes['b'] = taxes.apply(_get_tarif, axis=1)
+    taxes['P'] = taxes['P'].astype(float)
 
-    consos['turpe_fix_j'] = (cg + cc + consos['b'] * consos['P'])/366
-    consos['turpe_fix'] = consos['turpe_fix_j'] * consos['j']
-    consos['cta'] = tcta * consos['turpe_fix']
+    taxes['turpe_fix_j'] = (cg + cc + taxes['b'] * taxes['P'])/366
+    taxes['turpe_fix'] = taxes['turpe_fix_j'] * taxes['j']
+    taxes['cta'] = tcta * taxes['turpe_fix']
 
     def _calc_sum_ponderated(row):
         key = row['FTA'].replace('BTINF', '')
@@ -619,10 +632,10 @@ def taxes(b, c, cc, cg, consos, np, tcta):
         else:
             print(key)
             return 0
-    consos['turpe_var'] = consos.apply(_calc_sum_ponderated, axis=1)
-    consos['turpe'] = consos['turpe_fix'] + consos['turpe_var']
-    consos
-    return
+    taxes['turpe_var'] = taxes.apply(_calc_sum_ponderated, axis=1)
+    taxes['turpe'] = taxes['turpe_fix'] + taxes['turpe_var']
+    taxes
+    return taxes,
 
 
 if __name__ == "__main__":
