@@ -1,7 +1,8 @@
 from ..OdooAPI import OdooAPI
 import pandas as pd
+from pandas import DataFrame
 
-def get_valid_subscriptions_pdl(config: dict) -> list[str]:
+def get_valid_subscriptions_pdl(config: dict) -> DataFrame:
     # Initialiser OdooAPI avec le dict de configuration
     odoo_api = OdooAPI(config=config, sim=True)
     
@@ -11,10 +12,10 @@ def get_valid_subscriptions_pdl(config: dict) -> list[str]:
                                                         ['is_expired', '=', False], 
                                                         ['state', '=', 'sale'], 
                                                         ['subscription_state', '=', '3_progress']]], 
-                                               fields=['x_pdl'])
+                                               fields=['x_pdl', 'x_lisse'])
     
     
-    return list(valid_subscriptions['x_pdl'])
+    return valid_subscriptions.rename(columns={'x_pdl': 'pdl', 'x_lisse': 'lisse'})
 
 
 
