@@ -10,7 +10,10 @@ async def enedis_embeding():
 
     from extract_enedis_data import app
     # execute the notebook
-    eed = await app.embed()
+    with mo.status.spinner(title="Extraction des données Enedis...") as _spinner:
+      eed = await app.embed()
+      _spinner.update("Extraction terminée")
+
     mo.accordion(
         {"Détails de l'extraction des données enedis": eed.output}
     )
@@ -19,10 +22,17 @@ async def enedis_embeding():
 
 @app.cell
 def __(eed):
-    consos = eed.defs['consos']
+    consos = eed.defs['taxes']
     env = eed.defs['env']
     consos
     return consos, env
+
+
+@app.cell
+def __(consos):
+    _missing_data = consos[(consos['missing_data'] == True) & (consos['lisse'] == False)]
+    _missing_data.dropna(axis=1, how='all')
+    return
 
 
 @app.cell(hide_code=True)
