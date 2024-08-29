@@ -22,14 +22,11 @@ def get_next_fifth():
     return next_fifth
 
 for record in records:
-    if record.state != 'sale' or record.x_invoicing_state != 'paid':
+    if record.state != 'sale' or record.x_invoicing_state != 'checked':
         continue
 
     invoice_vals = record._create_invoices(date=datetime.datetime.today().replace(day=5))
 
     record.write({
         'next_invoice_date': get_next_fifth(),
-        'x_invoicing_state': 'draft' if record.x_invoicing_state == 'paid' else record.x_invoicing_state,})
-
-
-
+        'x_invoicing_state': 'draft' if record.x_invoicing_state == 'checked' else record.x_invoicing_state,})
