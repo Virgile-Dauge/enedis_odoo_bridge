@@ -5,7 +5,7 @@ app = marimo.App(width="medium", app_title="extract_enedis_data")
 
 
 @app.cell
-async def __():
+async def dl_ftp():
     from download import app
     # execute the notebook
     result = await app.embed()
@@ -152,7 +152,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def flux_r151(
     end_date_picker,
     flux_path,
@@ -166,7 +166,11 @@ def flux_r151(
     from enedis_odoo_bridge.utils import get_consumption_names
 
     _unused = ['Id_Affaire']
-    start_index = get_r151_by_date(flux_path, start_date_picker.value).drop(columns=_unused)
+
+    start_index = get_r151_by_date(flux_path, start_date_picker.value)
+    _unused = [k for k in _unused if k in start_index.columns]
+    start_index = start_index.drop(columns=_unused)
+
     end_index = get_r151_by_date(flux_path, end_date_picker.value)
 
     mo.stop(end_index.empty, mo.callout(mo.md(f'Pas de données du {end_date_picker.value} dans le R151 !'),kind='warn'))
