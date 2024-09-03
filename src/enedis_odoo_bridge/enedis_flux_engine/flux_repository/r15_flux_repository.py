@@ -43,7 +43,7 @@ class R15FluxRepository(BaseFluxRepository):
             concat = concat.rename(columns=to_rename)
             concat['Date_Releve'] = pd.to_datetime(concat['Date_Releve']).apply(lambda x: x.date())
             filter : Series[bool]= (concat['Date_Releve'] >= start_date) & (concat['Date_Releve'] <= end_date)
-            return self.preprocess(concat[filter])
+            return self.preprocess(concat[filter]).copy()
         
         return DataFrame()
 

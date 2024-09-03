@@ -23,7 +23,7 @@ class R151ZipRepository(BaseZipRepository):
 
             # Iterate through each 'Donnees_Releve'
             for dr in donnees_releve:
-                row = {'pdl': id_prm}  # Start a new row with Id_PRM
+                row = {'Id_PRM': id_prm}  # Start a new row with Id_PRM
                 meta = {k: v for k, v in dr.items() if k != 'Classe_Temporelle_Distributeur' and k != 'Classe_Temporelle'}
                 row.update(meta)  # Add other variables from 'Donnees_Releve'
                 # Flatten 'Classe_Temporelle_Distributeur' into columns
@@ -38,24 +38,8 @@ class R151ZipRepository(BaseZipRepository):
                 #        row[ctd['Id_Classe_Temporelle']] = ctd['Valeur']
 
                 rows.append(row)
-        df = DataFrame(rows)
 
-        column_renaming = {
-            # Add more columns to rename here
-            # 'some_old_column_name': 'new_column_name',
-        }
-        df = df.rename(column_renaming)
-        return df.drop(columns=['Id_Calendrier_Fournisseur', 'Libelle_Calendrier_Fournisseur', 'Id_Calendrier_Distributeur', 'Libelle_Calendrier_Distributeur'])
-    
-    def preprocess(self) -> DataFrame:
-                # Convert columns where the last level of the index starts with "Date_" to datetime
-        for col in self.data.columns:
-            if col.startswith("Date_"):
-                self.data[col] = pd.to_datetime(self.data[col])
-
-        self.data = self.data.sort_values(by=['pdl', 'Date_Releve'],)
-        self.data = self.data.reset_index(drop=True)
-        return self.data
+        return DataFrame(rows)
         
 
         

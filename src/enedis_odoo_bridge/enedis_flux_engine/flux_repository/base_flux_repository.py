@@ -10,3 +10,10 @@ class BaseFluxRepository(ABC):
     def get_flux_by_date(self, start_date: date, end_date: date) -> pd.DataFrame:
         pass
     
+    def _preprocess(self, data: pd.DataFrame):
+        for col in data.columns:
+            if col.startswith("Date_"):
+                data[col] = pd.to_datetime(data[col]).dt.date
+                
+        data = data.reset_index(drop=True)
+        return data

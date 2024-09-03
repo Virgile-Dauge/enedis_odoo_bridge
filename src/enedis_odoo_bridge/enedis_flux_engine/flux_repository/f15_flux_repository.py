@@ -43,18 +43,19 @@ class F15FluxRepository(BaseFluxRepository):
         zip_repository = F15ZipRepository()
         dfs = [zip_repository.process_zip(z) for z in to_read]
         if dfs:
-            # Filtrer les résultats par les dates de début et de fin
-            result_df = pd.concat(dfs)
             
-            # Convert 'Date_Debut' and 'Date_Fin' to datetime.date objects
-            result_df['Date_Debut'] = pd.to_datetime(result_df['Date_Debut']).dt.date
-            result_df['Date_Fin'] = pd.to_datetime(result_df['Date_Fin']).dt.date
+            df = self._preprocess(pd.concat(dfs))
 
-            # Now perform the filtering
-            filtered_df = result_df[
-                (result_df['Date_Debut'] <= end_date) & 
-                (result_df['Date_Fin'] >= start_date)
+            # Filtrer les résultats par les dates de début et de fin
+            filtered_df = df[
+                (df['Date_Debut'] <= end_date) & 
+                (df['Date_Fin'] >= start_date)
             ]
-            return filtered_df
+            
+            to_rename = {'Id_PRM' : 'pdl'}
+            renamed_df = filtered_df.rename(columns=to_rename)
+            
+            return renamed_df.sort_values(by=['pdl', 'Date_Facture', 'Id_EV']).copy()
         
         return DataFrame()
+        

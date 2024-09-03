@@ -52,4 +52,4 @@ class C15FluxRepository(BaseFluxRepository):
                             'Puissance_Souscrite' : 'P',
                             'Num_Depannage': 'depannage'})
         data['P'] = data['P'].astype(int)
-        return data.sort_values(['pdl', 'date'])
+        return data.sort_values(['pdl', 'date']).copy()

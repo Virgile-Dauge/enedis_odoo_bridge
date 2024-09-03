@@ -37,6 +37,17 @@ class R151FluxRepository(BaseFluxRepository):
         zip_repository = R151ZipRepository()
         dfs = [zip_repository.process_zip(z) for z in to_read]
         if dfs:
-            return pd.concat(dfs)
+            df = self._preprocess(pd.concat(dfs))
+            
+            
+            to_drop = ['Id_Calendrier_Fournisseur', 'Libelle_Calendrier_Fournisseur', 
+                       'Id_Calendrier_Distributeur', 'Libelle_Calendrier_Distributeur']
+            df = df.drop(columns=to_drop)
+            
+            to_rename = {'Id_PRM' : 'pdl'}
+            df = df.rename(columns=to_rename)
+            return df.sort_values(by=['pdl', 'Date_Releve'],).copy()
+        
+        
         
         return DataFrame()

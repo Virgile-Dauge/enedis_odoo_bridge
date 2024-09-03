@@ -19,10 +19,6 @@ class BaseZipRepository(ABC):
     def dict_to_dataframe(self, data_dict: dict[str, Any])-> DataFrame:
         pass
     
-    @abstractmethod
-    def preprocess(self)-> None:
-        pass
-    
     def process_zip(self, zip_path: Path)-> DataFrame:
         if not zip_path.is_file():
             raise FileNotFoundError(f'File {zip_path} not found.')
@@ -50,6 +46,3 @@ class BaseZipRepository(ABC):
                 return concat
             else:
                 return DataFrame()
-
-    def preprocess(self, data: DataFrame)-> DataFrame:
-        return data
