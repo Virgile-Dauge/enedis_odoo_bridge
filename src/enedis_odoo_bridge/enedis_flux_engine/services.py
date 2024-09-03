@@ -79,3 +79,9 @@ def get_CF_from_r15(df : DataFrame) -> tuple[DataFrame]:
     start_dates.columns = [col.replace('index.', '').replace('.Valeur', '') for col in start_dates.columns]
     end_dates.columns = [col.replace('index.', '').replace('.Valeur', '') for col in end_dates.columns]
     return start_dates.set_index('pdl'), end_dates.set_index('pdl')
+
+
+from .flux_repository.exp_base_flux_repository import ExpBaseFluxRepository, F15DetailFluxRepository
+def get_f15_by_date_async(root_path: Path, start_date: date, end_date: Union[date, None]=None) -> DataFrame:
+    flux_repository : ExpBaseFluxRepository = F15DetailFluxRepository(root_path)
+    return flux_repository.process(start_date, end_date)
