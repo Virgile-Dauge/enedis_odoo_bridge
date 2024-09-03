@@ -104,5 +104,27 @@ def __(f15, pdls_edn):
     return f15_el,
 
 
+@app.cell
+def __(mo):
+    mo.md(
+        r"""
+        ## Édition de la facture 
+
+        Ici, on regroupe et on somme le `Montant_HT` de l'ensemble des lignes qui ont le même `Taux_TVA_Applicable`.
+        Chacune de ses lignes sera une ligne de facture, la somme étant le coût unitaire, il faudra bien ajouter la taxe correspondante (Par ex 20%S)
+        """
+    )
+    return
+
+
+@app.cell
+def __(f15_el):
+    f15_el_next = f15_el
+    f15_el_next = f15_el_next[["Montant_HT", "Taux_TVA_Applicable"]]
+    f15_el_next = f15_el_next.groupby(["Taux_TVA_Applicable"], dropna=True).sum()
+    f15_el_next
+    return f15_el_next,
+
+
 if __name__ == "__main__":
     app.run()
