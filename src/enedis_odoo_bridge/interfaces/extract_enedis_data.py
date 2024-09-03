@@ -4,7 +4,7 @@ __generated_with = "0.8.4"
 app = marimo.App(width="medium", app_title="extract_enedis_data")
 
 
-@app.cell
+@app.cell(hide_code=True)
 async def dl_ftp():
     from download import app
     # execute the notebook
@@ -13,7 +13,7 @@ async def dl_ftp():
     return app, result
 
 
-@app.cell
+@app.cell(hide_code=True)
 def delimitation_periode():
     import marimo as mo
     import pandas as pd
@@ -92,7 +92,7 @@ def flux_c15(
 
     _c15 = _c15[_c15['date'] >= _c15['start_date']]
     _c15 = _c15[_c15['date'] <= _c15['end_date']]
-    #c15 = c15.drop(columns=['start_date', 'end_date'])
+    _c15 = _c15.drop(columns=['start_date', 'end_date'])
 
     influx = _c15[_c15['Nature_Evenement'].isin(['CFNE', 'MES'])]
     outflux = _c15[_c15['Nature_Evenement'].isin(['CFNS', 'RES'])]
@@ -105,7 +105,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def aff_c15(c15_latest, influx, mo, outflux):
     #_duplicates = _c15[c15.duplicated(subset=['pdl'], keep=False)]
 
@@ -152,7 +152,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def flux_r151(
     end_date_picker,
     flux_path,
@@ -207,6 +207,39 @@ def flux_r151(
         get_r151_by_date,
         start_index,
     )
+
+
+@app.cell
+def __(mo):
+    mo.md(r"""### F15""")
+    return
+
+
+@app.cell(hide_code=True)
+def __(
+    end_date_picker,
+    flux_path,
+    pd,
+    pdl_actifs,
+    start_date_picker,
+    switch_edn_only,
+):
+    from enedis_odoo_bridge.enedis_flux_engine import get_f15_by_date
+    f15 = get_f15_by_date(flux_path, start_date_picker.value, end_date_picker.value)
+    if switch_edn_only.value:
+        f15 = f15[f15['pdl'].isin(pdl_actifs)]
+
+    f15['start_date'] = start_date_picker.value
+    f15['start_date'] = pd.to_datetime(f15['start_date']).dt.date
+
+    f15['end_date'] = end_date_picker.value
+    f15['end_date'] = pd.to_datetime(f15['end_date']).dt.date
+
+    f15 = f15[f15['Date_Effet'] >= f15['start_date']]
+    f15 = f15[f15['Date_Effet'] <= f15['end_date']]
+    f15 = f15.drop(columns=['start_date', 'end_date'])
+    f15
+    return f15, get_f15_by_date
 
 
 @app.cell
@@ -608,7 +641,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def taxes(b, c, cc, cg, consos, np, tcta):
     taxes = consos.copy()
     # Calcul part fixe
