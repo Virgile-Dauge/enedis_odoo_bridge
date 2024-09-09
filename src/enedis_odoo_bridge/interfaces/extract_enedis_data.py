@@ -13,7 +13,7 @@ async def dl_ftp():
     return app, result
 
 
-@app.cell(hide_code=True)
+@app.cell
 def delimitation_periode():
     import marimo as mo
     import pandas as pd
@@ -215,7 +215,7 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def __(
     end_date_picker,
     flux_path,

@@ -31,8 +31,8 @@ def __(eed):
 
 @app.cell
 def __(mo):
-    coef_turpe = mo.ui.range_slider(start=-20, stop=20, label="Modificateur du Turpe")
-    coef_prod = mo.ui.range_slider(start=-20, stop=20, label="Coef du prix prod")
+    coef_turpe = mo.ui.slider(start=-20, stop=20, label="Modificateur du Turpe")
+    coef_prod = mo.ui.slider(start=-20, stop=20, label="Coef du prix prod")
     coef_turpe, coef_prod
     return coef_prod, coef_turpe
 
@@ -50,7 +50,6 @@ def __(mo):
         $m_{var} = kwh_{base} \times tarif_{base} + - prod - turpe_{var}$
 
         $kwh_{base} \times tarif_{base}$
-
         """
     )
     return

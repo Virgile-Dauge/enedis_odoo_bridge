@@ -4,7 +4,7 @@ __generated_with = "0.8.4"
 app = marimo.App(width="medium", app_title="Facturation")
 
 
-@app.cell(hide_code=True)
+@app.cell
 async def enedis_embeding():
     import marimo as mo
 

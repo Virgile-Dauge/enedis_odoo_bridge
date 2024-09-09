@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.7.8"
+__generated_with = "0.7.17"
 app = marimo.App(width="medium", app_title="Taxes")
 
 
@@ -83,7 +83,7 @@ def flux_c15(end_date_picker, flux_path, start_date_picker):
     return c15, datetime, get_c15_by_date, pd
 
 
-@app.cell
+@app.cell(hide_code=True)
 def tri_flux_c15(c15, mo):
     duplicates = c15[c15.duplicated(subset=['Id_PRM'], keep=False)]
 
@@ -169,7 +169,7 @@ def __(b, cc, cg, mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __(b, cc, cg, influx, tcta):
     import numpy as np
     taxes = influx[['Date_Evenement', 'Id_PRM', 'Formule_Tarifaire_Acheminement', 'Puissance_Souscrite', 'end_date']].copy().set_index('Id_PRM')
