@@ -422,10 +422,8 @@ def __(mo, s521_df):
     selection = alt.selection_multi(fields=['TimeSeriesID'], bind='legend')
 
     # Créer le graphique Altair
-    chart = alt.Chart(s521_df).mark_area(
-        color="lightblue",
-        interpolate='step-after',
-        line=True
+    chart = alt.Chart(s521_df
+    ).mark_rule(
     ).encode(
         x=alt.X('Timestamp:T', axis=alt.Axis(title='Temps')),
         y=alt.Y('NetQty:Q', axis=alt.Axis(title='Charge nette (kWh)')),
