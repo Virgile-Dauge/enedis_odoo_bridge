@@ -125,19 +125,6 @@ def __(Path):
 
 
 @app.cell
-def __(Path, pd):
-    def load_xml_flux_data(flux_name: str, data_dir: Path) -> pd.DataFrame:
-        _dataframes = []
-        for _file in (data_dir / flux_name).glob("*.xml"):
-            _df = pd.read_xml(_file)
-            _dataframes.append(_df)
-        if _dataframes:
-            return pd.concat(_dataframes, ignore_index=True)
-        return pd.DataFrame()
-    return load_xml_flux_data,
-
-
-@app.cell
 def __(mo):
     mo.md(r"""# S518""")
     return
@@ -261,7 +248,6 @@ def __(mo):
         | Élément       | **Type de Production**              | Libellé de la filière de production :<br>Pour un point de mesure en injection, ajout du libellé de la filière de production.<br>Champ vide en soutirage.                                                                                                                                                                                                                   |
         | Élément       | **Numéro de contrat**               | Numéro de contrat pour les contrats de type CARD-S, AUX, CSC, IMPL, CARD-I, CRAE, CSD, CSD BTSUP et CSD HTA.<br>Champ vide pour les autres types de contrat et en cas d’éléments manquants.                                                                                                                                                                                |
         | Élément       | **Participation ACC**               | Ce champ permet d’identifier les PRM participant à une opération d’ACC (Autoconsommation Collective). La valeur est alors renseignée à « ACC ».<br>Champ vide pour les PRM ne participant pas à une opération d’ACC sur la période.                                                                                                                                        |
-
         """
     )
     return
@@ -325,10 +311,144 @@ def __(data_dir, load_csv_flux_data):
 
 
 @app.cell
-def __(data_dir, load_xml_flux_data):
-    s521_df = load_xml_flux_data('S521', data_dir)
+def __(DataFrame, Path, pd):
+    import xml.etree.ElementTree as ET
+    from datetime import datetime, timedelta
+
+
+    def timeseries_df_from_xml(xml : Path) -> DataFrame:
+        # Charger le fichier XML
+        tree = ET.parse(xml)
+        root = tree.getroot()
+
+        data = []
+
+        # Parcourir les éléments AccountTimeSeries
+        for ats in root.findall('AccountTimeSeries'):
+            # Extraire les métadonnées
+            ts_id = ats.find('SendersTimeSeriesIdentification').attrib['v']
+            business_type = ats.find('BusinessType').attrib['v']
+            product = ats.find('Product').attrib['v']
+            area = ats.find('Area').attrib['v']
+            area_coding_scheme = ats.find('Area').attrib.get('codingScheme', '')
+            party = ats.find('Party').attrib['v']
+            party_coding_scheme = ats.find('Party').attrib.get('codingScheme', '')
+            measurement_unit = ats.find('MeasurementUnit').attrib['v']
+            profile = ats.find('Profile').attrib['v'] if ats.find('Profile') is not None else ''
+            profile_role = ats.find('ProfileRole').attrib['v'] if ats.find('ProfileRole') is not None else ''
+
+            # On viens récup le début de chaque période,
+            # puis timestamper chaque mesure en fonction de sa position et de l'intervalle de mesure.
+            for period in ats.findall('Period'):
+                time_interval = period.find('TimeInterval').attrib['v']
+                start_str, end_str = time_interval.split('/')
+                start_time = datetime.fromisoformat(start_str.replace('Z', ''))
+                resolution = period.find('Resolution').attrib['v']
+
+                if resolution == 'PT30M':
+                    delta = timedelta(minutes=30)
+                else:
+                    delta = timedelta(minutes=0)  # Gérer d'autres cas si nécessaire
+
+                for account_interval in period.findall('AccountInterval'):
+                    pos = int(account_interval.find('Pos').attrib['v'])
+                    in_qty = float(account_interval.find('InQty').attrib['v'])
+                    out_qty = float(account_interval.find('OutQty').attrib['v'])
+                    timestamp = start_time + delta * (pos - 1)
+
+                    data.append({
+                        'TimeSeriesID': ts_id,
+                        'BusinessType': business_type,
+                        'Product': product,
+                        'Area': area,
+                        'AreaCodingScheme': area_coding_scheme,
+                        'Party': party,
+                        'PartyCodingScheme': party_coding_scheme,
+                        'Profile': profile,
+                        'ProfileRole': profile_role,
+                        'MeasurementUnit': measurement_unit,
+                        'Timestamp': timestamp,
+                        'InQty': in_qty,
+                        'OutQty': out_qty
+                    })
+        if data:
+            df = pd.DataFrame(data)
+            df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True).dt.tz_convert('Europe/Paris').dt.tz_localize(None)
+            return df
+        return pd.DataFrame()
+    return ET, datetime, timedelta, timeseries_df_from_xml
+
+
+@app.cell
+def __(Path, data_dir, pd, timeseries_df_from_xml):
+    def list_and_concat_xml(data_dir: Path) -> pd.DataFrame:
+        _dataframes = []
+        for _file in (data_dir / 'S521').glob("*.xml"):
+            _df = timeseries_df_from_xml(_file)
+            _dataframes.append(_df)
+        if _dataframes:
+            return pd.concat(_dataframes, ignore_index=True)
+        return pd.DataFrame()
+
+    s521_df = list_and_concat_xml(data_dir)
     s521_df
-    return s521_df,
+    return list_and_concat_xml, s521_df
+
+
+@app.cell
+def __(mo):
+    mo.md(
+        r"""
+        # TIMEZONE DU CUL
+
+        Dans les xml, l'intervale est donnée `2024-06-28T22:00Z/2024-06-29T22:00Z`
+
+        Z = zuluTime = UTC.
+        """
+    )
+    return
+
+
+@app.cell
+def __():
+    return
+
+
+@app.cell
+def __(mo, s521_df):
+    import altair as alt
+    s521_df['NetQty'] = s521_df['OutQty'] - s521_df['InQty']
+    # Créer une sélection pour interagir avec la légende
+    selection = alt.selection_multi(fields=['TimeSeriesID'], bind='legend')
+
+    # Créer le graphique Altair
+    chart = alt.Chart(s521_df).mark_area(
+        color="lightblue",
+        interpolate='step-after',
+        line=True
+    ).encode(
+        x=alt.X('Timestamp:T', axis=alt.Axis(title='Temps')),
+        y=alt.Y('NetQty:Q', axis=alt.Axis(title='Charge nette (kWh)')),
+        color=alt.Color('TimeSeriesID:N', legend=alt.Legend(title='TimeSeriesID')),
+        opacity=alt.condition(selection, alt.value(1), alt.value(0.1)),
+        tooltip=['TimeSeriesID:N', 'Timestamp:T', 'NetQty:Q'],
+    ).add_selection(
+        selection
+    ).properties(
+        title='Courbe de charge pour toutes les séries temporelles',
+        width=800,
+        height=400
+    ).interactive(bind_y=False)
+
+    mo_chart = mo.ui.altair_chart(chart)
+    return alt, chart, mo_chart, selection
+
+
+@app.cell
+def __(mo_chart):
+    #mo.vstack([chart, mo.ui.table(mo_chart.value)])
+    mo_chart
+    return
 
 
 if __name__ == "__main__":
