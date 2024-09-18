@@ -85,6 +85,58 @@ def download_status(data_dir, download_new_files, env):
     return files, recursively_decrypt_zip_files
 
 
+@app.cell(hide_code=True)
+def __(mo):
+    mo.md(
+        r"""
+        # Les acronymes utilisés :
+          - **PDM** : Point de Mesure
+          - **NEB** : Nouvelle Entité de Bilan
+          - **RE** : Responsable d'Équilibre
+          - **BGC** : Bilan Global de Consommation
+          - **PRM** : Point de Référence de Mesure
+          - **ACC** : Autoconsommation Collective
+          - **SI** : Système d'Information
+          - **CRE** : Commission de Régulation de l'Énergie
+          - **CdC** : Courbe de Charge
+          - **IdX** : Index
+        """
+    )
+    return
+
+
+@app.cell
+def __(Path):
+    import pandas as pd
+    def load_csv_flux_data(flux_name: str, header_columns: list[str], data_columns: list[str], data_dir: Path) -> pd.DataFrame:
+        _dataframes = []
+        for _file in (data_dir / flux_name).glob("*.csv"):
+            _header_df = pd.read_csv(_file, sep=';', nrows=1, names=header_columns)
+            _header_values = _header_df.iloc[0].tolist()
+            _df = pd.read_csv(_file, sep=';', skiprows=1, header=None)
+            _df.columns = data_columns
+            for i, col_name in enumerate(header_columns):
+                _df[col_name] = _header_values[i]
+            _dataframes.append(_df)
+        if _dataframes:
+            return pd.concat(_dataframes, ignore_index=True)
+        return pd.DataFrame()
+    return load_csv_flux_data, pd
+
+
+@app.cell
+def __(Path, pd):
+    def load_xml_flux_data(flux_name: str, data_dir: Path) -> pd.DataFrame:
+        _dataframes = []
+        for _file in (data_dir / flux_name).glob("*.xml"):
+            _df = pd.read_xml(_file)
+            _dataframes.append(_df)
+        if _dataframes:
+            return pd.concat(_dataframes, ignore_index=True)
+        return pd.DataFrame()
+    return load_xml_flux_data,
+
+
 @app.cell
 def __(mo):
     mo.md(r"""# S518""")
@@ -148,40 +200,135 @@ def __(mo):
     return
 
 
-@app.cell(hide_code=True)
-def __(data_dir):
-    import pandas as pd
-
+@app.cell
+def __(data_dir, load_csv_flux_data):
     _header_columns = ["IDFLUX", "NOMFLUX", "EICCODE", "BGCSTART", "BGCID", "VERSION", "BGCAGE", "DATEGENERATION", "BGCAge", "BGCAgeVersion"]
     _data_columns = ["PDM_CODE", "IDENT_EXTERNE", "SISOURCE", "CENTRE", "SSPROFIL", "USAGEFACTOR", "STARTTIME", "STOPTIME", "VAL", "FUEXTREME", "DATE_CALCUL", "PS", "METHODE", "DATEDEBUTFU", "DATEFINFU"]
 
-    # List to store dataframes
-    _dataframes = []
-
-    # Loop through all CSV files
-    for _file in (data_dir / "S518").glob("*.csv"):
-        # First, read the file to extract the header row
-        _header_df = pd.read_csv(_file, sep=';', nrows=1, names=_header_columns)
-        _header_values = _header_df.iloc[0].tolist()
-        # Now, read the data (skipping the header row)
-        _df = pd.read_csv(_file, sep=';', skiprows=1, header=None)
-        
-        # Assign data columns to the DataFrame
-        _df.columns = _data_columns
-        
-        # Add the header values as new columns in the DataFrame
-        for i, col_name in enumerate(_header_columns):
-            _df[col_name] = _header_values[i]
-        
-        # Append the DataFrame to the list
-        _dataframes.append(_df)
-
     # Concatenate all dataframes
-    s518_df = pd.concat(_dataframes, ignore_index=True)
+    s518_df = load_csv_flux_data("S518", _header_columns, _data_columns, data_dir)
 
     # Display final dataframe
     s518_df
-    return col_name, i, pd, s518_df
+    return s518_df,
+
+
+@app.cell(hide_code=True)
+def __(mo):
+    mo.md(
+        r"""
+        # S507
+
+        ## Entête
+
+        | Type de champ | Nom du champ                   | Définition                                                                                          |
+        |---------------|--------------------------------|-----------------------------------------------------------------------------------------------------|
+        | Élément       | **Titre du rapport**           | « R03 : Liste des points de mesure par RE »                                                         |
+        | Élément       | **Code EIC du domaine GRD**    | Code EIC du domaine GRD (Il s’agit du code en Y)                                                    |
+        | Élément       | **Code EIC RE**                | Code EIC RE (il s’agit du code en X)                                                                |
+        | Élément       | **Date Début BGC**             | Samedi de début de période BGC : AAMMJJ                                                             |
+        | Élément       | **Identifiant BGC**            | Identifiant du BGC utilisé pour le Rapport                                                          |
+        | Élément       | **Date de génération du rapport** | Date système AAAAMMJJHHMMSS                                                                      |
+        | Élément       | **BGCAge**                     | Âge de publication du BGC (sous forme S1, M1, M3, M6, M12, M14) (uniquement pour le flux S507)      |
+        | Élément       | **BGCAgeVersion**              | Numéro d’incrément de la version de l’âge du bilan publié (uniquement pour le flux S507)            |
+        """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def __(mo):
+    mo.md(
+        r"""
+        ## Contenu
+
+        | Type de champ | Nom du champ                  | Définition                                                                                                                                                                                                                                                                                                                                                                 |
+        |---------------|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+        | Élément       | **Identifiant du Point de Mesure** | N° PDC ou n° PDL ou n° PADT ou n° PRM identifiant le point de mesure dans le SI Source, ou Identifiant de la NEB dans le cas d’une NEB RE-Site.                                                                                                                                                                                                                            |
+        | Élément       | **Mode de Traitement Appliqué**     | « PROFILE » pour profilé, « TR » pour télé relevé, ou « NEB » dans le cas d’une NEB RE-Site. Cette information explicite le type d’agrégat dans lequel le site est pris en compte dans le BGC associé au flux S507 publié.                                                                                                                                                 |
+        | Élément       | **Système Source**                  | Code du SI source auquel est rattaché le PDM (COF, CLI, DIS, FEL, GCP, SGE, COS, GIN) ou « STM » dans le cas d’un contrat NEB.<br><br>Le code **"COF"** est utilisé pour les points consommateurs associés aux producteurs participant à une opération d'autoconsommation collective. Ces points consommateurs se voient attribuer l'énergie produite qui est autoconsommée dans le cadre de l'opération. |
+        | Élément       | **Type de Compte**                  | « CONS » pour point de mesure consommateur (soutirage) ou dans le cas d’une NEB RE-Site.<br>« PROD » pour point de mesure producteur (injection).                                                                                                                                                                                                                          |
+        | Élément       | **Code commune**                    | Actuellement code INSEE sur 5 caractères numériques.<br>Champ vide dans le cas d’une NEB RE-Site.                                                                                                                                                                                                                                                                          |
+        | Élément       | **Profil**                          | Code profil. Non renseigné si Télé relevé.<br>Champ vide dans le cas d’une NEB RE-Site.                                                                                                                                                                                                                                                                                    |
+        | Élément       | **Date de début**                   | Début d’activité du PDM pour ce RE dans la période (généralement samedi de début de période BGC) ou date de début de la NEB dans le cas d’une NEB RE-Site.                                                                                                                                                                                                                |
+        | Élément       | **Date de fin**                     | Fin d’activité du PDM pour ce RE dans la période (généralement vendredi de fin de période BGC) ou date de fin de la NEB dans le cas d’une NEB RE-Site.                                                                                                                                                                                                                    |
+        | Élément       | **Message**                         | Libellé d’anomalie le cas échéant ou site concerné par la NEB dans le cas d’une NEB RE-Site.                                                                                                                                                                                                                                                                               |
+        | Élément       | **Code EIC Fournisseur**            | Code EIC du titulaire du contrat (en soutirage ou injection).<br><br>**NB :** le champ sera vide pour les titulaires de contrats CARD/CAE et pour les NEB RE-site.                                                                                                                                                                                                         |
+        | Élément       | **Tension**                         | Pour un point de mesure en soutirage télé relevé et en soutirage profilé.<br>Champ vide en injection, pour les NEB RE-site et en cas d’éléments manquants.                                                                                                                                                                                                                 |
+        | Élément       | **Mode de Traitement Prévu**        | Pour un point de mesure en soutirage ou injection (télé relevé et profilé), ce champ fait référence au Mode de traitement attribué a priori au point selon ses caractéristiques contractuelles selon les directives de la CRE : **CdC** ou **IdX**.<br><br>Ce champ permet de repérer les sites dont le mode de traitement prévu est ‘CdC’ mais qui sont profilés dans le BGC (« PROFILE » dans le champ Mode de Traitement Appliqué). C’est le cas des sites dont aucun point de courbe n’a pu être collecté depuis sa mise en service et dont l’énergie est alors valorisée en utilisant les modalités du profilage.<br><br>Champ vide en cas d’éléments manquants. |
+        | Élément       | **Calendrier Fournisseur**          | Code du calendrier fournisseur : « FP000001 » et « FC000001 ».<br>Champ vide en injection et pour les NEB RE-site.                                                                                                                                                                                                                                                        |
+        | Élément       | **Puissance Souscrite**             | Valeur de la puissance souscrite en kVA pour les sites en BT et en kW pour les sites en HTA. Présent en soutirage et vide en injection et pour les NEB RE-site.                                                                                                                                                                                                           |
+        | Élément       | **Type de Production**              | Libellé de la filière de production :<br>Pour un point de mesure en injection, ajout du libellé de la filière de production.<br>Champ vide en soutirage.                                                                                                                                                                                                                   |
+        | Élément       | **Numéro de contrat**               | Numéro de contrat pour les contrats de type CARD-S, AUX, CSC, IMPL, CARD-I, CRAE, CSD, CSD BTSUP et CSD HTA.<br>Champ vide pour les autres types de contrat et en cas d’éléments manquants.                                                                                                                                                                                |
+        | Élément       | **Participation ACC**               | Ce champ permet d’identifier les PRM participant à une opération d’ACC (Autoconsommation Collective). La valeur est alors renseignée à « ACC ».<br>Champ vide pour les PRM ne participant pas à une opération d’ACC sur la période.                                                                                                                                        |
+
+        """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def __(mo):
+    mo.md(
+        r"""
+        Dans notre cas, en soutirage, on ne dispose pas des 2 dernières valeures :
+
+        | Type de champ | Nom du champ           | Définition                                                                                                                                                                                                                                                    |
+        |---------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+        | Élément       | **Numéro de contrat**  | Numéro de contrat pour les contrats de type CARD-S, AUX, CSC, IMPL, CARD-I, CRAE, CSD, CSD BTSUP et CSD HTA<br>Champ vide pour les autres types de contrat et en cas d’éléments manquants.                                                                     |
+        | Élément       | **Participation ACC**  | Ce champ permet d’identifier les PRM participant à une opération d’ACC (Autoconsommation Collective), La valeur est alors renseignée à « ACC ».<br>Champs vide pour les PRM ne participant pas à une opération d’ACC sur la période.                           |
+        """
+    )
+    return
+
+
+@app.cell
+def __(Path, data_dir):
+    def rename_txt_to_csv(directory: Path):
+        for _file in directory.glob("*.txt"):
+            _file.rename(_file.with_suffix(".csv"))
+
+    rename_txt_to_csv(data_dir/"S507")
+    return rename_txt_to_csv,
+
+
+@app.cell(hide_code=True)
+def __(data_dir, load_csv_flux_data):
+    _header_columns = ["Titre du rapport",
+                       "Code EIC du domaine GRD",
+                       "Code EIC RE",
+                       "Date Début BGC",
+                       "Identifiant BGC",
+                       "Date de génération du rapport",
+                       "BGCAge",
+                       "BGCAgeVersion"]
+    _data_columns = ["Identifiant du Point de Mesure",
+                     "Mode de Traitement Appliqué",
+                     "Système Source",
+                     "Type de Compte",
+                     "Code commune",
+                     "Profil",
+                     "Date de début",
+                     "Date de fin",
+                     "Message",
+                     "Code EIC Fournisseur",
+                     "Tension",
+                     "Mode de Traitement Prévu",
+                     "Calendrier Fournisseur",
+                     "Puissance Souscrite",
+                     "Type de Production",]
+                     # "Numéro de contrat",
+                     # "Participation ACC"]
+    s507_df = load_csv_flux_data("S507", _header_columns, _data_columns, data_dir)
+    s507_df
+    return s507_df,
+
+
+@app.cell
+def __(data_dir, load_xml_flux_data):
+    s521_df = load_xml_flux_data('S521', data_dir)
+    s521_df
+    return s521_df,
 
 
 if __name__ == "__main__":
