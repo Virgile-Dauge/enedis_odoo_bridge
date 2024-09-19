@@ -268,7 +268,7 @@ def __(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __(Path, data_dir):
     def rename_txt_to_csv(directory: Path):
         for _file in directory.glob("*.txt"):
@@ -310,7 +310,7 @@ def __(data_dir, load_csv_flux_data):
     return s507_df,
 
 
-@app.cell
+@app.cell(hide_code=True)
 def __(DataFrame, Path, pd):
     import xml.etree.ElementTree as ET
     from datetime import datetime, timedelta
@@ -381,16 +381,16 @@ def __(DataFrame, Path, pd):
 
 @app.cell
 def __(Path, data_dir, pd, timeseries_df_from_xml):
-    def list_and_concat_xml(data_dir: Path) -> pd.DataFrame:
+    def list_and_concat_xml(dir: Path) -> pd.DataFrame:
         _dataframes = []
-        for _file in (data_dir / 'S521').glob("*.xml"):
+        for _file in dir.glob("*.xml"):
             _df = timeseries_df_from_xml(_file)
             _dataframes.append(_df)
         if _dataframes:
             return pd.concat(_dataframes, ignore_index=True)
         return pd.DataFrame()
 
-    s521_df = list_and_concat_xml(data_dir)
+    s521_df = list_and_concat_xml(data_dir / 'S521')
     s521_df
     return list_and_concat_xml, s521_df
 
@@ -399,7 +399,7 @@ def __(Path, data_dir, pd, timeseries_df_from_xml):
 def __(mo):
     mo.md(
         r"""
-        # TIMEZONE DU CUL
+        # TIMEZONE DE *%#$#8
 
         Dans les xml, l'intervale est donnée `2024-06-28T22:00Z/2024-06-29T22:00Z`
 
@@ -418,34 +418,66 @@ def __():
 def __(mo, s521_df):
     import altair as alt
     s521_df['NetQty'] = s521_df['OutQty'] - s521_df['InQty']
-    # Créer une sélection pour interagir avec la légende
-    selection = alt.selection_multi(fields=['TimeSeriesID'], bind='legend')
-
-    # Créer le graphique Altair
-    chart = alt.Chart(s521_df
-    ).mark_rule(
+    _chart = alt.Chart(s521_df[s521_df['ProfileRole'] == 'D_TENS']
+    ).mark_area(
+        interpolate='step-after',
+        opacity=0.7,  # Adjust as needed
+        clip=True
     ).encode(
-        x=alt.X('Timestamp:T', axis=alt.Axis(title='Temps')),
-        y=alt.Y('NetQty:Q', axis=alt.Axis(title='Charge nette (kWh)')),
+        x=alt.X('Timestamp:T', axis=alt.Axis(title='Time')),
+        y=alt.Y('NetQty:Q', axis=alt.Axis(title='Net Quantity (kWh)'), stack=None),
         color=alt.Color('TimeSeriesID:N', legend=alt.Legend(title='TimeSeriesID')),
-        opacity=alt.condition(selection, alt.value(1), alt.value(0.1)),
-        tooltip=['TimeSeriesID:N', 'Timestamp:T', 'NetQty:Q'],
-    ).add_selection(
-        selection
+        tooltip=[
+            alt.Tooltip('TimeSeriesID:N', title='Time Series ID'),
+            alt.Tooltip('Timestamp:T', title='Timestamp', format='%Y-%m-%d %H:%M'),
+            alt.Tooltip('NetQty:Q', title='Net Quantity (kWh)', format=',.2f')
+        ]
     ).properties(
-        title='Courbe de charge pour toutes les séries temporelles',
-        width=800,
+        title='Load Curve with Filled Area and Step-After Interpolation',
+        width=900,
         height=400
     ).interactive(bind_y=False)
-
-    mo_chart = mo.ui.altair_chart(chart)
-    return alt, chart, mo_chart, selection
+    mo.ui.altair_chart(_chart)
+    return alt,
 
 
 @app.cell
-def __(mo_chart):
-    #mo.vstack([chart, mo.ui.table(mo_chart.value)])
-    mo_chart
+def __(mo):
+    mo.md(r"""# S505""")
+    return
+
+
+@app.cell
+def __(data_dir, list_and_concat_xml):
+    s505_df = list_and_concat_xml(data_dir / 'S505')
+    s505_df
+    return s505_df,
+
+
+@app.cell
+def __(alt, mo, s505_df):
+    s505_df['NetQty'] = s505_df['OutQty'] - s505_df['InQty']
+    _chart = alt.Chart(s505_df
+    ).mark_area(
+        interpolate='step-after',
+        opacity=0.7,  # Adjust as needed
+        clip=True
+    ).encode(
+        x=alt.X('Timestamp:T', axis=alt.Axis(title='Time')),
+        y=alt.Y('NetQty:Q', axis=alt.Axis(title='Net Quantity (kWh)'), stack=None),
+        color=alt.Color('TimeSeriesID:N', legend=alt.Legend(title='TimeSeriesID')),
+        tooltip=[
+            alt.Tooltip('TimeSeriesID:N', title='Time Series ID'),
+            alt.Tooltip('Timestamp:T', title='Timestamp', format='%Y-%m-%d %H:%M'),
+            alt.Tooltip('NetQty:Q', title='Net Quantity (kWh)', format=',.2f'),
+            alt.Tooltip('Profile:O', title='Profile')
+        ]
+    ).properties(
+        title='Load Curve with Filled Area and Step-After Interpolation',
+        width=900,
+        height=400
+    ).interactive(bind_y=False)
+    mo.ui.altair_chart(_chart)
     return
 
 
