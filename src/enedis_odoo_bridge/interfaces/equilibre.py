@@ -455,9 +455,19 @@ def __(data_dir, list_and_concat_xml):
 
 
 @app.cell
-def __(alt, mo, s505_df):
+def __(mo, s505_df):
+    _profiles = s505_df['Profile'].unique().tolist()
+    selected_profiles = mo.ui.table(label="Select Profiles", data=_profiles)
+    selected_profiles
+    return selected_profiles,
+
+
+@app.cell
+def __(alt, mo, s505_df, selected_profiles):
     s505_df['NetQty'] = s505_df['OutQty'] - s505_df['InQty']
-    _chart = alt.Chart(s505_df
+
+    _to_display = s505_df[s505_df['Profile'].isin(selected_profiles.value)]
+    _chart = alt.Chart(_to_display
     ).mark_area(
         interpolate='step-after',
         opacity=0.7,  # Adjust as needed
