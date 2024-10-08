@@ -1,0 +1,85 @@
+C15:
+  row_level: './/PRM'
+  metadata_fields:
+    Unité: 'En_Tete_Flux/Unite_Mesure_Index'
+  data_fields:
+    Date_Releve: 'Donnees_Releve/Date_Releve'
+    pdl: 'Id_PRM'
+    Id_Calendrier: 'Donnees_Releve/Id_Calendrier'
+    Ref_Situation_Contractuelle: 'Donnees_Releve/Ref_Situation_Contractuelle'
+    Type_Compteur: 'Donnees_Releve/Type_Compteur'
+    Motif_Releve: 'Donnees_Releve/Motif_Releve'
+    Ref_Demandeur: 'Donnees_Releve/Ref_Demandeur'
+    Id_Affaire: 'Donnees_Releve/Id_Affaire'
+  nested_fields:
+    - parent_path: ''
+      child_path: 'Donnees_Releve/Classe_Temporelle_Distributeur'
+      id_field: 'Id_Classe_Temporelle'
+      value_field: 'Valeur'
+F12:
+  file_regex: 'FL_\d+_\d+\.xml$'
+  row_level: './/Element_Valorise'
+  metadata_fields:
+    Num_Facture: 'Rappel_En_Tete/Num_Facture'
+    Date_Facture: 'Rappel_En_Tete/Date_Facture'
+  data_fields:
+    Num_Sous_Lot: '../Num_Sous_Lot'
+    Type_Facturation: '../Type_Facturation'
+    pdl: '../Id_PRM'
+    Code_Segmentation_ERDF: '../Code_Segmentation_ERDF'
+    Puissance_Ponderee: '../Puissance_Ponderee'
+    Tarif_Souscrit: '../Tarif_Souscrit'
+    Num_Depannage: '../Num_Depannage'
+    Id_EV: 'Id_EV'
+    Taux_TVA_Applicable: 'Taux_TVA_Applicable'
+    Montant_HT: 'Acheminement/Montant_HT'
+    Libelle_EV: 'Libelle_EV'
+  nested_fields: []
+F15:
+  row_level: './/Element_Valorise'
+  metadata_fields:
+    Num_Facture: 'Rappel_En_Tete/Num_Facture'
+    Date_Facture: 'Rappel_En_Tete/Date_Facture'
+  data_fields:
+    Type_Facturation: '../../Type_Facturation'
+    pdl: '../../Donnees_PRM/Id_PRM'
+    Id_EV: 'Id_EV'
+    Taux_TVA_Applicable: 'Taux_TVA_Applicable'
+    Montant_HT: 'Montant_HT'
+    Date_Debut: 'Date_Debut'
+    Date_Fin: 'Date_Fin'
+    Libelle_EV: 'Libelle_EV'
+  nested_fields: []
+R15:
+  
+  row_level: './/PRM'
+  metadata_fields:
+    Unité: 'En_Tete_Flux/Unite_Mesure_Index'
+  data_fields:
+    Date_Releve: 'Donnees_Releve/Date_Releve'
+    pdl: 'Id_PRM'
+    Id_Calendrier: 'Donnees_Releve/Id_Calendrier'
+    Ref_Situation_Contractuelle: 'Donnees_Releve/Ref_Situation_Contractuelle'
+    Type_Compteur: 'Donnees_Releve/Type_Compteur'
+    Motif_Releve: 'Donnees_Releve/Motif_Releve'
+    Ref_Demandeur: 'Donnees_Releve/Ref_Demandeur'
+    Id_Affaire: 'Donnees_Releve/Id_Affaire'
+  nested_fields:
+    - prefix: ''
+      child_path: 'Donnees_Releve/Classe_Temporelle_Distributeur'
+      id_field: 'Id_Classe_Temporelle'
+      value_field: 'Valeur'
+R151:
+  row_level: './/PRM'
+  metadata_fields:
+    Unité: 'En_Tete_Flux/Unite_Mesure_Index'
+  data_fields:
+    Date_Releve: 'Donnees_Releve/Date_Releve'
+    pdl: 'Id_PRM'
+    Id_Calendrier_Fournisseur: 'Donnees_Releve/Id_Calendrier_Fournisseur'
+    Id_Affaire: 'Donnees_Releve/Id_Affaire'
+  nested_fields:
+    - parent_path: ''
+      child_path: 'Donnees_Releve/Classe_Temporelle_Distributeur'
+      id_field: 'Id_Classe_Temporelle'
+      value_field: 'Valeur'
