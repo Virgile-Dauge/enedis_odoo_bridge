@@ -100,6 +100,21 @@ def encrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="encrypted_
             f_out.write(encrypted_data)
     return output_file
 
+def recursively_decrypt_zip_files(directory: Path, key: bytes, iv: bytes, prefix:str, remove_encrypted: bool=False):
+    """
+    Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
+
+    Parameters:
+    directory (Path): The directory to search for ZIP files.
+    key (bytes): The AES key for decryption.
+    iv (bytes): The AES initialization vector for decryption.
+    """
+    for file in directory.rglob('*.zip'):  # Recursively find all ZIP files
+        if not file.stem.startswith('decrypted_'):  # Check if the file is not already decrypted
+            decrypted_file_path = decrypt_file(file, key, iv, prefix=prefix)
+            if remove_encrypted:
+                file.unlink()  # Remove the encrypted file after decryption
+                
 def download_decrypt_extract(sftp: paramiko.SFTPClient, remote_file: str, output_path: Path, key: bytes, iv: bytes) -> bool:
     """
     Downloads a file from SFTP, decrypts it using decrypt_file, extracts its contents, and cleans up temporary files.
