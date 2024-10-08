@@ -21,6 +21,18 @@ import tempfile
 logging.getLogger("paramiko.transport").setLevel(logging.ERROR)
 _logger = logging.getLogger('enedis_odoo_bridge')
 
+
+import warnings
+import functools
+
+def deprecated(func):
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.warn(f"Call to deprecated function {func.__name__}.",
+                      category=DeprecationWarning, stacklevel=2)
+        return func(*args, **kwargs)
+    return new_func
+
 class CustomLoggerAdapter(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         return f'{self.extra["prefix"]}{msg}', kwargs
@@ -100,6 +112,7 @@ def encrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="encrypted_
             f_out.write(encrypted_data)
     return output_file
 
+@deprecated
 def recursively_decrypt_zip_files(directory: Path, key: bytes, iv: bytes, prefix:str, remove_encrypted: bool=False):
     """
     Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
@@ -114,7 +127,7 @@ def recursively_decrypt_zip_files(directory: Path, key: bytes, iv: bytes, prefix
             decrypted_file_path = decrypt_file(file, key, iv, prefix=prefix)
             if remove_encrypted:
                 file.unlink()  # Remove the encrypted file after decryption
-                
+
 def download_decrypt_extract(sftp: paramiko.SFTPClient, remote_file: str, output_path: Path, key: bytes, iv: bytes) -> bool:
     """
     Downloads a file from SFTP, decrypts it using decrypt_file, extracts its contents, and cleans up temporary files.
