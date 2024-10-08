@@ -6,15 +6,18 @@ from pathlib import Path
 
 from datetime import date, datetime
 from calendar import monthrange
-import hashlib
-import json
+
 from Crypto.Cipher import AES
-from typing import Union, Any
-from rich.progress import Progress
+from typing import Callable
+
 import pandas as pd
 from pandas import Timestamp
 import paramiko
 import logging
+from typing import Callable
+
+import tempfile
+
 logging.getLogger("paramiko.transport").setLevel(logging.ERROR)
 _logger = logging.getLogger('enedis_odoo_bridge')
 
@@ -46,7 +49,7 @@ def load_prefixed_dotenv(prefix: str='EOB_', required: list[str]=[]) -> dict[str
     
     return check_required({k.replace(prefix, ''): v for k, v in env_variables.items() if k.startswith(prefix)}, required)
 
-def gen_dates(current: Union[date, None]=None) -> tuple[date, date]:
+def gen_dates(current: date | None=None) -> tuple[date, date]:
     if not current:
         current = date.today()
     
@@ -59,184 +62,13 @@ def gen_dates(current: Union[date, None]=None) -> tuple[date, date]:
     ending_date = current.replace(day = monthrange(current.year, current.month)[1])
     return starting_date, ending_date
 
-def gen_Timestamps(current: Union[date, None]) -> tuple[Timestamp, Timestamp]:
+def gen_Timestamps(current: date | None) -> tuple[Timestamp, Timestamp]:
     start_date, ending_date = gen_dates(current)
 
     start_TimeStamps = pd.to_datetime(datetime.combine(start_date, datetime.min.time())).tz_localize('Etc/GMT-2')
     end_TimeStamps = pd.to_datetime(datetime.combine(ending_date, datetime.max.time())).tz_localize('Etc/GMT-2')
     return start_TimeStamps, end_TimeStamps
-
-def pro_rata(start: date, end: date) -> float:
-
-    if end < start or (abs(end.month-start.month)> 1 and not (end.year-start.year==1 and start.month==12 and end.month==1)):
-        raise ValueError(f'Dates are not valid, end month must be same or next month of start month : {start} - {end}')
-    
-    if start.month == end.month:
-        return (end.day-start.day+1)/monthrange(start.year, start.month)[1]
-    
-    x = (monthrange(start.year, start.month)[1]+1 - start.day)/monthrange(start.year, start.month)[1]
-    y = (end.day)/monthrange(end.year, end.month)[1]
-    return  x + y
-
-def unzip(zip_path: Path) -> Path:
-    """
-    Extracts the contents of the given zip file to a specified directory.
-
-    Parameters:
-    zip_path (str): The path to the zip file to be extracted.
-
-    Returns:
-    Path: The path to the directory where the contents of the zip file were extracted.
-
-    Raises:
-    FileNotFoundError: If the specified zip file does not exist.
-
-    This function uses the built-in `zipfile` module to extract the contents of the zip file to a specified directory. It first creates the specified directory if it does not already exist. Then, it extracts the contents of the zip file to that directory.
-
-    Example:
-    ```python
-    extracted_dir = unzip('/path/to/myfile.zip')
-    print(extracted_dir)  # Output: '/path/to/myfile/'
-    ```
-    """
-    if not zip_path.exists():
-        raise FileNotFoundError(f'File {zip_path} not found.')
-    
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        out = Path(zip_path).parent.joinpath(Path(zip_path).stem)
-        #print(f'creating {out} directory and extracting')
-        out.mkdir(exist_ok=True)
-
-        zip_ref.extractall(out)
-        return out
-    
-def download_new_files(config: dict[str, str], tasks: list[str], local: Path) -> dict[str, Path]:
-    """
-    Downloads specified directories from the SFTP server using paramiko, skipping files that already exist locally.
-
-    Parameters:
-    config (dict[str, str]): Configuration dictionary containing SFTP details.
-    tasks (List[str]): list of directory types to download (e.g., ['R15', 'C15']).
-    local (Path): The local root path to save downloaded files. Defaults to '~/data/flux_enedis/'.
-
-    Returns:
-    dict[str, Path]: A dictionary mapping each task to its local path containing downloaded files.
-    """
-    required =  ['FTP_ADDRESS', 'FTP_USER', 'FTP_PASSWORD',]+[f'FTP_{k}_DIR' for k in tasks]
-    config = check_required(config, required)
-    completed_tasks = {}
-
-    transport = paramiko.Transport((config['FTP_ADDRESS'], 22))
-    transport.connect(username=config['FTP_USER'], password=config['FTP_PASSWORD'])
-    sftp = paramiko.SFTPClient.from_transport(transport)
-
-    for type_flux in tasks:
-        distant = '/flux_enedis/' + str(config[f'FTP_{type_flux}_DIR'])
-        local_dir = local.joinpath(type_flux).expanduser()
-        if not local_dir.exists():
-            local_dir.mkdir(parents=True, exist_ok=True)
-
-        # Get a list of all existing files in local_dir and its subdirectories
-        existing_files = {file.name for file in local_dir.rglob('*') if file.is_file()}
-
-        try:
-            files_to_download = sftp.listdir(distant)
-            local_files = []
-            for file_name in files_to_download:
-                if file_name not in existing_files:
-                    remote_file_path = os.path.join(distant, file_name)
-                    local_file_path = local_dir.joinpath(file_name)
-                    sftp.get(remote_file_path, str(local_file_path))
-                    local_files.append(local_file_path)
-        except Exception as e:
-            _logger.error(f"Failed to download files from {distant}: {e}")
-
-        completed_tasks[type_flux] = local_files
-
-    sftp.close()
-    transport.close()
-
-    return completed_tasks
-
-def download_new_files_with_progress(config: dict[str, str], tasks: list[str], local: Path, prefix: str="decrypted_") -> list[Path]:
-    """
-    Downloads specified directories from the SFTP server using paramiko, skipping files that already exist locally.
-    Now includes progress tracking with rich.
-
-    Parameters:
-    config (dict[str, str]): Configuration dictionary containing SFTP details.
-    tasks (list[str]): list of directory types to download (e.g., ['R15', 'C15']).
-    local (Path): The local root path to save downloaded files. Defaults to '~/data/flux_enedis/'.
-
-    Returns:
-    dict[str, Path]: A dictionary mapping each task to its local path containing downloaded files.
-    """
-    required =  ['FTP_ADDRESS', 'FTP_USER', 'FTP_PASSWORD',]+[f'FTP_{k}_DIR' for k in tasks]
-    config = check_required(config, required)
-    completed_tasks = {}
-
-    transport = paramiko.Transport((config['FTP_ADDRESS'], 22))
-    transport.connect(username=config['FTP_USER'], password=config['FTP_PASSWORD'])
-    sftp = paramiko.SFTPClient.from_transport(transport)
-
-    local_files = []
-    for type in tasks:
-        distant = '/flux_enedis/' + str(config[f'FTP_{type}_DIR'])
-        local_dir = local.joinpath(type).expanduser()
-        if not local_dir.exists():
-            local_dir.mkdir(parents=True, exist_ok=True)
-
-        existing_files = {file.name.replace(prefix, '') if file.name.startswith(prefix) else file.name for file in local_dir.rglob('*') if file.is_file()}
-
-        try:
-            files_to_download = [f for f in sftp.listdir(distant) if f not in existing_files]
-            with Progress() as progress:
-                task = progress.add_task(f"[green]Downloading {len(files_to_download)} {type} files...", total=len(files_to_download))
-                
-                for file_name in files_to_download:
-                    remote_file_path = os.path.join(distant, file_name)
-                    local_file_path = local_dir.joinpath(file_name)
-                    # Update progress bar with each file download
-                    sftp.get(remote_file_path, str(local_file_path), callback=lambda x, y: progress.update(task, advance=1))
-                    local_files.append(local_file_path)
-        except Exception as e:
-            _logger.error(f"Failed to download files from {distant}: {e}")
- 
-    sftp.close()
-    transport.close()
-
-    return local_files
-
-def calculate_checksum(file_path: Path) -> str:
-    # Initialize SHA-256 hash object
-    sha256 = hashlib.sha256()
-
-    # Open file in binary mode
-    with open(file_path, "rb") as file:
-        # Read file in chunks to handle large files
-        for chunk in iter(lambda: file.read(4096), b""):
-            # Update hash object with current chunk
-            sha256.update(chunk)
-
-    # Return hexadecimal representation of hash
-    return sha256.hexdigest()
-
-def file_changed(file_path: Path, stored_checksum: str) -> bool:
-    # Calculate checksum of current archive
-    current_checksum = calculate_checksum(file_path)
-
-    # Compare current checksum with stored checksum
-    return current_checksum != stored_checksum
-
-def is_valid_json(json_string: str) -> bool:
-    try:
-        # Essayez de charger le JSON
-        json.loads(json_string)
-    except ValueError as e:
-        # Si une erreur se produit, le JSON n'est pas valide
-        return False
-    return True
-
+  
 def decrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="decrypted_") -> Path:
     if file_path.stem.startswith(prefix):
         return file_path
@@ -268,38 +100,168 @@ def encrypt_file(file_path: Path, key: bytes, iv: bytes, prefix: str="encrypted_
             f_out.write(encrypted_data)
     return output_file
 
-def recursively_decrypt_zip_files(directory: Path, key: bytes, iv: bytes, prefix:str, remove_encrypted: bool=False):
+def download_decrypt_extract(sftp: paramiko.SFTPClient, remote_file: str, output_path: Path, key: bytes, iv: bytes) -> bool:
     """
-    Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
+    Downloads a file from SFTP, decrypts it using decrypt_file, extracts its contents, and cleans up temporary files.
+
+    Args:
+    sftp (paramiko.SFTPClient): An active SFTP client connection.
+    remote_file (str): Path to the file on the remote server.
+    output_path (Path): Local path where extracted contents should be saved.
+    key (bytes): 16-byte key for AES decryption.
+    iv (bytes): 16-byte initialization vector for AES decryption.
+
+    Returns:
+    bool: True if successful, False otherwise.
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Download file
+            local_encrypted_path = Path(temp_dir) / Path(remote_file).name
+            sftp.get(remote_file, str(local_encrypted_path))
+
+            # Decrypt file using decrypt_file function
+            decrypted_path = decrypt_file(local_encrypted_path, key, iv)
+
+            # Extract contents
+            with zipfile.ZipFile(decrypted_path, 'r') as zip_ref:
+                zip_ref.extractall(output_path)
+
+            _logger.debug(f"Successfully processed {remote_file}")
+            return True
+
+        except paramiko.SSHException as e:
+            _logger.error(f"SFTP error while downloading {remote_file}: {str(e)}")
+        except ValueError as e:
+            _logger.error(f"Decryption error for {remote_file}: {str(e)}")
+        except zipfile.BadZipFile as e:
+            _logger.error(f"ZIP extraction error for {remote_file}: {str(e)}")
+        except Exception as e:
+            _logger.error(f"Unexpected error processing {remote_file}: {str(e)}")
+
+        return False
+
+def download_decrypt_extract_new_files(
+    config: dict[str, str], 
+    tasks: list[str], 
+    local: Path,
+    force: bool = False,
+    callback: Callable[[str, int, int, str], None] | None = None
+) -> list[tuple[str, str]]:
+    """
+    Downloads, decrypts, and extracts new files from the SFTP server, skipping files that have already been processed.
+    Uses a callback function for progress tracking.
 
     Parameters:
-    directory (Path): The directory to search for ZIP files.
-    key (bytes): The AES key for decryption.
-    iv (bytes): The AES initialization vector for decryption.
-    """
-    for file in directory.rglob('*.zip'):  # Recursively find all ZIP files
-        if not file.stem.startswith('decrypted_'):  # Check if the file is not already decrypted
-            decrypted_file_path = decrypt_file(file, key, iv, prefix=prefix)
-            if remove_encrypted:
-                file.unlink()  # Remove the encrypted file after decryption
+    config (dict[str, str]): Configuration dictionary containing SFTP details, key, and IV.
+    tasks (list[str]): List of directory types to process (e.g., ['R15', 'C15']).
+    local (Path): The local root path to save extracted files.
+    callback (callable, optional): A function to call for progress updates. It should accept the following parameters:
+                                   - task_type (str): The current task type being processed.
+                                   - total_files (int): Total number of files to process.
+                                   - current_file (int): Current file being processed (1-indexed).
+                                   - file_name (str): Name of the current file being processed.
 
-def recursively_decrypt_zip_files_with_progress(directory: Path, key: bytes, iv: bytes, prefix:str, remove_encrypted: bool=False)-> list[Path]:
+    Returns:
+    list[tuple[str, str]]: A list of tuples containing (zip_name, task_type) of newly processed files.
     """
-    Recursively decrypts all ZIP files in the specified directory that are not already decrypted.
+    required = ['FTP_ADDRESS', 'FTP_USER', 'FTP_PASSWORD', 'AES_KEY', 'AES_IV'] + [f'FTP_{k}_DIR' for k in tasks]
+    config = check_required(config, required)
 
-    Parameters:
-    directory (Path): The directory to search for ZIP files.
-    key (bytes): The AES key for decryption.
-    iv (bytes): The AES initialization vector for decryption.
-    """
-    files_to_decrypt = [f for f in directory.rglob('*.zip') if not f.stem.startswith('decrypted_')]
+    key = bytes.fromhex(config['AES_KEY'])
+    iv = bytes.fromhex(config['AES_IV'])
+
+    csv_path = local / "processed_zips.csv"
+    if force and csv_path.exists():
+        csv_path.unlink()
     
-    decrypted_files = []
-    with Progress() as progress:
-        task = progress.add_task(f"[green]Decrypting {len(files_to_decrypt)} files...", total=len(files_to_decrypt))
-        for f in files_to_decrypt:
-            decrypted_files += [decrypt_file(f, key, iv, prefix=prefix)]
-            if remove_encrypted:
-                f.unlink()  # Remove the encrypted file after decryption
-            progress.update(task, advance=1)
-    return decrypted_files
+    if csv_path.exists():
+        df = pd.read_csv(csv_path)
+        processed_zips = set(df['zip_name'])
+    else:
+        df = pd.DataFrame(columns=['zip_name', 'flux'])
+        processed_zips = set()
+
+    transport = paramiko.Transport((config['FTP_ADDRESS'], 22))
+    transport.connect(username=config['FTP_USER'], password=config['FTP_PASSWORD'])
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
+    newly_processed_files = []
+
+    try:
+        for task_type in tasks:
+            distant = '/flux_enedis/' + str(config[f'FTP_{task_type}_DIR'])
+            local_dir = local.joinpath(task_type)
+            local_dir.mkdir(parents=True, exist_ok=True)
+
+            try:
+                files_to_process = [f for f in sftp.listdir(distant) if f not in processed_zips]
+                total_files = len(files_to_process)
+
+                for index, file_name in enumerate(files_to_process, start=1):
+                    if callback:
+                        callback(task_type, total_files, index, file_name)
+
+                    remote_file_path = os.path.join(distant, file_name)
+                    output_path = local_dir / file_name.replace('.zip', '')
+                    
+                    success = download_decrypt_extract(sftp, remote_file_path, output_path, key, iv)
+                    
+                    if success:
+                        newly_processed_files.append((file_name, task_type))
+                        df = pd.concat([df, pd.DataFrame({'zip_name': [file_name], 'flux': [task_type]})], ignore_index=True)
+
+            except Exception as e:
+                _logger.error(f"Failed to process files from {distant}: {e}")
+
+    finally:
+        sftp.close()
+        transport.close()
+
+    df.to_csv(csv_path, index=False)
+
+    return newly_processed_files
+
+def main():
+    from rich.console import Console
+    from rich.progress import Progress
+    from rich.panel import Panel
+    # Configuration
+    config = load_prefixed_dotenv(prefix='ENEDIS_ODOO_BRIDGE_')
+
+    # List of tasks (directory types to process)
+    tasks: list[str] = ['R15', 'C15', 'F12']
+
+    # Local directory to save files
+    local: Path = Path('~/data/flux_enedis_expe').expanduser()
+
+    # Ensure the local directory exists
+    local.mkdir(parents=True, exist_ok=True)
+
+    # Rich console for pretty output
+    console = Console()
+    def simple_callback(task_type, total_files, current_file, file_name):
+        print(f"Processing {task_type}: {current_file}/{total_files} - {file_name}")
+    # Call the download function
+    try:
+        console.print(Panel("Starting file processing", style="bold blue"))
+        
+
+        newly_processed = download_decrypt_extract_new_files(
+            config, tasks, local, force=False, callback=simple_callback)
+
+
+        console.print(Panel("File processing completed", style="bold green"))
+
+        # Print summary of processed files
+        console.print("\n[bold]Processed files:[/bold]")
+        for file_name, flux in newly_processed:
+            console.print(f"- {file_name} ({flux})")
+
+        console.print(f"\n[bold]Total files processed:[/bold] {len(newly_processed)}")
+
+    except Exception as e:
+        console.print(f"[bold red]An error occurred:[/bold red] {e}")
+
+if __name__ == "__main__":
+    main()
