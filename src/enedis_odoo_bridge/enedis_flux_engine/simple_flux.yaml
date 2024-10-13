@@ -12,7 +12,7 @@ C15:
     Ref_Demandeur: 'Donnees_Releve/Ref_Demandeur'
     Id_Affaire: 'Donnees_Releve/Id_Affaire'
   nested_fields:
-    - parent_path: ''
+    - prefix: ''
       child_path: 'Donnees_Releve/Classe_Temporelle_Distributeur'
       id_field: 'Id_Classe_Temporelle'
       value_field: 'Valeur'
@@ -51,7 +51,6 @@ F15:
     Libelle_EV: 'Libelle_EV'
   nested_fields: []
 R15:
-  
   row_level: './/PRM'
   metadata_fields:
     Unité: 'En_Tete_Flux/Unite_Mesure_Index'
