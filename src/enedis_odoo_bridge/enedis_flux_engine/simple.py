@@ -125,6 +125,7 @@ def process_flux(flux_type:str, xml_dir:Path, config_path:Path|None=None):
         file_regex
     )
     return df
+
 def main():
     import time
     # Exemple R151
