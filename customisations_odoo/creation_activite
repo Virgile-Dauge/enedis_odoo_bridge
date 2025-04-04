@@ -1,0 +1,25 @@
+activity_type = env['mail.activity.type'].search([('name', '=', 'F120B')], limit=1)
+
+if not activity_type:
+    raise UserError("Type d'activité 'À faire' introuvable. Vérifiez le nom exact.")
+
+user = env['res.users'].search([('name', '=', "Facturiste d'Énergie de Nantes")], limit=1)
+if not user:
+    raise UserError("Utilisateur 'Facturiste d'Énergie de Nantes' introuvable. Vérifiez le nom exact.")
+    
+deadline = record.create_date.date() #+ datetime.timedelta(days=3)
+
+
+note = f"""
+Déclanché par passage étape : {record.x_studio_stage_id.x_name}\n
+PDL : {record.x_pdl}\n
+""" 
+
+env['mail.activity'].create({
+    'activity_type_id': activity_type.id,
+    'note': note,
+    'user_id': user.id,
+    'res_model_id': env['ir.model']._get(record._name).id,
+    'res_id': record.id,
+    'date_deadline': deadline,
+})
